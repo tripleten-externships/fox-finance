@@ -67,7 +67,7 @@ export interface EnvironmentConfig {
  * Development Environment Configuration
  */
 export const devConfig: EnvironmentConfig = {
-  name: "dev",
+  name: "fox-finance-dev",
   account: process.env.CDK_DEFAULT_ACCOUNT || "",
   region: "us-east-1",
 
@@ -90,7 +90,7 @@ export const devConfig: EnvironmentConfig = {
     backupRetentionDays: 7,
     autoPauseMinutes: 15, // Auto-pause after 15 minutes of inactivity
     instanceCount: 1,
-    databaseName: "fox-finance",
+    databaseName: "foxfinance",
   },
 
   // ECS - Minimal configuration for dev
@@ -132,7 +132,7 @@ export const devConfig: EnvironmentConfig = {
  * Production Environment Configuration
  */
 export const prodConfig: EnvironmentConfig = {
-  name: "prod",
+  name: "fox-finance-prod",
   account: process.env.CDK_DEFAULT_ACCOUNT || "",
   region: "us-east-1",
 
@@ -154,7 +154,7 @@ export const prodConfig: EnvironmentConfig = {
     maxCapacity: 8,
     backupRetentionDays: 30,
     instanceCount: 2, // Multi-AZ for HA
-    databaseName: "fox-finance",
+    databaseName: "foxfinance",
   },
 
   // ECS - Production configuration
