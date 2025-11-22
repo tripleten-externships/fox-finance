@@ -1,0 +1,11 @@
+/** @type {import('tailwindcss').Config} */
+import { createTailwindConfig } from "@fox-finance/theme/tailwind";
+
+export default createTailwindConfig({
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    // Include UI package components
+    "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
+  ],
+});

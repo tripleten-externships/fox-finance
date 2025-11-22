@@ -1,0 +1,17 @@
+{
+  "name": "fox-finance",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down",
+    "dev": "pnpm db:start && pnpm --parallel --filter './apps/admin-dashboard' --filter './apps/api' dev",
+    "storybook": "pnpm --filter ./packages/ui storybook",
+    "build": "pnpm -r build"
+  },
+  "packageManager": "pnpm@10.17.1"
+}

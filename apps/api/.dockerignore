@@ -1,0 +1,89 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+.build/
+*.tsbuildinfo
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+__tests__/
+__mocks__/
+coverage/
+.nyc_output/
+
+# Documentation
+README.md
+docs/
+*.md
+!prisma/*.md
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
+
+# Development tools
+.eslintrc*
+.prettierrc*
+.editorconfig
+nodemon.json
+jest.config.*
+tsconfig.spec.json
+
+# Docker files (we don't need these in the image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Misc
+.npmrc
+.yarnrc
+.nvmrc
