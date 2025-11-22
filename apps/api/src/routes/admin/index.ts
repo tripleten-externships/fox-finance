@@ -1,0 +1,15 @@
+import { Router } from "express";
+import { requireAuth, requireAdmin } from "../../middleware/auth";
+import clientsRouter from "./clients";
+import uploadLinksRouter from "./upload-links";
+
+const router = Router();
+
+// Apply auth middleware to all admin routes
+router.use(requireAuth);
+router.use(requireAdmin);
+
+router.use("/clients", clientsRouter);
+router.use("/upload-links", uploadLinksRouter);
+
+export default router;

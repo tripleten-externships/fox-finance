@@ -127,7 +127,6 @@ RUN echo '{\n\
   "compilerOptions": {\n\
     "baseUrl": ".",\n\
     "paths": {\n\
-      "@graphql/*": ["./dist/graphql/*"],\n\
       "@lib/*": ["./dist/lib/*"]\n\
     }\n\
   }\n\

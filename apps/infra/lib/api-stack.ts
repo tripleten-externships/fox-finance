@@ -10,7 +10,8 @@ import * as certificatemanager from "aws-cdk-lib/aws-certificatemanager";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import * as route53Targets from "aws-cdk-lib/aws-route53-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as applicationautoscaling from "aws-cdk-lib/aws-applicationautoscaling";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as kms from "aws-cdk-lib/aws-kms";
 import { Construct } from "constructs";
 import { EnvironmentConfig } from "./config";
 
@@ -29,7 +30,7 @@ export interface ApiStackProps extends cdk.StackProps {
 /**
  * API Stack
  *
- * Creates the ECS Fargate infrastructure for the GraphQL API:
+ * Creates the ECS Fargate infrastructure for the REST API:
  * - Application Load Balancer (internet-facing)
  * - ECS Cluster with Container Insights
  * - ECS Fargate Service with auto-scaling
@@ -100,6 +101,59 @@ export class ApiStack extends cdk.Stack {
       emptyOnDelete: config.name !== "prod", // Clean up images when stack is deleted
       imageScanOnPush: true, // Enable vulnerability scanning
     });
+
+    // ========================================
+    // KMS Key for S3 Encryption
+    // ========================================
+
+    /**
+     * KMS key for encrypting uploaded files in S3
+     */
+    const s3EncryptionKey = new kms.Key(this, "S3EncryptionKey", {
+      description: `${config.name} S3 bucket encryption key for uploads`,
+      enableKeyRotation: true,
+      removalPolicy:
+        config.name === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+    });
+
+    cdk.Tags.of(s3EncryptionKey).add(
+      "Name",
+      `${config.name}-s3-encryption-key`
+    );
+
+    // ========================================
+    // S3 Bucket for Uploads
+    // ========================================
+
+    /**
+     * Encrypted S3 bucket for storing uploaded documents
+     * - Uses KMS encryption
+     * - Blocks all public access
+     * - Versioned for data protection
+     * - Lifecycle rules for old versions
+     */
+    const uploadsBucket = new s3.Bucket(this, "UploadsBucket", {
+      bucketName: `${config.name}-fox-finance-uploads`,
+      encryption: s3.BucketEncryption.KMS,
+      encryptionKey: s3EncryptionKey,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      versioned: true,
+      lifecycleRules: [
+        {
+          id: "DeleteOldVersions",
+          noncurrentVersionExpiration: cdk.Duration.days(90),
+        },
+      ],
+      removalPolicy:
+        config.name === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: config.name !== "prod",
+    });
+
+    cdk.Tags.of(uploadsBucket).add("Name", `${config.name}-uploads`);
 
     // ========================================
     // SSL Certificate
@@ -359,6 +413,8 @@ export class ApiStack extends cdk.Stack {
         DATABASE_HOST: databaseCluster.clusterEndpoint.hostname,
         DATABASE_PORT: databaseCluster.clusterEndpoint.port.toString(),
         DATABASE_NAME: config.database.databaseName,
+        S3_UPLOADS_BUCKET: uploadsBucket.bucketName,
+        AWS_REGION: this.region,
       },
       secrets: {
         // Database credentials from Secrets Manager
@@ -526,6 +582,18 @@ export class ApiStack extends cdk.Stack {
       value: apiRepository.repositoryUri,
       description: "ECR repository URI for the API",
       exportName: `${config.name}-ApiRepositoryUri`,
+    });
+
+    new cdk.CfnOutput(this, "UploadsBucketName", {
+      value: uploadsBucket.bucketName,
+      description: "S3 bucket for encrypted uploads",
+      exportName: `${config.name}-UploadsBucketName`,
+    });
+
+    new cdk.CfnOutput(this, "S3EncryptionKeyId", {
+      value: s3EncryptionKey.keyId,
+      description: "KMS key ID for S3 encryption",
+      exportName: `${config.name}-S3EncryptionKeyId`,
     });
   }
 }

@@ -25,7 +25,7 @@ This project is organized as a **monorepo** using [pnpm workspaces](https://pnpm
 fox-finance/
 ├── apps/                    # Applications
 │   ├── admin-dashboard/     # React admin interface
-│   ├── api/                 # GraphQL API server
+│   ├── api/                 # REST API server
 │   └── infra/               # AWS CDK infrastructure
 └── packages/                # Shared packages
     ├── ui/                  # Component library + Storybook
@@ -37,14 +37,14 @@ fox-finance/
 ### Apps
 
 - **`admin-dashboard`** - Admin interface built with React 19, TypeScript, and Firebase Authentication for managing learning content and users
-- **`api`** - GraphQL API server powered by Apollo Server, Pothos, and Prisma ORM for data access
+- **`api`** - REST API server built with Express, TypeScript, and Prisma ORM for data access
 - **`infra`** - AWS infrastructure as code using CDK for deploying and managing cloud resources
 
 ### Packages
 
 - **`@fox-finance/ui`** - Reusable React component library built on Radix UI with Storybook documentation
 - **`@fox-finance/theme`** - Centralized design tokens (colors, spacing, typography) and theming utilities
-- **`@fox-finance/api-types`** - Auto-generated TypeScript types from GraphQL schema for type-safe API consumption
+- **`@fox-finance/api-types`** - Shared TypeScript types and schemas for type-safe API consumption
 - **`@fox-finance/config`** - Shared configuration and utility functions used across apps
 
 ### Environments
@@ -76,9 +76,7 @@ fox-finance/
 
 - [Node.js 20](https://nodejs.org/) - JavaScript runtime
 - [Express 5](https://expressjs.com/) - Web application framework
-- [Apollo Server](https://www.apollographql.com/docs/apollo-server/) - GraphQL server
-- [GraphQL](https://graphql.org/) - Query language for APIs
-- [Pothos](https://pothos-graphql.dev/) - Code-first GraphQL schema builder
+- [Zod](https://zod.dev/) - TypeScript-first schema validation
 - [Prisma ORM](https://www.prisma.io/) - Type-safe database toolkit
 
 ### Database
@@ -243,7 +241,7 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
-VITE_API_URL=http://localhost:4000/graphql
+VITE_API_URL=http://localhost:4000/api
 ```
 
 ### API Server (`apps/api/.env`)
@@ -270,8 +268,8 @@ Once setup is complete, you can run each application in development mode:
 cd apps/api
 pnpm dev
 
-# The GraphQL server will start at http://localhost:4000
-# GraphQL Playground available at http://localhost:4000/graphql
+# The REST API server will start at http://localhost:4000
+# API endpoints available at http://localhost:4000/api
 ```
 
 ### Start the Admin Dashboard
@@ -609,7 +607,7 @@ Organize imports in this order:
 ```typescript
 // External libraries
 import { useState } from "react";
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@tanstack/react-query";
 
 // Internal packages
 import { Button } from "@fox-finance/ui";
@@ -623,11 +621,11 @@ import { useAuth } from "./useAuth";
 import type { User } from "@fox-finance/api-types";
 ```
 
-### GraphQL Conventions
+### REST API Conventions
 
-- Use consistent naming: Queries start with `get`, Mutations start with action verb
-- Example: `getUserById`, `createUser`, `updateSkillProgress`
-- Keep GraphQL operations in separate `.graphql` files when possible
+- Use RESTful naming: Resources are nouns, HTTP methods indicate actions
+- Example: `GET /api/users/:id`, `POST /api/users`, `PUT /api/skills/:id/progress`
+- Group related endpoints in route modules for better organization
 
 ### Testing Standards
 
@@ -753,11 +751,11 @@ If you encounter an issue not listed here:
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [React TypeScript Cheatsheet](https://react-typescript-cheatsheet.netlify.app/)
 
-#### GraphQL
+#### REST APIs
 
-- [GraphQL Introduction](https://graphql.org/learn/)
-- [Apollo Client Docs](https://www.apollographql.com/docs/react/)
-- [Pothos GraphQL Tutorial](https://pothos-graphql.dev/docs/guide)
+- [REST API Design Best Practices](https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/)
+- [Express.js Guide](https://expressjs.com/en/guide/routing.html)
+- [Zod Documentation](https://zod.dev/)
 
 #### Database & ORM
 

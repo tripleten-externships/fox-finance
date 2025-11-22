@@ -6,17 +6,6 @@ generator client {
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
-generator pothos {
-  provider = "prisma-pothos-types"
-}
-
-generator pothosCrud {
-  provider            = "prisma-generator-pothos-codegen"
-  generatorConfigPath = "./pothos.config.js"
-  // You may also set the `generatorConfigPath` via the `POTHOS_CRUD_CONFIG_PATH` environment variable.
-  // The environment variable will override the path hardcoded here.
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -43,9 +32,9 @@ model User {
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Example placeholders for future relationships
-  // lessons      Lesson[]    @relation("AuthorLessons")
-  // progress     Progress[]
-  // rewards      Reward[]
 }
+
+// ============================================================================
+// TODO: Add your models here
+// Students should define: Client, UploadLink, DocumentRequest, Upload models
+// ============================================================================
