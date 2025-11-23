@@ -61,8 +61,10 @@ COPY packages/api-types ./packages/api-types
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
 # Generate Prisma client with linux binary target
+# IMPORTANT: Unset DATABASE_URL so Prisma client doesn't embed build-time connection string
+# This forces Prisma to always use the runtime DATABASE_URL environment variable
 WORKDIR /app/apps/api
-RUN npx prisma generate --schema=./prisma/schema.prisma
+RUN unset DATABASE_URL && npx prisma generate --schema=./prisma/schema.prisma
 
 # Build TypeScript (using tsconfig.json since tsconfig.build.json doesn't exist)
 RUN pnpm exec tsc -p tsconfig.json
