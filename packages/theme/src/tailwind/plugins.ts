@@ -1,7 +1,7 @@
 import plugin from "tailwindcss/plugin";
 
 // Custom Tailwind plugins for financial advisor theme
-export const fox-financeThemePlugin = plugin(function ({
+export const foxFinanceThemePlugin = plugin(function ({
   addUtilities,
   addComponents,
   theme,
@@ -145,7 +145,7 @@ export const accessibilityPlugin = plugin(function ({ addUtilities }) {
 
 // Export all plugins
 export const customPlugins = [
-  fox-financeThemePlugin,
+  foxFinanceThemePlugin,
   animationPlugin,
   accessibilityPlugin,
 ];
