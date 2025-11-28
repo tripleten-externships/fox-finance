@@ -318,7 +318,3 @@ The following features are scaffolded and ready for implementation:
 ## Deployment
 
 The API automatically deploys to AWS ECS Fargate when pushed to main branch. See `.github/workflows/deploy-api.yml` for details.
-
-## Support
-
-For questions or issues, contact the instructor or refer to the migration documentation in `GRAPHQL_TO_REST_MIGRATION_PLAN.md`.
