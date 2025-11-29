@@ -67,6 +67,8 @@ model Client {
 
   @@index([email])
   @@index([company])
+  @@index([firstName])
+  @@index([lastName])
 }
 
 model UploadLink {
@@ -90,10 +92,10 @@ model DocumentRequest {
   uploadLinkId       String
   requestedDocuments String[] //Array of documents
   instructions       String
-  status             UploadStatus @default(INCOMPLETE)
+  status             UploadStatus @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
 
-  @@index([requestedDocuments])
+  @@index([requestedDocuments]) //Assumption: queries in this array of requested documents will be useful.
 }
 
 model Upload {
