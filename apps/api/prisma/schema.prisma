@@ -2,13 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -25,16 +25,92 @@ enum Role {
 // ============================================================================
 
 model User {
-  id        String   @id // Firebase UID — this is your canonical user identifier
-  email     String   @unique
-  name      String?
-  photoUrl  String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id // Firebase UID — this is your canonical user identifier
+  email       String       @unique
+  name        String?
+  photoUrl    String?
+  role        Role         @default(USER)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  uploadLinks UploadLink[]
 }
 
 // ============================================================================
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+model Client {
+  id        String   @id @default(uuid()) // Firebase UID — this is your canonical user identifier
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  company   String?
+  phone     String   @unique
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadLinks UploadLink[]
+
+  @@index([status])
+}
+
+model UploadLink {
+  id        String   @id
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  isActive  Boolean
+
+  createdById      String
+  user             User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  documentRequests DocumentRequest[]
+  uploads          Upload[]
+
+  @@index([createdById]) // index on the foreign key to User
+}
+
+enum UpLoadStatus {
+  COMPLETE
+  INCOMPLETE
+}
+
+model DocumentRequest {
+  id                 String  @id     @default(uuid())
+  uploadLinkId       String
+  uploadLink         UploadLink   @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+  requestedDocuments String[]
+  instructions       String?
+  status             UpLoadStatus @default(INCOMPLETE)
+  uploads            Upload[]
+
+  @@index([uploadLinkId])
+}
+
+model Upload {
+  id                String          @id @default(uuid())
+  uploadLinkId      String
+  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
+  documentRequestId String
+  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id], onDelete: Cascade)
+  fileName          String
+  fileSize          Int
+  s3Key             String
+  s3Bucket          String
+  uploadedAt        DateTime        @default(now())
+  metadata          Json
+
+  @@index([documentRequestId])
+  @@index([uploadLinkId])
+}
+
+
+
