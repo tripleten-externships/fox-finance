@@ -30,6 +30,16 @@ enum UploadStatus {
   INCOMPLETE
 }
 
+enum DocumentType {
+  GOVERNMENT_ID
+  PASSPORT
+  PROOF_OF_ADDRESS
+  BANK_STATEMENT
+  PAY_STUB
+  TAX_RETURN
+  OTHER //Can be specified in more detail by the client in the description field
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -65,7 +75,8 @@ model Client {
   updatedAt   DateTime     @updatedAt
   uploadLinks UploadLink[]
 
-  @@index([email])
+  // @@index([email])
+  @@index([phone])
   @@index([company])
   @@index([firstName])
   @@index([lastName])
@@ -73,11 +84,11 @@ model Client {
 
 model UploadLink {
   id               String            @id
-  client           Client            @relation(fields: [clientID], references: [id], onDelete: Cascade)
-  clientID         String
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId         String
   token            String            @unique
   expiresAt        DateTime
-  isActive         Status            @default(ACTIVE)
+  isActive         Boolean           @default(false)
   createdBy        User              @relation(fields: [createdById], references: [id])
   createdById      String
   createdAt        DateTime          @default(now())
@@ -87,15 +98,21 @@ model UploadLink {
 }
 
 model DocumentRequest {
-  id                 String       @id
-  uploadLink         UploadLink   @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+  id                 String              @id
+  uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   uploadLinkId       String
-  requestedDocuments String[] //Array of documents
+  requestedDocuments RequestedDocument[] //Array of documents
   instructions       String
-  status             UploadStatus @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
+  status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
+}
 
-  @@index([requestedDocuments]) //Assumption: queries in this array of requested documents will be useful.
+model RequestedDocument {
+  id                String           @id
+  name              DocumentType //hard-coded list of document types as listed in the enum
+  description       String
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?
 }
 
 model Upload {
