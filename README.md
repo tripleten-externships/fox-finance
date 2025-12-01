@@ -500,6 +500,13 @@ Build all apps and packages for production:
 # Build everything
 pnpm build
 
+# May be necessary to run this first to build dependencies
+cd packages/theme
+pnpm build
+cd ../ui
+pnpm build
+cd ../..
+
 # Build specific app
 cd apps/admin-dashboard
 pnpm build
