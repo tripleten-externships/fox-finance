@@ -38,3 +38,12 @@ model User {
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
+
+model Client {
+  clientId       String   @id @default(uuid())
+  clientName     String
+  clientMobileNo String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+}

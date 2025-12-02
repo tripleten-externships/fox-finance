@@ -8,54 +8,88 @@ import {
 
 const router = Router();
 
-// GET /api/admin/clients - List all clients
+// GET / List all clients
 router.get("/", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { startPageNo, limit } = req.body;
+    const skip = (startPageNo - 1) * limit;
+    const result = await prisma.client.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.status(200).json({ message: "success", data: result });
   } catch (error) {
     next(error);
   }
 });
 
-// GET /api/admin/clients/:id - Get a specific client
+// GET / Get a specific client
 router.get("/:id", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { id } = req.params;
+    const result = await prisma.client.findUnique({
+      where: { clientId: id },
+    });
+    res.status(200).json({ message: "success", data: result });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/admin/clients - Create a new client
+// POST / Create a new client
 router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { clientName, clientMobileNo } = req.body;
+
+    const result = await prisma.client.create({
+      data: {
+        clientName: clientName,
+        clientMobileNo: clientMobileNo,
+      },
+    });
+
+    res.status(201).json({ message: "Inserted", data: result });
   } catch (error) {
     next(error);
   }
 });
 
-// PUT /api/admin/clients/:id - Update a client
+// PUT / Update a client
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { id } = req.params;
+    const { clientName, clientMobileNo } = req.body;
+
+    const result = await prisma.client.update({
+      where: { clientId: id },
+      data: {
+        clientName: clientName,
+        clientMobileNo: clientMobileNo,
+      },
+    });
+
+    res.status(201).json({ message: "Updated", data: result });
   } catch (error) {
     next(error);
   }
 });
 
-// DELETE /api/admin/clients/:id - Delete a client
+// DELETE / Delete a client
 router.delete("/:id", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { id } = req.params;
+
+    const result = await prisma.client.delete({
+      where: { clientId: id },
+    });
+
+    res.status(201).json({ message: "Deleted", data: result });
   } catch (error) {
     next(error);
   }
 });
 
 export default router;
+
