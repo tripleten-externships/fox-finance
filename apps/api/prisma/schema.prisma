@@ -20,21 +20,113 @@ enum Role {
   USER
 }
 
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum UploadStatus {
+  COMPLETE
+  INCOMPLETE
+}
+
+enum DocumentType {
+  GOVERNMENT_ID
+  PASSPORT
+  PROOF_OF_ADDRESS
+  BANK_STATEMENT
+  PAY_STUB
+  TAX_RETURN
+  OTHER //Can be specified in more detail by the client in the description field
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
 
 model User {
-  id        String   @id // Firebase UID — this is your canonical user identifier
-  email     String   @unique
-  name      String?
-  photoUrl  String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id // Firebase UID — this is your canonical user identifier
+  email       String       @unique
+  name        String?
+  photoUrl    String?
+  role        Role         @default(USER)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  uploadLinks UploadLink[]
 }
 
 // ============================================================================
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
+
+model Client {
+  //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
+  // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
+
+  id          String       @id
+  email       String       @unique
+  firstName   String
+  lastName    String
+  company     String
+  phone       String
+  status      Status       @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  uploadLinks UploadLink[]
+
+  // @@index([email])
+  @@index([phone])
+  @@index([company])
+  @@index([firstName])
+  @@index([lastName])
+}
+
+model UploadLink {
+  id               String            @id
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId         String
+  token            String            @unique
+  expiresAt        DateTime
+  isActive         Boolean           @default(false)
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  documentRequests DocumentRequest[]
+  uploads          Upload[]
+}
+
+model DocumentRequest {
+  id                 String              @id
+  uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+  uploadLinkId       String
+  requestedDocuments RequestedDocument[] //Array of documents
+  instructions       String
+  status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
+  uploads            Upload[]
+}
+
+model RequestedDocument {
+  id                String           @id
+  name              DocumentType //hard-coded list of document types as listed in the enum
+  description       String
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?
+}
+
+model Upload {
+  id                String          @id
+  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String
+  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String
+  fileName          String
+  fileSize          Decimal
+  s3Key             String
+  s3Bucket          String
+  uploadedAt        DateTime        @updatedAt
+  metadata          Json
+
+  @@index([fileName])
+}
