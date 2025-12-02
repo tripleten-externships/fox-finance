@@ -13,13 +13,19 @@ router.get("/", async (req, res, next) => {
   try {
     const { startPageNo, limit } = req.body;
     const skip = (startPageNo - 1) * limit;
+
     const result = await prisma.client.findMany({
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
     });
 
-    res.status(200).json({ message: "success", data: result });
+    res.status(200).json({
+      message: "Clients retrieved successfully.",
+      page: startPageNo,
+      count: result.length,
+      data: result,
+    });
   } catch (error) {
     next(error);
   }
@@ -29,10 +35,21 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
+
     const result = await prisma.client.findUnique({
       where: { clientId: id },
     });
-    res.status(200).json({ message: "success", data: result });
+
+    if (!result) {
+      return res.status(404).json({
+        message: "Client not found. Please check the ID and try again.",
+      });
+    }
+
+    res.status(200).json({
+      message: "Client details retrieved successfully.",
+      data: result,
+    });
   } catch (error) {
     next(error);
   }
@@ -44,13 +61,13 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
     const { clientName, clientMobileNo } = req.body;
 
     const result = await prisma.client.create({
-      data: {
-        clientName: clientName,
-        clientMobileNo: clientMobileNo,
-      },
+      data: { clientName, clientMobileNo },
     });
 
-    res.status(201).json({ message: "Inserted", data: result });
+    res.status(201).json({
+      message: "Client created successfully.",
+      data: result,
+    });
   } catch (error) {
     next(error);
   }
@@ -62,15 +79,15 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
     const { id } = req.params;
     const { clientName, clientMobileNo } = req.body;
 
-    const result = await prisma.client.update({
+    const updated = await prisma.client.update({
       where: { clientId: id },
-      data: {
-        clientName: clientName,
-        clientMobileNo: clientMobileNo,
-      },
+      data: { clientName, clientMobileNo },
     });
 
-    res.status(201).json({ message: "Updated", data: result });
+    res.status(200).json({
+      message: "Client information updated successfully.",
+      data: updated,
+    });
   } catch (error) {
     next(error);
   }
@@ -81,15 +98,17 @@ router.delete("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await prisma.client.delete({
+    const deleted = await prisma.client.delete({
       where: { clientId: id },
     });
 
-    res.status(201).json({ message: "Deleted", data: result });
+    res.status(200).json({
+      message: "Client deleted successfully.",
+      data: deleted,
+    });
   } catch (error) {
     next(error);
   }
 });
 
 export default router;
-
