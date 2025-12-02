@@ -41,7 +41,7 @@ export const completeUploadSchema = z.object({
   body: z.object({}),
 });
 
-export type CreateUploadLinkInput = z.infer<
+export type CreateUploadLinkBody = z.infer<
   typeof createUploadLinkSchema
 >["body"];
 export type GetPresignedUrlInput = z.infer<
