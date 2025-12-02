@@ -47,4 +47,6 @@ export type CreateUploadLinkBody = z.infer<
 export type GetPresignedUrlInput = z.infer<
   typeof getPresignedUrlSchema
 >["body"];
-export type CompleteUploadInput = z.infer<typeof completeUploadSchema>["body"];
+export type CompleteUploadInput = z.infer<
+  typeof completeUploadSchema
+>["body"];
