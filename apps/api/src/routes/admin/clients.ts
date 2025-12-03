@@ -58,10 +58,10 @@ router.get("/:id", async (req, res, next) => {
 // POST / Create a new client
 router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
-    const { clientName, clientMobileNo } = req.body;
+    const { clientName, clientMobileNo,clientEmail } = req.body;
 
     const result = await prisma.client.create({
-      data: { clientName, clientMobileNo },
+      data: { clientName, clientMobileNo,clientEmail },
     });
 
     res.status(201).json({
@@ -77,11 +77,11 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { clientName, clientMobileNo } = req.body;
+    const { clientName, clientMobileNo,clientEmail  } = req.body;
 
     const updated = await prisma.client.update({
       where: { clientId: id },
-      data: { clientName, clientMobileNo },
+      data: { clientName, clientMobileNo,clientEmail  },
     });
 
     res.status(200).json({

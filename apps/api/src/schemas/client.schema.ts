@@ -11,13 +11,22 @@ import { z } from "zod";
 // });
 
 export const createClientSchema = z.object({
-  body: z.object({}),
+  body: z.object({
+                 clientName:z.String("Client Name Should not be Empty").min(3),
+                 clientMobileNo:z.String().Optional(),
+                 clientEmail:z.String().email()
+                   
+                }),
 });
 
 export const updateClientSchema = z.object({
-  params: z.object({}),
-  body: z.object({}),
+  params: z.object({id:z.String()}),
+  body: z.object({
+                  clientName:z.String("Client Name Should not be Empty").min(3),
+                  clientMobileNo:z.String().Optional(),
+                   clientEmail:z.String().email()
+                }),
 });
-
+//compile-time validation---gives error
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];

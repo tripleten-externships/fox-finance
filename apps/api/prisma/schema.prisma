@@ -40,10 +40,11 @@ model User {
 // ============================================================================
 
 model Client {
-  clientId       String   @id @default(uuid())
+  clientId       String    @id @default(uuid())
   clientName     String
   clientMobileNo String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  clientEmail    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 }
