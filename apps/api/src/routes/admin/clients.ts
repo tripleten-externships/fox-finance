@@ -11,8 +11,32 @@ const router = Router();
 // GET /api/admin/clients - List all clients
 router.get("/", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const cursor = req.query.cursor
+
+    const users = await prisma.user.findMany({
+      take: limit,
+      ...(cursor ? {skip:1, cursor: {id: String(cursor)}} : {}),
+      where: {
+        name: req.query.search ? {contains: String(req.query.search)} : undefined,
+      },
+      orderBy: { createdAt: "desc" },
+      });
+
+      const total = await prisma.user.count({
+        where: {
+        name: req.query.search ? {contains: String(req.query.search)} : undefined,
+        },
+      })
+
+      res.setHeader("X-Total-Count", total);
+      res.json({
+        items: users,
+        total,
+        pageSize: limit,
+        totalPages: Math.ceil(total / limit),
+        nextCursor: users.length ? users[users.length -1].id : null,
+      })
   } catch (error) {
     next(error);
   }
@@ -21,8 +45,19 @@ router.get("/", async (req, res, next) => {
 // GET /api/admin/clients/:id - Get a specific client
 router.get("/:id", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const user = await prisma.user.findUnique({
+  where: {
+      id: req.params.id,
+  },
+    })
+
+    res.json({
+      id: user?.id,
+      name: user?.name,
+      email: user?.email,
+      createdAt: user?.createdAt,
+      updatedAt: user?.updatedAt,
+    });
   } catch (error) {
     next(error);
   }
