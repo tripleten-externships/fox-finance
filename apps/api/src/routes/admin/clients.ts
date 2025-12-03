@@ -5,24 +5,123 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
+import { Prisma, UploadStatus , Status  } from "@prisma/client";
+
 
 const router = Router();
+//helper function
+import { Response } from "express";
+
+const sendError = (
+  res: Response,
+  status: number,
+  message: string,
+  meta?: object
+) => {
+  return res.status(status).json({
+    error: message,
+    ...(meta && { meta }),
+  });
+};
 
 // GET /api/admin/clients - List all clients
-router.get("/", async (req, res, next) => {
+router.get("/stats", async (req, res, next) => {
+  const startTime = Date.now(); // track response time
+
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    // Run queries in parallel
+
+    const [
+     totalClients,
+      activeClients,
+      totalUploadLinks,
+      activeUploadLinks,
+      completedUploadLinks,
+      pendingFileUploads,
+      uploadsByClient,
+
+    ] = await Promise.all([
+      // Total clients
+      prisma.client.count(),
+
+      // Active clients
+      prisma.client.count({ where: { status: Status.ACTIVE } }),
+
+      // Total upload links
+      prisma.uploadLink.count(),
+
+       // Active upload links (still incomplete)
+      prisma.uploadLink.count({ where: { status: UploadStatus.INCOMPLETE } }),
+
+           // Completed upload links
+      prisma.uploadLink.count({ where: { status: UploadStatus.COMPLETE } }),
+ // Pending file uploads (requests not yet complete)
+      prisma.documentRequest.count({ where: { status: UploadStatus.INCOMPLETE } }),
+
+     // Group uploads by client
+      prisma.upload.groupBy({
+        by: ["uploadLinkId"],
+        _count: { id: true },
+      }),
+    ]);
+
+    const responseTime = Date.now() - startTime;
+
+  res.json({
+      totalClients,
+      activeClients,
+      uploadMetrics: {
+        totalUploadLinks,
+        activeUploadLinks,
+        completedUploadLinks,
+        pendingFileUploads,
+        uploadsByClient,
+      },
+      performance: {
+        responseTimeMs: responseTime,
+        under200ms: responseTime < 200,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
+
 // GET /api/admin/clients/:id - Get a specific client
 router.get("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { id } = req.params;
+    // Optional: validate UUID format
+    const uuidRegex = /^[0-9a-fA-F-]{36}$/;
+    if (!uuidRegex.test(id)) {
+      return sendError(res, 400, "Invalid UUID format");
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id },
+      include: {
+        uploadLinks: {
+          select: {
+            id: true,
+            createdAt: true,
+            isActive: true,
+          },
+          include: {
+            uploads: true,
+          },
+        },
+        _count: {
+          select: { uploadLinks: true },
+        },
+      },
+    });
+    if (!client) {
+      return sendError(res, 404, "Client not found");
+    }
+    res.json(client);
   } catch (error) {
     next(error);
   }
@@ -32,8 +131,32 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { email, phone, firstName, lastName, company, status } = req.body;
+    const client = await prisma.client.create({
+      data: {
+        email,
+        phone,
+        ...(firstName && { firstName }), // optional fields are omitted entirely if not provided.
+        ...(lastName && { lastName }),
+        ...(company && { company }),
+        status,
+      },
+    });
+    res.status(201).json(client);
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const target = error.meta?.target as string[] | undefined;
+      let field = "unknown";
+      if (Array.isArray(target)) field = target.join(", ");
+      else if (typeof target === "string") field = target;
+      return sendError(res, 409, `Duplicate value for field: ${field}`, {
+        code: error.code,
+      });
+    }
+
     next(error);
   }
 });
@@ -42,8 +165,29 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
-  } catch (error) {
+    const clientId = req.params.id; //UUID string
+    const data = req.body;
+    const updatedClient = await prisma.client.update({
+      where: { id: clientId },
+      data,
+    });
+    res.status(200).json(updatedClient);
+  } catch (error: unknown) {
+    // Narrow to Prisma known error
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return sendError(res, 404, "Client not found", { code: error.code });
+    }
+    // Optional: handle constraint violations (e.g., unique email)
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2002" || error.code === "P2003")
+    ) {
+      return sendError(res, 409, "Constraint violation", { code: error.code });
+    }
+
     next(error);
   }
 });
@@ -52,9 +196,23 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
-  } catch (error) {
-    next(error);
+    const clientId = req.params.id; // UUID string
+    const deletedClient = await prisma.client.delete({
+      where: { id: clientId },
+    });
+    res.status(200).json({
+      message: "Client deleted successfully",
+      client: deletedClient,
+    });
+  } catch (error: any) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      sendError(res, 404, "Client not found");
+    } else {
+      next(error);
+    }
   }
 });
 
