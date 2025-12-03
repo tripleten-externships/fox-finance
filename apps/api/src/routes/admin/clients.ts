@@ -5,8 +5,7 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
-import { Prisma, UploadStatus , Status  } from "@prisma/client";
-
+import { Prisma, UploadStatus, Status } from "@prisma/client";
 
 const router = Router();
 //helper function
@@ -33,14 +32,13 @@ router.get("/stats", async (req, res, next) => {
     // Run queries in parallel
 
     const [
-     totalClients,
+      totalClients,
       activeClients,
       totalUploadLinks,
       activeUploadLinks,
       completedUploadLinks,
       pendingFileUploads,
       uploadsByClient,
-
     ] = await Promise.all([
       // Total clients
       prisma.client.count(),
@@ -51,15 +49,17 @@ router.get("/stats", async (req, res, next) => {
       // Total upload links
       prisma.uploadLink.count(),
 
-       // Active upload links (still incomplete)
+      // Active upload links (still incomplete)
       prisma.uploadLink.count({ where: { status: UploadStatus.INCOMPLETE } }),
 
-           // Completed upload links
+      // Completed upload links
       prisma.uploadLink.count({ where: { status: UploadStatus.COMPLETE } }),
- // Pending file uploads (requests not yet complete)
-      prisma.documentRequest.count({ where: { status: UploadStatus.INCOMPLETE } }),
+      // Pending file uploads (requests not yet complete)
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.INCOMPLETE },
+      }),
 
-     // Group uploads by client
+      // Group uploads by client
       prisma.upload.groupBy({
         by: ["uploadLinkId"],
         _count: { id: true },
@@ -68,26 +68,31 @@ router.get("/stats", async (req, res, next) => {
 
     const responseTime = Date.now() - startTime;
 
-  res.json({
-      totalClients,
-      activeClients,
-      uploadMetrics: {
-        totalUploadLinks,
-        activeUploadLinks,
-        completedUploadLinks,
-        pendingFileUploads,
-        uploadsByClient,
+    res.json({
+      data: {
+        totalClients,
+        activeClients,
+        uploadMetrics: {
+          totalUploadLinks,
+          activeUploadLinks,
+          completedUploadLinks,
+          pendingFileUploads,
+          uploadsByClient,
+        },
       },
-      performance: {
-        responseTimeMs: responseTime,
-        under200ms: responseTime < 200,
+      meta: {
+        performance: {
+          responseTimeMs: responseTime,
+          under200ms: responseTime < 200,
+        },
+        generatedAt: new Date().toISOString(),
       },
     });
   } catch (error) {
+    sendError(res, 500, "Failed to fetch stats", { error });
     next(error);
   }
 });
-
 
 // GET /api/admin/clients/:id - Get a specific client
 router.get("/:id", async (req, res, next) => {
@@ -102,15 +107,23 @@ router.get("/:id", async (req, res, next) => {
 
     const client = await prisma.client.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
         uploadLinks: {
           select: {
             id: true,
             createdAt: true,
             isActive: true,
-          },
-          include: {
-            uploads: true,
+            status: true,
+            uploads: {
+              select: {
+                id: true,
+                fileName: true, // adjust to your schema
+              },
+            },
           },
         },
         _count: {
@@ -118,11 +131,19 @@ router.get("/:id", async (req, res, next) => {
         },
       },
     });
+
     if (!client) {
       return sendError(res, 404, "Client not found");
     }
-    res.json(client);
+    res.json({
+      data: client,
+      meta: {
+        requestedId: id,
+        retrievedAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
+    sendError(res, 500, "Failed to fetch client", { error });
     next(error);
   }
 });
@@ -141,9 +162,24 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
         ...(company && { company }),
         status,
       },
+      select: {
+        id: true, // UUID string
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        company: true,
+        status: true,
+        createdAt: true,
+      },
     });
-    res.status(201).json(client);
-  } catch (error) {
+    res.status(201).json({
+      data: client,
+      meta: {
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
@@ -156,7 +192,7 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
         code: error.code,
       });
     }
-
+    sendError(res, 500, "Failed to create client", { error });
     next(error);
   }
 });
@@ -165,13 +201,35 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const clientId = req.params.id; //UUID string
+    const { id } = req.params; //UUID string
     const data = req.body;
+    //  Optional: validate UUID format
+    const uuidRegex = /^[0-9a-fA-F-]{36}$/;
+    if (!uuidRegex.test(id)) {
+      return sendError(res, 400, "Invalid UUID format");
+    }
+
     const updatedClient = await prisma.client.update({
-      where: { id: clientId },
+      where: { id },
       data,
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        company: true,
+        status: true,
+        updatedAt: true,
+      },
     });
-    res.status(200).json(updatedClient);
+    res.status(200).json({
+      data: updatedClient,
+      meta: {
+        updatedAt: new Date().toISOString(),
+        requestedId: id,
+      },
+    });
   } catch (error: unknown) {
     // Narrow to Prisma known error
     if (
@@ -187,7 +245,7 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
     ) {
       return sendError(res, 409, "Constraint violation", { code: error.code });
     }
-
+    sendError(res, 500, "Failed to update client", { error });
     next(error);
   }
 });
@@ -196,21 +254,42 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const clientId = req.params.id; // UUID string
+    const { id } = req.params; // UUID string
+    // Optional: validate UUID format
+    const uuidRegex = /^[0-9a-fA-F-]{36}$/;
+    if (!uuidRegex.test(id)) {
+      return sendError(res, 400, "Invalid UUID format");
+    }
+
     const deletedClient = await prisma.client.delete({
-      where: { id: clientId },
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        company: true,
+        status: true,
+      },
     });
     res.status(200).json({
-      message: "Client deleted successfully",
-      client: deletedClient,
+      data: deletedClient,
+      meta: {
+        deletedAt: new Date().toISOString(),
+        requestedId: id,
+        message: "Client deleted successfully",
+      },
     });
   } catch (error: any) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2025"
     ) {
-      sendError(res, 404, "Client not found");
+      return sendError(res, 404, "Client not found", { code: error.code });
     } else {
+      sendError(res, 500, "Failed to delete client", { error });
+
       next(error);
     }
   }
