@@ -51,13 +51,13 @@ fox-finance/
 
 #### Development
 
-- [GraphQL API](https://api.dev.fox-finance.net/)
+- [REST API](https://api.dev.fox-finance.net/)
 - [Storybook](https://storybook.dev.fox-finance.net/)
 - [Admin Dashboard](https://dev.fox-finance.net/)
 
 #### Production
 
-- [GraphQL API](https://api.fox-finance.net/)
+- [REST API](https://api.fox-finance.net/)
 - [Storybook](https://storybook.fox-finance.net/?path=/docs/ui-badge--docs)
 - [Admin Dashboard](https://app.fox-finance.net/auth/login)
 
@@ -100,7 +100,6 @@ fox-finance/
 
 - [pnpm](https://pnpm.io/) - Fast, disk-efficient package manager
 - [Docker Compose](https://docs.docker.com/compose/) - Local development environment
-- [GraphQL Code Generator](https://the-guild.dev/graphql/codegen) - Auto-generate TypeScript types from GraphQL
 - [Storybook](https://storybook.js.org/) - Component documentation and testing
 
 ## ✅ Prerequisites
@@ -220,16 +219,6 @@ pnpm prisma generate
 cd ../..
 ```
 
-### 6. Generate GraphQL Types
-
-After Prisma generates the database client, generate TypeScript types for the GraphQL API:
-
-```bash
-cd apps/api
-pnpm codegen
-cd ../..
-```
-
 ## 🔐 Environment Variables
 
 ### Admin Dashboard (`apps/admin-dashboard/.env`)
@@ -337,14 +326,6 @@ Whenever you need to modify the database schema, follow this workflow:
 
    This regenerates the type-safe Prisma Client based on your schema.
 
-4. **Run GraphQL Codegen**
-
-   ```bash
-   pnpm codegen
-   ```
-
-   This generates TypeScript types in `packages/api-types` from your GraphQL schema, ensuring type safety across the frontend and backend.
-
 ### Useful Database Commands
 
 ```bash
@@ -405,7 +386,7 @@ Write clear, descriptive commit messages that explain **what** and **why**:
 git commit -m "feat(dashboard): add user progress visualization component
 
 - Created ProgressChart component using Recharts
-- Integrated with GraphQL API for real-time data
+- Integrated with API for real-time data
 - Added responsive design for mobile devices
 
 Refs: ST-42"
@@ -451,7 +432,7 @@ Refs: JIRA-ID
 
 ## 🎯 What Changed
 
-- Added GraphQL query to fetch user progress data
+- Added query to fetch user progress data
 - Implemented interactive node clicking for skill details
 - Added unit tests for tree rendering logic
 
@@ -518,6 +499,13 @@ Build all apps and packages for production:
 ```bash
 # Build everything
 pnpm build
+
+# May be necessary to run this first to build dependencies
+cd packages/theme
+pnpm build
+cd ../ui
+pnpm build
+cd ../..
 
 # Build specific app
 cd apps/admin-dashboard
@@ -777,7 +765,6 @@ If you encounter an issue not listed here:
 - **ESLint** - JavaScript/TypeScript linting
 - **Prettier** - Code formatting
 - **Prisma** - Prisma schema syntax highlighting
-- **GraphQL** - GraphQL syntax highlighting and autocomplete
 - **Tailwind CSS IntelliSense** - TailwindCSS class autocomplete
 - **Error Lens** - Inline error display
 
@@ -800,7 +787,6 @@ pnpm type-check           # Check TypeScript types
 pnpm prisma migrate dev   # Create and apply migration
 pnpm prisma studio        # Open Prisma Studio GUI
 pnpm prisma generate      # Generate Prisma Client
-pnpm codegen              # Generate GraphQL types
 
 # Docker
 docker-compose up -d      # Start containers in background

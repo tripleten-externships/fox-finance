@@ -1,7 +1,7 @@
 export { tailwindConfig, createTailwindConfig } from "./config";
 export {
   customPlugins,
-  fox-financeThemePlugin,
+  foxFinanceThemePlugin,
   animationPlugin,
   accessibilityPlugin,
 } from "./plugins";
