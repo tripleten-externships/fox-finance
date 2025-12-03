@@ -2,6 +2,10 @@ import { Router } from "express";
 import { prisma } from "../../lib/prisma";
 import { validate } from "../../middleware/validation";
 import {
+  degradeIfDatabaseUnavailable,
+  UnavailableError,
+} from "src/utils/degredation";
+import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";

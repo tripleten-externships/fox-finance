@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { logger } from "../utils/logger";
 
 declare global {
   // Prevent multiple Prisma instances in dev (Hot Reload fix)
@@ -9,9 +10,27 @@ declare global {
 export const prisma =
   global.prisma ||
   new PrismaClient({
-    log: ["query", "error", "warn"],
+    log: [
+      { emit: "event", level: "query" },
+      { emit: "event", level: "error" },
+      { emit: "event", level: "warn" },
+    ],
   });
 
 if (process.env.NODE_ENV !== "production") {
   global.prisma = prisma;
 }
+
+prisma.$on("error" as never, (e: Prisma.LogEvent) => {
+  logger.error("Prisma error log event", {
+    target: e.target,
+    message: e.message,
+  });
+});
+
+prisma.$on("warn" as never, (e: Prisma.LogEvent) => {
+  logger.warn("Prisma warning", {
+    target: e.target,
+    message: e.message,
+  });
+});
