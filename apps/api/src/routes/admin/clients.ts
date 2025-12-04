@@ -11,14 +11,19 @@ const router = Router();
 // GET /api/admin/clients - List all clients
 router.get("/", async (req, res, next) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const limit = Math.min((Number.isInteger(Number(req.query.limit)) && Number(req.query.limit) > 0 
+    ? Number(req.query.limit) 
+    : 20), 
+    100
+  );
+
     const cursor = req.query.cursor
 
     const users = await prisma.user.findMany({
       take: limit,
       ...(cursor ? {skip:1, cursor: {id: String(cursor)}} : {}),
       where: {
-        name: req.query.search ? {contains: String(req.query.search)} : undefined,
+        name: req.query.search ? {contains: String(req.query.search), mode: 'insensitive'} : undefined,
       },
       orderBy: { createdAt: "desc" },
       });
@@ -34,8 +39,8 @@ router.get("/", async (req, res, next) => {
         items: users,
         total,
         pageSize: limit,
-        totalPages: Math.ceil(total / limit),
-        nextCursor: users.length ? users[users.length -1].id : null,
+        totalPages: Math.ceil(total / limit), // UI convenience only
+        nextCursor: users.length === limit ? users[users.length -1].id : null,
       })
   } catch (error) {
     next(error);
