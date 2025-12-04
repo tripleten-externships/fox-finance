@@ -34,16 +34,6 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model UploadLink {
-  id              String   @id @default(cuid())
-  token           String   @unique
-  expiresAt       DateTime
-  clientId        String
-  documentRequests Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
 // ============================================================================
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
