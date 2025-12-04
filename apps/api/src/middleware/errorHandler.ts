@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { UnavailableError } from "../utils/degredation";
 
 export function errorHandler(
   err: Error,
@@ -10,6 +11,11 @@ export function errorHandler(
 
   if (res.headersSent) {
     return next(err);
+  }
+
+  // Handle UnavailableError specifically
+  if (err instanceof UnavailableError) {
+    return res.status(503).json({ error: "Service Temporarily Unavailable" });
   }
 
   res.status(500).json({

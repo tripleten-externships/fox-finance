@@ -4,7 +4,7 @@ import { validate } from "../../middleware/validation";
 import {
   degradeIfDatabaseUnavailable,
   UnavailableError,
-} from "src/utils/degredation";
+} from "../../utils/degredation";
 import {
   createClientSchema,
   updateClientSchema,
@@ -16,7 +16,13 @@ const router = Router();
 router.get("/", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const clients = await degradeIfDatabaseUnavailable(() =>
+      // finds all clients including their upload links
+      prisma.client.findMany({
+        include: { uploadLinks: true },
+      })
+    );
+    res.status(200).json(clients);
   } catch (error) {
     next(error);
   }
@@ -26,7 +32,13 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const clientById = await degradeIfDatabaseUnavailable(() =>
+      // finds a client by ID
+      prisma.client.findUnique({
+        where: { id: req.params.id },
+      })
+    );
+    res.status(200).json(clientById);
   } catch (error) {
     next(error);
   }
@@ -36,7 +48,13 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const client = await degradeIfDatabaseUnavailable(() =>
+      // creates a new client
+      prisma.client.create({
+        data: req.body,
+      })
+    );
+    res.status(200).json(client);
   } catch (error) {
     next(error);
   }
@@ -46,7 +64,14 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const updateClient = await degradeIfDatabaseUnavailable(() =>
+      // updates a client by ID
+      prisma.client.update({
+        where: { id: req.params.id },
+        data: req.body,
+      })
+    );
+    res.status(200).json(updateClient);
   } catch (error) {
     next(error);
   }
@@ -55,8 +80,12 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
 // DELETE /api/admin/clients/:id - Delete a client
 router.delete("/:id", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const deletedClient = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.delete({
+        where: { id: req.params.id },
+      })
+    );
+    res.status(200).json(deletedClient);
   } catch (error) {
     next(error);
   }
