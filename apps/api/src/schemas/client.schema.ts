@@ -34,9 +34,5 @@ export const updateClientSchema = z.object({
 });
 //compile-time validation---gives error
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
-<<<<<<< HEAD
-export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
-=======
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
 
->>>>>>> 6679233689eb333bd116078b5b16269f701f087c

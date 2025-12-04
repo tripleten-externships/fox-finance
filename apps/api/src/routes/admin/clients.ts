@@ -9,21 +9,11 @@ import {
 const router = Router();
 
 // GET / List all clients
-router.get("/", async (req, res, next) => {
+router.get("/api/admin/clients", async (req, res, next) => {
   try {
-    const { startPageNo, limit } = req.body;
-    const skip = (startPageNo - 1) * limit;
-
-    const result = await prisma.client.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    });
-
+    const result = await prisma.client.findMany();
     res.status(200).json({
       message: "Clients retrieved successfully.",
-      page: startPageNo,
-      count: result.length,
       data: result,
     });
   } catch (error) {
@@ -32,12 +22,12 @@ router.get("/", async (req, res, next) => {
 });
 
 // GET / Get a specific client
-router.get("/:id", async (req, res, next) => {
+router.get("/api/admin/clients/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const result = await prisma.client.findUnique({
-      where: { clientId: id },
+      where: { id: id },
     });
 
     if (!result) {
@@ -56,12 +46,13 @@ router.get("/:id", async (req, res, next) => {
 });
 
 // POST / Create a new client
-router.post("/", validate(createClientSchema), async (req, res, next) => {
+router.post("/api/admin/clients", async (req, res, next) => {
   try {
-    const { clientName, clientMobileNo,clientEmail } = req.body;
+    console.log("Body", req.body)
+    const { firstName, lastName,email,company, phone } = req.body;
 
     const result = await prisma.client.create({
-      data: { clientName, clientMobileNo,clientEmail },
+      data: { firstName, lastName,email,company, phone },
     });
 
     res.status(201).json({
@@ -74,14 +65,14 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
 });
 
 // PUT / Update a client
-router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
+router.put("/api/admin/clients/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { clientName, clientMobileNo,clientEmail  } = req.body;
+    const { firstName, lastName,email,company, phone   } = req.body;
 
     const updated = await prisma.client.update({
-      where: { clientId: id },
-      data: { clientName, clientMobileNo,clientEmail  },
+      where: { id: id },
+      data: { firstName, lastName,email,company, phone  },
     });
 
     res.status(200).json({
@@ -94,12 +85,12 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
 });
 
 // DELETE / Delete a client
-router.delete("/:id", async (req, res, next) => {
+router.delete("/api/admin/clients/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const deleted = await prisma.client.delete({
-      where: { clientId: id },
+      where: { id: id },
     });
 
     res.status(200).json({
@@ -110,5 +101,7 @@ router.delete("/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+
 
 export default router;
