@@ -39,14 +39,3 @@ model User {
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
 
-model Client {
-  id        String    @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String
-  company   String
-  phone     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-}
