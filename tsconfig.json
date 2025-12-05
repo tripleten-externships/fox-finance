@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "types": ["node"],
+
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "Node",
@@ -8,7 +10,8 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    
   },
-  "include": ["apps", "packages"]
+  "include": ["apps", "packages", "prisma.config.ts", "prisma/**/*.prisma", "apps/**/*"]
 }

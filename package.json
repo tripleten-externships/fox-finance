@@ -13,5 +13,15 @@
     "storybook": "pnpm --filter ./packages/ui storybook",
     "build": "pnpm -r build"
   },
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.17.1",
+  "devDependencies": {
+    "@prisma/config": "7.1.0",
+    "@types/node": "^24.5.2",
+    "@types/pg": "8.15.6",
+    "prisma": "^7.1.0"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.1.0",
+    "pg": "8.16.3"
+  }
 }
