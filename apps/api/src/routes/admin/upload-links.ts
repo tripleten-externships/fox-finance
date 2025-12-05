@@ -46,11 +46,11 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
 router.patch(
   "/:id/deactivate",
   async (req: AuthenticatedRequest, res, next) => {
+    const { id } = req.params;
+
     try {
       const uploadLink = await prisma.uploadLink.findUnique({
-        where: {
-          id: req.params.id,
-        },
+        where: { id },
       });
 
       if (!uploadLink) {
@@ -60,9 +60,7 @@ router.patch(
       }
 
       const updatedLink = await prisma.uploadLink.update({
-        where: {
-          id: req.params.id,
-        },
+        where: { id },
         data: {
           isActive: false,
           updatedById: req.user.uid,
@@ -78,11 +76,11 @@ router.patch(
 
 // PATCH /api/admin/upload-links/:id/activate - Reactivate an upload link
 router.patch("/:id/activate", async (req: AuthenticatedRequest, res, next) => {
+  const { id } = req.params;
+
   try {
     const uploadLink = await prisma.uploadLink.findUnique({
-      where: {
-        id: req.params.id,
-      },
+      where: { id },
     });
 
     if (!uploadLink) {
@@ -98,9 +96,7 @@ router.patch("/:id/activate", async (req: AuthenticatedRequest, res, next) => {
     }
 
     const updatedLink = await prisma.uploadLink.update({
-      where: {
-        id: req.params.id,
-      },
+      where: { id },
       data: {
         isActive: true,
         updatedById: req.user.uid,
