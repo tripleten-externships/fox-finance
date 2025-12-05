@@ -4,6 +4,7 @@ import http from "http";
 import cors from "cors";
 import routes from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
+import "../src/jobs/expireUploadLinks"
 
 async function start() {
   const app = express();
