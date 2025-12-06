@@ -8,23 +8,15 @@ cron.schedule("0 0 * * *", async () => {
   console.log("Running daily cleanup for expired upload links...");
 
   try {
-    // 1️⃣ Deactivate expired links
-    const expiredLinks = await prisma.uploadLink.findMany({
+    // 1️⃣ Deactivate expired links in bulk
+    const { count: expiredCount } = await prisma.uploadLink.updateMany({
       where: {
         expiresAt: { lt: new Date() },
         isActive: true,
       },
+      data: { isActive: false },
     });
-
-    const updatePromises = expiredLinks.map((link) =>
-      prisma.uploadLink.update({
-        where: { id: link.id },
-        data: { isActive: false },
-      })
-    );
-
-    await Promise.all(updatePromises);
-    console.log(`Deactivated ${expiredLinks.length} expired links.`);
+    console.log(`Deactivated ${expiredCount} expired links.`);
 
     // 2️⃣ Notify clients about links expiring in 24 hours
     const expiringSoonLinks = await prisma.uploadLink.findMany({
@@ -71,4 +63,4 @@ cron.schedule("0 0 * * *", async () => {
   } catch (error) {
     console.error("Error during cleanup:", error);
   }
-});
+}, { name: 'daily-link-cleanup', timezone: "America/Chicago", });
