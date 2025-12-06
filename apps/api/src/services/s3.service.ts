@@ -1,36 +1,36 @@
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { s3Client } from "../lib/s3";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
 
 const BUCKET_NAME = process.env.S3_UPLOADS_BUCKET!;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export class S3Service {
-  async generatePresignedPost(params: {
+  async generatePresignedUrl(params: {
     key: string;
+    Bucket: string;
     contentType: string;
-    maxSize?: number;
+    contentLength: number;
+    expiresIn?: number;
   }) {
-    const { key, contentType, maxSize = MAX_FILE_SIZE } = params;
+    const { key, contentType, Bucket = BUCKET_NAME, contentLength = MAX_FILE_SIZE, expiresIn = 900, } = params;
 
-    const { url, fields } = await createPresignedPost(s3Client, {
-      Bucket: BUCKET_NAME,
+    const command = new PutObjectCommand({
       Key: key,
-      Conditions: [
-        ["content-length-range", 0, maxSize],
-        ["eq", "$Content-Type", contentType],
-      ],
-      Fields: {
-        "Content-Type": contentType,
-      },
-      Expires: 3600, // 1 hour
-    });
+      Bucket: Bucket,
+      ContentType: contentType,
+      ContentLength: contentLength,
+    })
 
-    return { url, fields, key };
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn,
+    })
+
+    return { url, key };
   }
 
-  async generatePresignedGetUrl(key: string, expiresIn: number = 3600) {
+  async generatePresignedGetUrl(key: string, expiresIn: number = 900) {
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
