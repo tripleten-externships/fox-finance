@@ -4,7 +4,7 @@ import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import { randomBytes } from "crypto";
-import { degradeIfDatabaseUnavailable } from "src/utils/degredation";
+import { degradeIfDatabaseUnavailable } from "../../utils/degredation";
 
 const router = Router();
 
@@ -69,7 +69,7 @@ router.patch("/:id/deactivate", async (req, res, next) => {
     const deactivatedLink = await degradeIfDatabaseUnavailable(() =>
       prisma.uploadLink.update({
         where: { id: req.params.id },
-        data: { active: false },
+        data: { isActive: false },
       })
     );
     res.status(200).json({ deactivatedLink });
@@ -85,7 +85,7 @@ router.patch("/:id/activate", async (req, res, next) => {
     const activatedLink = await degradeIfDatabaseUnavailable(() =>
       prisma.uploadLink.update({
         where: { id: req.params.id },
-        data: { active: true },
+        data: { isActive: true },
       })
     );
     res.status(200).json({ activatedLink });

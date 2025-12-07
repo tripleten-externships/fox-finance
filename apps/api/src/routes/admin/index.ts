@@ -6,6 +6,7 @@ import uploadLinksRouter from "./upload-links";
 const router = Router();
 
 // Apply auth middleware to all admin routes
+
 router.use(requireAuth);
 router.use(requireAdmin);
 
