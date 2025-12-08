@@ -9,7 +9,7 @@ import {
 const router = Router();
 
 // GET / List all clients
-router.get("/api/admin/clients", async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     const result = await prisma.client.findMany();
     res.status(200).json({
@@ -22,7 +22,7 @@ router.get("/api/admin/clients", async (req, res, next) => {
 });
 
 // GET / Get a specific client
-router.get("/api/admin/clients/:id", async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -46,13 +46,12 @@ router.get("/api/admin/clients/:id", async (req, res, next) => {
 });
 
 // POST / Create a new client
-router.post("/api/admin/clients", async (req, res, next) => {
+router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
-    console.log("Body", req.body)
-    const { firstName, lastName,email,company, phone } = req.body;
+    const { firstName, lastName, email, company, phone } = req.body;
 
     const result = await prisma.client.create({
-      data: { firstName, lastName,email,company, phone },
+      data: { firstName, lastName, email, company, phone },
     });
 
     res.status(201).json({
@@ -65,14 +64,14 @@ router.post("/api/admin/clients", async (req, res, next) => {
 });
 
 // PUT / Update a client
-router.put("/api/admin/clients/:id", async (req, res, next) => {
+router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName,email,company, phone   } = req.body;
+    const { firstName, lastName, email, company, phone } = req.body;
 
     const updated = await prisma.client.update({
       where: { id: id },
-      data: { firstName, lastName,email,company, phone  },
+      data: { firstName, lastName, email, company, phone },
     });
 
     res.status(200).json({
@@ -85,7 +84,7 @@ router.put("/api/admin/clients/:id", async (req, res, next) => {
 });
 
 // DELETE / Delete a client
-router.delete("/api/admin/clients/:id", async (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -101,7 +100,5 @@ router.delete("/api/admin/clients/:id", async (req, res, next) => {
     next(error);
   }
 });
-
-
 
 export default router;
