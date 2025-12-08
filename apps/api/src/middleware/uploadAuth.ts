@@ -1,5 +1,31 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
+import { createClient } from 'redis';
+
+const redis = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redis.on('error', (err) => console.log('Redis Client Error', err));
+redis.connect();
+
+async function getCachedUploadLink(token: string) {
+  try {
+    const cached = await redis.get(`upload_token:${token}`);
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    console.error('Redis get error:', error);
+    return null;
+  }
+}
+
+async function setCachedUploadLink(token: string, uploadLink: any, ttlSeconds: number) {
+  try {
+    await redis.setEx(`upload_token:${token}`, ttlSeconds, JSON.stringify(uploadLink));
+  } catch (error) {
+    console.error('Redis set error', error);
+  }
+}
 
 export interface UploadAuthRequest extends Request {
   uploadLink: {
@@ -24,16 +50,28 @@ export async function requireUploadToken(
     }
 
     // TODO: uncomment once upload links are implemented
-    const uploadLink = await prisma.uploadLink.findUnique({
-      where: { token },
-      select: {
-        id: true,
-        clientId: true,
-        token: true,
-        expiresAt: true,
-        isActive: true,
-      },
-    });
+    let uploadLink = await getCachedUploadLink(token);
+
+    if(!uploadLink) {
+      uploadLink = await prisma.uploadLink.findUnique({
+        where: { token },
+        select: {
+          id: true,
+          clientId: true,
+          token: true,
+          expiresAt: true,
+          isActive: true,
+        },
+      });
+
+      if (uploadLink) {
+        const now = new Date();
+        const expiresIn = Math.floor((uploadLink.expiresAt.getTime() - now.getTime()) / 1000);
+        const ttl = Math.min(300, Math.max(60, expiresIn));
+
+        await setCachedUploadLink(token, uploadLink, ttl);
+      }
+    }
 
     if (!uploadLink) {
       return res.status(401).json({ error: "Invalid upload token" });
