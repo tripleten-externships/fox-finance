@@ -54,8 +54,9 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
       data: {
         token,
         expiresAt,
-        clientId,
-        documentRequests, // Assuming this is a JSON field
+        client: { connect: { id: clientId } },
+        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
+        documentRequests: { create: documentRequests },
       },
     });
 
