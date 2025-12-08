@@ -11,7 +11,7 @@ import {
 import { s3Service } from "../../services/s3.service";
 
 import { prisma } from "../../lib/prisma";
-//i  imported the following
+//I  imported the following
 import { HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../../lib/s3";
