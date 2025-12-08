@@ -65,7 +65,7 @@ model Client {
   //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
   // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
 
-  id          String       @id
+  id          String       @id @default(uuid()) @db.Uuid
   email       String       @unique
   firstName   String
   lastName    String
@@ -83,7 +83,7 @@ model Client {
 }
 
 model UploadLink {
-  id               String            @id
+  id               String            @id @default(uuid()) @db.Uuid
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId         String
   token            String            @unique
@@ -103,7 +103,7 @@ model UploadLink {
 }
 
 model DocumentRequest {
-  id                 String              @id
+  id                 String              @id @default(uuid()) @db.Uuid
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   uploadLinkId       String
   requestedDocuments RequestedDocument[] //Array of documents
@@ -113,7 +113,7 @@ model DocumentRequest {
 }
 
 model RequestedDocument {
-  id                String           @id
+  id                String           @id @default(uuid()) @db.Uuid
   name              DocumentType //hard-coded list of document types as listed in the enum
   description       String
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
@@ -121,7 +121,7 @@ model RequestedDocument {
 }
 
 model Upload {
-  id                String          @id
+  id                String          @id @default(uuid()) @db.Uuid
   uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
   uploadLinkId      String
   documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])

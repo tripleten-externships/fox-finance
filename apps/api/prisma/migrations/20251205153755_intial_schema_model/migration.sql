@@ -90,15 +90,6 @@ CREATE INDEX "Client_lastName_idx" ON "Client"("lastName");
 CREATE UNIQUE INDEX "UploadLink_token_key" ON "UploadLink"("token");
 
 -- CreateIndex
-CREATE INDEX "UploadLink_clientId_idx" ON "UploadLink"("clientId");
-
--- CreateIndex
-CREATE INDEX "UploadLink_isActive_expiresAt_idx" ON "UploadLink"("isActive", "expiresAt");
-
--- CreateIndex
-CREATE INDEX "Upload_uploadLinkId_idx" ON "Upload"("uploadLinkId");
-
--- CreateIndex
 CREATE INDEX "Upload_fileName_idx" ON "Upload"("fileName");
 
 -- AddForeignKey
