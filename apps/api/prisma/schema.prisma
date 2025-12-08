@@ -75,7 +75,6 @@ model Client {
   updatedAt   DateTime     @updatedAt
   uploadLinks UploadLink[]
 
-  // @@index([email])
   @@index([phone])
   @@index([company])
   @@index([firstName])
@@ -95,6 +94,9 @@ model UploadLink {
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
+
+  @@index([clientId])
+  @@index([isActive, expiresAt])
 }
 
 model DocumentRequest {
@@ -128,5 +130,6 @@ model Upload {
   uploadedAt        DateTime        @updatedAt
   metadata          Json
 
+  @@index([uploadLinkId])
   @@index([fileName])
 }
