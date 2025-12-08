@@ -1,8 +1,9 @@
 import { Router } from "express";
-// import { prisma } from "../../lib/prisma";
-// import { validate } from "../../middleware/validation";
-// import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
-// import { AuthenticatedRequest } from "../../middleware/auth";
+// import { Prisma } from "@prisma/client";
+import { prisma } from "@lib/prisma";
+import { validate } from "../../middleware/validation";
+import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
+import { AuthenticatedRequest } from "../../middleware/auth";
 import { randomBytes } from "crypto";
 
 const router = Router();
@@ -116,54 +117,43 @@ function generateToken(): string {
 // });
 
 // POST /api/admin/upload-links - Create a new upload link
+router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
+  try {
+    const { clientId, documentRequests, expirationDays = 7 } = req.body;
 
-// router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
-//   try {
-//     const { clientId, expiresAt } = req.body;
-//     const token = generateToken();
+    // Validate input
+    if (!clientId) {
+      return res.status(400).json({ error: "Client ID is required" });
+    }
 
-//     const authReq = req as AuthenticatedRequest;
-//     // Defensive check: ensure expiresAt is valid
-//     const expiryDate = new Date(expiresAt);
-//     if (isNaN(expiryDate.getTime())) {
-//       return sendError(res, 400, "Invalid expiration date");
-//     }
+    // Generate secure token
+    const token = generateToken();
 
-//     const newUploadLink = await prisma.uploadLink.create({
-//       data: {
-//         clientId,
-//         token,
-//         expiresAt: new Date(expiresAt),
-//         createdById: authReq.user.uid,
-//         status: "INCOMPLETE",
-//       },
-//       select: {
-//         id: true,
-//         token: true,
-//         expiresAt: true,
-//         status: true,
-//         client: {
-//           select: { id: true, firstName: true },
-//         },
-//         user: {
-//           select: { id: true, email: true },
-//         },
-//       },
-//     });
-//     res.status(201).json({
-//       data: newUploadLink,
-//       meta: {
-//         createdBy: authReq.user.uid,
-//       },
-//     });
-//   } catch (error) {
-//     sendError(res, 500, "Failed to create upload link", { error });
-//     next(error);
-//   }
-// });
+    // Calculate expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+    // Create UploadLink record in the database
+    const uploadLink = await prisma.uploadLink.create({
+      data: {
+        token,
+        expiresAt,
+        client: { connect: { id: clientId } },
+        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
+        documentRequests: { create: documentRequests },
+      },
+    });
+
+    // Return the full upload URL
+    const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
+    res.status(201).json({ uploadUrl, uploadLink });
+  } catch (error) {
+    console.error("Error creating upload link:", error);
+    next(error);
+  }
+});
 
 // PATCH /api/admin/upload-links/:id/deactivate - Deactivate an upload link
-import { Prisma } from "@prisma/client";
 // router.patch("/:id/deactivate", async (req, res, next) => {
 //   try {
 //     // TODO: Implement endpoint
