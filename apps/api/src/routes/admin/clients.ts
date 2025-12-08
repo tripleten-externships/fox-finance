@@ -5,16 +5,48 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
+import zod from "zod";
 
 const router = Router();
 
 // GET / List all clients
 router.get("/", async (req, res, next) => {
   try {
-    const result = await prisma.client.findMany();
-    res.status(200).json({
-      message: "Clients retrieved successfully.",
-      data: result,
+    const limit = zod
+      .number()
+      .int()
+      .max(100)
+      .default(20)
+      .parse(req.query.limit);
+
+    const cursor = req.query.cursor;
+
+    const users = await prisma.user.findMany({
+      take: limit,
+      ...(cursor ? { skip: Number(cursor) } : {}),
+      where: {
+        name: req.query.search
+          ? { contains: String(req.query.search), mode: "insensitive" }
+          : undefined,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const count = await prisma.user.count({
+      where: {
+        name: req.query.search
+          ? { contains: String(req.query.search) }
+          : undefined,
+      },
+    });
+
+    res.setHeader("X-Total-Count", count);
+    res.json({
+      items: users,
+      count,
+      pageSize: limit,
+      totalPages: Math.ceil(count / limit), // UI convenience only
+      next: users.length === limit ? users[users.length - 1].id : null,
     });
   } catch (error) {
     next(error);
