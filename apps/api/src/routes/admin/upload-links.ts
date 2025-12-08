@@ -70,39 +70,36 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
 });
 
 // PATCH /api/admin/upload-links/:id/deactivate - Deactivate an upload link
-router.patch(
-  "/:id/deactivate",
-  async (req: AuthenticatedRequest, res, next) => {
-    const { id } = req.params;
+router.patch("/:id/deactivate", async (req, res, next) => {
+  const { id } = req.params;
 
-    try {
-      const uploadLink = await prisma.uploadLink.findUnique({
-        where: { id },
+  try {
+    const uploadLink = await prisma.uploadLink.findUnique({
+      where: { id },
+    });
+
+    if (!uploadLink) {
+      return res.status(404).json({
+        error: "Upload link not found",
       });
-
-      if (!uploadLink) {
-        return res.status(404).json({
-          error: "Upload link not found",
-        });
-      }
-
-      const updatedLink = await prisma.uploadLink.update({
-        where: { id },
-        data: {
-          isActive: false,
-          updatedById: req.user.uid,
-        },
-      });
-
-      return res.status(200).json(updatedLink);
-    } catch (error) {
-      next(error);
     }
+
+    const updatedLink = await prisma.uploadLink.update({
+      where: { id },
+      data: {
+        isActive: false,
+        updatedById: (req as AuthenticatedRequest).user.uid,
+      },
+    });
+
+    return res.status(200).json(updatedLink);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 // PATCH /api/admin/upload-links/:id/activate - Reactivate an upload link
-router.patch("/:id/activate", async (req: AuthenticatedRequest, res, next) => {
+router.patch("/:id/activate", async (req, res, next) => {
   const { id } = req.params;
 
   try {
@@ -126,7 +123,7 @@ router.patch("/:id/activate", async (req: AuthenticatedRequest, res, next) => {
       where: { id },
       data: {
         isActive: true,
-        updatedById: req.user.uid,
+        updatedById: (req as AuthenticatedRequest).user.uid,
       },
     });
 
