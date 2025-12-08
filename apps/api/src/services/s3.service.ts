@@ -9,16 +9,15 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 export class S3Service {
   async generatePresignedUrl(params: {
     key: string;
-    Bucket: string;
     contentType: string;
     contentLength: number;
     expiresIn?: number;
   }) {
-    const { key, contentType, Bucket = BUCKET_NAME, contentLength = MAX_FILE_SIZE, expiresIn = 900, } = params;
+    const { key, contentType, contentLength = MAX_FILE_SIZE, expiresIn = 900, } = params;
 
     const command = new PutObjectCommand({
       Key: key,
-      Bucket: Bucket,
+      Bucket: BUCKET_NAME,
       ContentType: contentType,
       ContentLength: contentLength,
     })
