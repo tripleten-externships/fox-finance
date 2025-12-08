@@ -34,7 +34,7 @@ export const updateClientSchema = z.object({
   //   { message: "At least one field must be provided for update" }
   // )
 });
-
+//compile-time validation---gives error
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
 
