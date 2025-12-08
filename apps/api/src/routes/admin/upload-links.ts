@@ -88,7 +88,7 @@ router.patch("/:id/deactivate", async (req, res, next) => {
       where: { id },
       data: {
         isActive: false,
-        updatedById: (req as AuthenticatedRequest).user.uid,
+        updatedById: (req as unknown as AuthenticatedRequest).user.uid,
       },
     });
 
@@ -123,7 +123,7 @@ router.patch("/:id/activate", async (req, res, next) => {
       where: { id },
       data: {
         isActive: true,
-        updatedById: (req as AuthenticatedRequest).user.uid,
+        updatedById: (req as unknown as AuthenticatedRequest).user.uid,
       },
     });
 
