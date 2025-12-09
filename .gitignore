@@ -60,3 +60,4 @@ temp/
 .gitconfig
 .lesshst
 .viminfo
+.bash_history
