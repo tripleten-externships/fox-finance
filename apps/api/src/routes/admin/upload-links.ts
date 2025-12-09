@@ -4,7 +4,6 @@ import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import { randomBytes } from "crypto";
-import { degradeIfDatabaseUnavailable } from "src/utils/degredation";
 
 const router = Router();
 
@@ -17,12 +16,7 @@ function generateToken(): string {
 router.get("/", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const uploadLinks = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.findMany({
-        include: { client: true },
-      })
-    );
-    res.status(200).json({ uploadLinks });
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
@@ -32,13 +26,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const uploadLinkById = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.findUnique({
-        where: { id: req.params.id },
-        include: { client: true },
-      })
-    );
-    res.status(200).json({ uploadLinkById });
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
@@ -47,17 +35,36 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    const newUploadLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.create({
-        data: {
-          ...req.body,
-          token: generateToken(),
-        },
-      })
-    );
-    res.status(201).json({ newUploadLink });
+    const { clientId, documentRequests, expirationDays = 7 } = req.body;
+
+    // Validate input
+    if (!clientId) {
+      return res.status(400).json({ error: "Client ID is required" });
+    }
+
+    // Generate secure token
+    const token = generateToken();
+
+    // Calculate expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+    // Create UploadLink record in the database
+    const uploadLink = await prisma.uploadLink.create({
+      data: {
+        token,
+        expiresAt,
+        client: { connect: { id: clientId } },
+        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
+        documentRequests: { create: documentRequests },
+      },
+    });
+
+    // Return the full upload URL
+    const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
+    res.status(201).json({ uploadUrl, uploadLink });
   } catch (error) {
+    console.error("Error creating upload link:", error);
     next(error);
   }
 });
@@ -66,13 +73,7 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
 router.patch("/:id/deactivate", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const deactivatedLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.update({
-        where: { id: req.params.id },
-        data: { active: false },
-      })
-    );
-    res.status(200).json({ deactivatedLink });
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
@@ -82,13 +83,7 @@ router.patch("/:id/deactivate", async (req, res, next) => {
 router.patch("/:id/activate", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const activatedLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.update({
-        where: { id: req.params.id },
-        data: { active: true },
-      })
-    );
-    res.status(200).json({ activatedLink });
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
@@ -98,12 +93,7 @@ router.patch("/:id/activate", async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
-    const deletedLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.delete({
-        where: { id: req.params.id },
-      })
-    );
-    res.status(200).json({ deletedLink });
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
