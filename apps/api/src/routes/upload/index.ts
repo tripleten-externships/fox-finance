@@ -50,60 +50,14 @@ router.post(
 // POST /api/upload/complete - Record completed upload
 router.post(
   "/complete",
-  requireUploadToken,
-  validate(completeUploadSchema),
+  requireUploadToken,                     // attaches req.uploadLink + req.client
+  validate(completeUploadSchema),         // only validates key, name, size, type, documentRequestId
   async (req, res, next) => {
     try {
       const { key, name, size, type, documentRequestId } = req.body;
-
-      //  Extract token the same way as middleware
-      const token =
-        req.headers.authorization?.replace("Bearer ", "") ||
-        (req.query.token as string);
-
-      if (!token) {
-        return res.status(401).json({ error: "Upload token required" });
-      }
-
-      // Fetch UploadLink (middleware does NOT do this yet)
-      const uploadLink = await prisma.uploadLink.findUnique({
-        where: { token },
-        select: {
-          id: true,
-          clientId: true,
-          token: true,
-          expiresAt: true,
-          isActive: true,
-          documentRequests: true, // JSON array
-        },
-      });
-
-      if (!uploadLink) {
-        return res.status(401).json({ error: "Invalid upload token" });
-      }
-
-      if (!uploadLink.isActive) {
-        return res.status(401).json({ error: "Upload link has been deactivated" });
-      }
-
-      if (new Date() > uploadLink.expiresAt) {
-        return res.status(401).json({ error: "Upload link has expired" });
-      }
-
-      //  Validate documentRequestId inside JSON array
-      if (documentRequestId) {
-        const exists = uploadLink.documentRequests?.some(
-          (dr: any) => dr.id === documentRequestId
-        );
-
-        if (!exists) {
-          return res.status(400).json({
-            error: "documentRequestId does not exist in this upload link",
-          });
-        }
-      }
-
-      //  Validate S3 object exists
+      const uploadLink = req.uploadLink;  // provided by middleware
+      console.log(uploadLink);
+      //  Verify S3 object exists (upload actually succeeded)
       try {
         await s3Client.send(
           new HeadObjectCommand({
@@ -111,24 +65,33 @@ router.post(
             Key: key,
           })
         );
-      } catch (err) {
+      } catch {
         return res.status(400).json({
           error: "File not found in S3. Upload may not have completed.",
         });
       }
 
-      //  Create Upload record
+      // Create Upload record
       const upload = await prisma.upload.create({
-  data: {
-    fileName: name,          // map request.name → fileName
-    fileSize: size,          // map request.size → fileSize
-    s3Key: key,              // map request.key → s3Key
-    s3Bucket: process.env.S3_BUCKET!, // required by schema
-    metadata: { mimeType: type },     // optional but useful
-    uploadLinkId: uploadLink.id,
-    documentRequestId: documentRequestId ?? null,
-  },
-});
+        data: {
+          fileName: name,
+          fileSize: size,
+          s3Key: key,
+          s3Bucket: process.env.S3_BUCKET!,
+          metadata: { mimeType: type },
+          uploadLinkId: uploadLink.id,
+          documentRequestId: documentRequestId ?? null,
+        },
+        select: {
+          id: true,
+          fileName: true,
+          fileSize: true,
+          s3Key: true,
+          s3Bucket: true,
+          metadata: true,
+          createdAt: true,
+        },
+      });
 
       //  Generate pre-signed download URL (1 hour)
       const downloadUrl = await getSignedUrl(
@@ -140,26 +103,21 @@ router.post(
         { expiresIn: 3600 }
       );
 
-      // Emit event for email notification
+      //  Emit event for email notification
       eventBus.emit("upload.completed", {
         uploadId: upload.id,
         uploadLinkId: uploadLink.id,
         documentRequestId,
       });
 
-      // Return confirmation
-     return res.json({
-  message: "Upload confirmed",
-  upload: {
-    id: upload.id,
-    fileName: upload.fileName,
-    fileSize: upload.fileSize,
-    s3Key: upload.s3Key,
-    s3Bucket: upload.s3Bucket,
-    downloadUrl,
-  },
-});
-
+      //  Return confirmation
+      return res.json({
+        message: "Upload confirmed",
+        upload: {
+          ...upload,
+          downloadUrl,
+        },
+      });
     } catch (error) {
       next(error);
     }
