@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { UnavailableError } from "../utils/degredation";
+import { UnavailableError } from "../degredation/degredation";
 
 export function errorHandler(
   err: Error,

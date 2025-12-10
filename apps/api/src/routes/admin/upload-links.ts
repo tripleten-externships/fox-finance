@@ -4,6 +4,7 @@ import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import { randomBytes } from "crypto";
+import { degradeIfDatabaseUnavailable } from "../../degredation/degredation";
 
 const router = Router();
 
@@ -15,8 +16,12 @@ function generateToken(): string {
 // GET /api/admin/upload-links - List all upload links
 router.get("/", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const uploadLinks = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findMany({
+        include: { client: true, createdBy: true },
+      })
+    );
+    res.json(uploadLinks);
   } catch (error) {
     next(error);
   }
@@ -25,8 +30,18 @@ router.get("/", async (req, res, next) => {
 // GET /api/admin/upload-links/:id - Get a specific upload link with details
 router.get("/:id", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findUnique({
+        where: { id: req.params.id },
+        include: { client: true, createdBy: true, documentRequests: true },
+      })
+    );
+
+    if (!uploadLink) {
+      return res.status(404).json({ error: "Upload link not found" });
+    }
+
+    res.json(uploadLink);
   } catch (error) {
     next(error);
   }
@@ -50,16 +65,17 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
     expiresAt.setDate(expiresAt.getDate() + expirationDays);
 
     // Create UploadLink record in the database
-    const uploadLink = await prisma.uploadLink.create({
-      data: {
-        token,
-        expiresAt,
-        client: { connect: { id: clientId } },
-        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
-        documentRequests: { create: documentRequests },
-      },
-    });
-
+    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.create({
+        data: {
+          token,
+          expiresAt,
+          clientId,
+          createdById: (req as AuthenticatedRequest).user?.uid, // Optional for testing
+          documentRequests: { create: documentRequests },
+        },
+      })
+    );
     // Return the full upload URL
     const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
     res.status(201).json({ uploadUrl, uploadLink });

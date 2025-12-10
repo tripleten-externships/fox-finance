@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { logger } from "../utils/logger";
+import { logger } from "../degredation/degredation";
 
 declare global {
   // Prevent multiple Prisma instances in dev (Hot Reload fix)
