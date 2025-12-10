@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { runRetry } from "./retry";
 
 type logLevel = "debug" | "info" | "warn" | "error";
 
@@ -50,7 +51,13 @@ export async function degradeIfDatabaseUnavailable<T>(
   }
 
   try {
-    return await fn();
+    // Wrap the operation with retry logic for transient errors
+    return await runRetry(fn, {
+      retries: 3,
+      delayMs: 1000,
+      maxDelayMs: 5000,
+      operationName: "database-operation",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message.toLowerCase() : "";
     if (

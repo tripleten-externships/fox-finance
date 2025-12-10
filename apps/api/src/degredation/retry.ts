@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { logger } from "./logger";
+import { logger } from "./degredation";
 
 export async function runRetry<T>(
   fn: () => Promise<T>,
