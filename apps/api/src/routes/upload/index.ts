@@ -12,28 +12,8 @@ import { s3Service } from "../../services/s3.service";
 import { prisma } from "../../lib/prisma";
 const router = Router();
 
-// Enum for document types (used in TS)
-enum DocumentType {
-  GOVERNMENT_ID,
-  PASSPORT,
-  PROOF_OF_ADDRESS,
-  BANK_STATEMENT,
-  PAY_STUB,
-  TAX_RETURN,
-  OTHER //Can be specified in more detail by the client in the description field
-}
 
-type RequestedDocumentObject = {
-  name: DocumentType;
-  description: string;
-};
-
-type DocumentRequestObject= {
-  requestedDocuments: RequestedDocumentObject[];
-};
-
-
-router.get("/api/upload/verify/:token", requireUploadToken, async (req, res, next) => {
+router.get("/api/upload/verify/:token",async (req, res, next) => {
   try {
     const { token } = req.params;
 
@@ -44,12 +24,15 @@ router.get("/api/upload/verify/:token", requireUploadToken, async (req, res, nex
         token: true,
         expiresAt: true,
         isActive: true,
+
         client: {
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-          company: true
+          select:{ 
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            company: true
+          }
         },
         documentRequests: {
           select: {
@@ -69,9 +52,9 @@ router.get("/api/upload/verify/:token", requireUploadToken, async (req, res, nex
     }
 
     // Check for expiry and active status
-    const currentTime = new Date();
+    const now = new Date();
     const isExpired = 
-      !uploadLink.isActive || isBefore(uploadLink.expiresAt, currentTime);
+      !uploadLink.isActive || isBefore(uploadLink.expiresAt, now);
 
     if (isExpired) {
       return res.status(410).json({ message: "Upload token expired" });
@@ -84,7 +67,7 @@ router.get("/api/upload/verify/:token", requireUploadToken, async (req, res, nex
       requestedDocuments:
         uploadLink.documentRequests?.flatMap((request: DocumentRequestObject) =>
           request.requestedDocuments?.map((doc: RequestedDocumentObject) => ({
-            documentType: doc.name as DocumentType,
+            documentType: doc.name,
             description: doc.description,
           })) ?? []
         ) ?? [],
