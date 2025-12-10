@@ -125,11 +125,14 @@ model Upload {
   documentRequestId String
   fileName          String
   fileSize          Decimal
+  mimeType          String
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @updatedAt
+  uploadedAt        DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   metadata          Json
 
   @@index([uploadLinkId])
   @@index([fileName])
+  @@index([mimeType])
 }
