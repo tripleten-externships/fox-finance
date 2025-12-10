@@ -24,6 +24,7 @@ export const logger = {
     log("error", message, meta),
 };
 
+// Thrown when database is unavailable (returns 503)
 export class UnavailableError extends Error {
   constructor(message: string = "Database is currently unavailable") {
     super(message);
@@ -31,27 +32,34 @@ export class UnavailableError extends Error {
   }
 }
 
+// Circuit breaker state: tracks when database is marked as down
 let databaseUnavailableUntil: number | null = null;
 
+// Marks database as unavailable for specified duration
 function markDown(durationMs: number) {
   databaseUnavailableUntil = Date.now() + durationMs;
 }
 
+// Checks if circuit breaker is open (DB marked down)
 function isDbDown() {
   return (
     databaseUnavailableUntil !== null && Date.now() < databaseUnavailableUntil
   );
 }
 
+// Wraps database operations with circuit breaker + retry logic
+// - Fast-fails if DB marked down (10s cooldown)
+// - Retries transient errors 3x with exponential backoff
 export async function degradeIfDatabaseUnavailable<T>(
   fn: () => Promise<T>
 ): Promise<T> {
+  // Fast-fail if circuit breaker is open
   if (isDbDown()) {
     throw new UnavailableError();
   }
 
   try {
-    // Wrap the operation with retry logic for transient errors
+    // Retry transient errors (deadlocks, timeouts)
     return await runRetry(fn, {
       retries: 3,
       delayMs: 1000,
@@ -59,6 +67,7 @@ export async function degradeIfDatabaseUnavailable<T>(
       operationName: "database-operation",
     });
   } catch (err) {
+    // Check for persistent connection errors
     const message = err instanceof Error ? err.message.toLowerCase() : "";
     if (
       message.includes("could not connect to server") ||
@@ -73,7 +82,8 @@ export async function degradeIfDatabaseUnavailable<T>(
           originalError: err,
         }
       );
-      markDown(10 * 1000); // Mark as down for 10 seconds
+      // Open circuit breaker for 10 seconds
+      markDown(10 * 1000);
       throw new UnavailableError();
     }
     throw err;
