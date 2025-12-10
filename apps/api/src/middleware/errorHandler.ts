@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-<<<<<<< HEAD
 import { UnavailableError } from "../degredation/degredation";
-=======
-import { UnavailableError } from "../utils/degredation";
 import { Prisma } from "@prisma/client";
->>>>>>> b918471d997dc6f2795ebe93d64dcd529f85f82a
 
 export function errorHandler(
   err: Error,
