@@ -13,7 +13,8 @@ import { prisma } from "../../lib/prisma";
 const router = Router();
 
 
-router.get("/api/upload/verify/:token",async (req, res, next) => {
+router.get("/verify/:token",validateToken,async (req, res, next) => {
+  // ValidateToken is assign for temporary since this task is taken by other person.
   try {
     const { token } = req.params;
 
@@ -54,7 +55,7 @@ router.get("/api/upload/verify/:token",async (req, res, next) => {
     // Check for expiry and active status
     const now = new Date();
     const isExpired = 
-      !uploadLink.isActive || isBefore(uploadLink.expiresAt, now);
+      !uploadLink.isActive || (uploadLink.expiresAt < now);
 
     if (isExpired) {
       return res.status(410).json({ message: "Upload token expired" });
@@ -64,13 +65,15 @@ router.get("/api/upload/verify/:token",async (req, res, next) => {
     return res.json({
       clientInfo: uploadLink.client,
       expiration: uploadLink.expiresAt,
+
       requestedDocuments:
-        uploadLink.documentRequests?.flatMap((request: DocumentRequestObject) =>
-          request.requestedDocuments?.map((doc: RequestedDocumentObject) => ({
-            documentType: doc.name,
-            description: doc.description,
-          })) ?? []
-        ) ?? [],
+  uploadLink.documentRequests?.flatMap(request =>
+    request.requestedDocuments?.map(doc => ({
+      documentType: doc.name,
+      description: doc.description,
+    })) ?? []
+  ) ?? [],
+
     });
 
   } catch (error) {
