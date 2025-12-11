@@ -10,41 +10,40 @@ import {
 } from "../../schemas/uploadLink.schema";
 import { s3Service } from "../../services/s3.service";
 import { prisma } from "../../lib/prisma";
+import { DocumentType } from "@prisma/client";
+
 const router = Router();
 
 
-router.get("/verify/:token",validateToken,async (req, res, next) => {
-  // ValidateToken is assign for temporary since this task is taken by other person.
+router.get("/verify/:token", validateToken, async (req, res, next) => {
   try {
     const { token } = req.params;
 
-    // Query DB for upload link, client info, and document requests
     const uploadLink = await prisma.uploadLink.findUnique({
       where: { token },
       select: {
         token: true,
         expiresAt: true,
         isActive: true,
-
         client: {
-          select:{ 
+          select: {
             firstName: true,
             lastName: true,
             email: true,
             phone: true,
-            company: true
-          }
+            company: true,
+          },
         },
         documentRequests: {
           select: {
             requestedDocuments: {
               select: {
                 name: true,
-                description: true
-              }
-            }
-          }
-        }
+                description: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -52,10 +51,8 @@ router.get("/verify/:token",validateToken,async (req, res, next) => {
       return res.status(404).json({ message: "Invalid upload token" });
     }
 
-    // Check for expiry and active status
     const now = new Date();
-    const isExpired = 
-      !uploadLink.isActive || (uploadLink.expiresAt < now);
+    const isExpired = !uploadLink.isActive || uploadLink.expiresAt < now;
 
     if (isExpired) {
       return res.status(410).json({ message: "Upload token expired" });
@@ -65,17 +62,19 @@ router.get("/verify/:token",validateToken,async (req, res, next) => {
     return res.json({
       clientInfo: uploadLink.client,
       expiration: uploadLink.expiresAt,
-
       requestedDocuments:
-  uploadLink.documentRequests?.flatMap(request =>
-    request.requestedDocuments?.map(doc => ({
-      documentType: doc.name,
-      description: doc.description,
-    })) ?? []
-  ) ?? [],
-
+        uploadLink.documentRequests?.flatMap(
+          (request: {
+            requestedDocuments: { name: DocumentType; description: string }[];
+          }) =>
+            request.requestedDocuments?.map(
+              (doc: { name: DocumentType; description: string }) => ({
+                documentType: doc.name,
+                description: doc.description,
+              })
+            ) ?? []
+        ) ?? [],
     });
-
   } catch (error) {
     next(error);
   }
