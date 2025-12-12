@@ -20,6 +20,26 @@ enum Role {
   USER
 }
 
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum UploadStatus {
+  COMPLETE
+  INCOMPLETE
+}
+
+enum DocumentType {
+  GOVERNMENT_ID
+  PASSPORT
+  PROOF_OF_ADDRESS
+  BANK_STATEMENT
+  PAY_STUB
+  TAX_RETURN
+  OTHER //Can be specified in more detail by the client in the description field
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -39,78 +59,77 @@ model User {
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
-enum Status {
-  ACTIVE
-  INACTIVE
-}
 
 model Client {
-  id        String   @id @default(uuid()) // Firebase UID — this is your canonical user identifier
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  company   String?
-  phone     String   @unique
-  status    Status   @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
+  // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
 
+  id          String       @id @default(uuid()) @db.Uuid
+  email       String       @unique
+  firstName   String
+  lastName    String
+  company     String
+  phone       String
+  status      Status       @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   uploadLinks UploadLink[]
 
-  @@index([status])
+  @@index([phone])
+  @@index([company])
+  @@index([firstName])
+  @@index([lastName])
 }
 
 model UploadLink {
-  id        String   @id
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  expiresAt DateTime
-  isActive  Boolean
-
+  id               String            @id @default(uuid()) @db.Uuid
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId         String
+  token            String            @unique
+  expiresAt        DateTime
+  isActive         Boolean           @default(false)
+  createdBy        User              @relation(fields: [createdById], references: [id])
   createdById      String
-  user             User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
 
-  @@index([createdById]) // index on the foreign key to User
-}
-
-enum UpLoadStatus {
-  COMPLETE
-  INCOMPLETE
+  @@index([clientId])
+  @@index([isActive, expiresAt])
 }
 
 model DocumentRequest {
-  id                 String  @id     @default(uuid())
+  id                 String              @id @default(uuid()) @db.Uuid
+  uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   uploadLinkId       String
-  uploadLink         UploadLink   @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
-  requestedDocuments String[]
-  instructions       String?
-  status             UpLoadStatus @default(INCOMPLETE)
+  requestedDocuments RequestedDocument[] //Array of documents
+  instructions       String
+  status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
+}
 
-  @@index([uploadLinkId])
+model RequestedDocument {
+  id                String           @id @default(uuid()) @db.Uuid
+  name              DocumentType //hard-coded list of document types as listed in the enum
+  description       String
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?
 }
 
 model Upload {
-  id                String          @id @default(uuid())
-  uploadLinkId      String
+  id                String          @id @default(uuid()) @db.Uuid
   uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String
+  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
   documentRequestId String
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id], onDelete: Cascade)
   fileName          String
-  fileSize          Int
+  fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @default(now())
+  uploadedAt        DateTime        @updatedAt
   metadata          Json
 
-  @@index([documentRequestId])
   @@index([uploadLinkId])
+  @@index([fileName])
 }
-
-
-
