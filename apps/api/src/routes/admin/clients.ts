@@ -20,15 +20,42 @@ router.get("/", async (req, res, next) => {
       .parse(req.query.limit);
 
     const cursor = req.query.cursor;
+    
+    // Client search & filter
+     const search = req.query.search ? String(req.query.search) : undefined;
+     const status = req.query.status ? String(req.query.status) : undefined;
+
+    const where: Record<string, any> = {};
+    
+    if (status) {
+      if (["active", "inactive"].includes(status)) {
+        where.status = status;
+      }
+    }
+
+    if (search) {
+      const searchTerm = search;
+      where.OR = [
+        {firstName: { contains: searchTerm, mode: "insensitive"}},
+        {lastName: { contains: searchTerm, mode: "insensitive"}},
+        {email: { contains: searchTerm, mode: "insensitive"}},
+        {companyName: { contains: searchTerm, mode: "insensitive"}},
+      ]
+    }
+
+    // 
 
     const users = await prisma.user.findMany({
       take: limit,
       ...(cursor ? { skip: Number(cursor) } : {}),
-      where: {
-        name: req.query.search
-          ? { contains: String(req.query.search), mode: "insensitive" }
-          : undefined,
-      },
+ 
+      //use new variable above
+      
+      // where: {
+      //   name: req.query.search
+      //     ? { contains: String(req.query.search), mode: "insensitive" }
+      //     : undefined,
+      // },
       orderBy: { createdAt: "desc" },
     });
 

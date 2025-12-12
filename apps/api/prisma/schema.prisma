@@ -84,7 +84,7 @@ model Client {
 model UploadLink {
   id               String            @id @default(uuid()) @db.Uuid
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId         String
+  clientId         String            @db.Uuid
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
