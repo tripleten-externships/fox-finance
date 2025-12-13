@@ -30,10 +30,15 @@ router.post(
   "/presigned-url",
   requireUploadToken,
   validate(getPresignedUrlSchema),
-  async (req, res, next) => {
+  async (req: UploadAuthRequest, res, next) => {
     try {
-      // const {clientId, uploadLinkId} = req.uploadAuth!; // uncomment when requireUploadToken is fully implemented
+    if (!req.uploadLink) {
+        return res.status(401).json({ error: "Upload link missing" });
+      }
+
+      const {clientId, id : uploadLinkId} = req.uploadLink;
       const { contentType, contentLength, fileName } = req.body
+
 
       const ALLOWED_FILE_TYPES= ["image/png", "image/jpeg", "application/pdf"];
 
@@ -47,26 +52,22 @@ router.post(
         return res.status(400).json({error: "File too large"})
       }
 
-      // NOTE: uploadLinkId and clientId are not available yet because
-      // requireUploadToken does not attach uploadAuth data to req.
-      // Once upload link validation is implemented, uncomment this:
+      const key = s3Service.generateKey({
+        uploadLinkId,
+        fileName,
+        clientId,
+      })
 
-      // const key = s3Service.generateKey({
-      //   uploadLinkId,
-      //   fileName,
-      //   clientId,
-      // }) // 
+      const result = await s3Service.generatePresignedUrl({
+        key,
+        contentType,
+        contentLength,
+      })
 
-      // const result = await s3Service.generatePresignedUrl({
-      //   key,
-      //   contentType,
-      //   contentLength,
-      // })
-
-      // return res.json({
-      //   url: result.url,
-      //   key:result.key,
-      // })
+      return res.json({
+        url: result.url,
+        key:result.key,
+      })
     } catch (error) {
       next(error);
     }

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 // import { prisma } from "../lib/prisma";
 
 export interface UploadAuthRequest extends Request {
-  uploadLink: {
+  uploadLink?: {
     id: string;
     clientId: string;
     token: string;
