@@ -45,6 +45,7 @@ router.post(
   validate(completeUploadSchema),
   async (req, res, next) => {
     try {
+      
       // TODO: Implement endpoint
       res.status(501).json({ error: "Not implemented" });
     } catch (error) {
