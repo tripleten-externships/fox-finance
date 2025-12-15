@@ -55,7 +55,11 @@ router.post(
   async (req, res, next) => {
     try {
       const { key, name, size, type, documentRequestId } = req.body;
-      const uploadLink = req.uploadLink;  // provided by middleware
+      
+      if (!req.uploadLink) {
+  return res.status(400).json({ error: "Upload link missing" });
+}
+ const uploadLink = req.uploadLink;  // provided by middleware
       console.log(uploadLink);
       //  Verify S3 object exists (upload actually succeeded)
       try {
@@ -89,7 +93,7 @@ router.post(
           s3Key: true,
           s3Bucket: true,
           metadata: true,
-          createdAt: true,
+          uploadedAt : true,
         },
       });
 

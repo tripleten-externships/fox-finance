@@ -78,7 +78,7 @@ model UploadLink {
   @@index([createdById]) // index on the foreign key to User
 }
 
-enum UpLoadStatus {
+enum UploadStatus {
   COMPLETE
   INCOMPLETE
 }
@@ -89,7 +89,7 @@ model DocumentRequest {
   uploadLink         UploadLink   @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   requestedDocuments String[]
   instructions       String?
-  status             UpLoadStatus @default(INCOMPLETE)
+  status             UploadStatus @default(INCOMPLETE)
   uploads            Upload[]
 
   @@index([uploadLinkId])
