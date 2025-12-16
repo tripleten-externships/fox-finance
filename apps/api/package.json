@@ -13,6 +13,7 @@
     "@aws-sdk/s3-presigned-post": "^3.937.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@fox-finance/api-types": "workspace:*",
+    "@prisma/adapter-pg": "7.1.0",
     "@prisma/client": "^7.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -21,7 +22,7 @@
     "firebase-admin": "^13.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
-    "prisma": "^6.17.1",
+    "pg": "8.16.3",
     "tsconfig-paths": "^4.2.0",
     "zod": "^3.22.4"
   },
@@ -32,6 +33,7 @@
     "@types/mongodb": "^4.0.7",
     "@types/node": "^24.5.2",
     "nodemon": "^3.1.10",
+    "prisma": "^7.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }

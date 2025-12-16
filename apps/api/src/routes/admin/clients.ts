@@ -5,7 +5,7 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
-import { Prisma, UploadStatus, Status } from "@prisma/client";
+import {  UploadStatus, Status } from "@prisma/client";
 
 const router = Router();
 //helper function
@@ -58,7 +58,7 @@ router.get("/stats", async (req, res, next) => {
       activeUploadLinks,
       completedUploadLinks,
       pendingFileUploads,
-      uploadsByClient,
+      uploadsRaw,
     ] = await Promise.all([
       // Total clients
       prisma.client.count(),
@@ -70,21 +70,37 @@ router.get("/stats", async (req, res, next) => {
       prisma.uploadLink.count(),
 
       // Active upload links (still incomplete)
-      prisma.uploadLink.count({ where: { status: UploadStatus.INCOMPLETE } }),
+      prisma.uploadLink.count({ where: { isActive: true } }),
 
-      // Completed upload links
-      prisma.uploadLink.count({ where: { status: UploadStatus.COMPLETE } }),
+      //complete file uploads
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.COMPLETE },
+      }),
+
       // Pending file uploads (requests not yet complete)
       prisma.documentRequest.count({
         where: { status: UploadStatus.INCOMPLETE },
       }),
 
-      // Group uploads by client
-      prisma.upload.groupBy({
-        by: ["uploadLinkId"],
-        _count: { id: true },
+     //  fetch uploads with clientId instead of grouping by uploadLinkId
+      prisma.upload.findMany({
+        select: {
+          id: true,
+          uploadLink: {
+            select: { clientId: true },
+          },
+        },
       }),
     ]);
+
+    // Aggregate uploads by clientId
+    const uploadsByClient = uploadsRaw.reduce((acc, upload) => {
+      //From this upload record, go to its uploadLink, and from that uploadLink, extract the clientId.
+      const clientId = upload.uploadLink.clientId;
+      acc[clientId] = (acc[clientId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
 
     const responseTime = Date.now() - startTime;
 
@@ -113,6 +129,5 @@ router.get("/stats", async (req, res, next) => {
     next(error);
   }
 });
-
 
 export default router;
