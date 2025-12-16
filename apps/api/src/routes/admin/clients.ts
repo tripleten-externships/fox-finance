@@ -22,22 +22,72 @@ router.get("/", async (req, res, next) => {
 
     const cursor = req.query.cursor;
 
-    const [users, count] = await degradeIfDatabaseUnavailable(() =>
+    const [clients, count] = await degradeIfDatabaseUnavailable(() =>
       Promise.all([
-        prisma.user.findMany({
+        prisma.client.findMany({
           take: limit,
           ...(cursor ? { skip: Number(cursor) } : {}),
           where: {
-            name: req.query.search
-              ? { contains: String(req.query.search), mode: "insensitive" }
+            OR: req.query.search
+              ? [
+                  {
+                    firstName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    lastName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    email: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    company: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                ]
               : undefined,
           },
           orderBy: { createdAt: "desc" },
         }),
-        prisma.user.count({
+        prisma.client.count({
           where: {
-            name: req.query.search
-              ? { contains: String(req.query.search) }
+            OR: req.query.search
+              ? [
+                  {
+                    firstName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    lastName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    email: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    company: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                ]
               : undefined,
           },
         }),
@@ -46,11 +96,11 @@ router.get("/", async (req, res, next) => {
 
     res.setHeader("X-Total-Count", count);
     res.json({
-      items: users,
+      items: clients,
       count,
       pageSize: limit,
       totalPages: Math.ceil(count / limit), // UI convenience only
-      next: users.length === limit ? users[users.length - 1].id : null,
+      next: clients.length === limit ? clients[clients.length - 1].id : null,
     });
   } catch (error) {
     next(error);

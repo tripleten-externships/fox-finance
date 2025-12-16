@@ -69,9 +69,18 @@ export async function degradeIfDatabaseUnavailable<T>(
   } catch (err) {
     // Check for persistent connection errors
     const message = err instanceof Error ? err.message.toLowerCase() : "";
+    const isPrismaConnectionError =
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      (err.code === "P1001" ||
+        err.code === "P1002" ||
+        err.code === "P1008" ||
+        err.code === "P1017");
+
     if (
+      isPrismaConnectionError ||
       message.includes("could not connect to server") ||
       message.includes("connection refused") ||
+      message.includes("can't reach database server") || // Add this
       message.includes("database is down") ||
       message.includes("timeout") ||
       message.includes("too many connections")
@@ -82,7 +91,6 @@ export async function degradeIfDatabaseUnavailable<T>(
           originalError: err,
         }
       );
-      // Open circuit breaker for 10 seconds
       markDown(10 * 1000);
       throw new UnavailableError();
     }

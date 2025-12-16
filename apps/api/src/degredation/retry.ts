@@ -59,11 +59,25 @@ function isTransientError(err: unknown): boolean {
       | string
       | undefined;
 
-    // 40001 = deadlock, 40P01 = serialization failure
-    if (pgCode === "40001" || pgCode === "40P01") {
+    // Add connection error codes
+    if (pgCode === "40001" || pgCode === "40P01" || pgCode === "57P01") {
+      return true; // 57P01 = admin_shutdown
+    }
+  }
+
+  if (err instanceof Error) {
+    const message = err.message.toLowerCase();
+    if (
+      message.includes("can't reach database server") || // Add this
+      message.includes("connection refused") ||
+      message.includes("database server is running") || // Add this
+      message.includes("timeout") ||
+      message.includes("network error") ||
+      message.includes("temporarily unavailable") ||
+      message.includes("terminated")
+    ) {
       return true;
     }
-    return false;
   }
 
   if (err instanceof Prisma.PrismaClientUnknownRequestError) {
