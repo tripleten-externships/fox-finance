@@ -6,8 +6,73 @@ import {
   updateClientSchema,
 } from "../../schemas/client.schema";
 import zod from "zod";
+import { Status, UploadStatus } from "@prisma/client";
 
 const router = Router();
+
+// GET /api/admin/clients - List all clients
+router.get("/stats", async (req, res, next) => {
+  const startTime = Date.now(); // track response time
+
+  try {
+    // Run queries in parallel
+
+    const [
+      totalClients,
+      activeClients,
+      totalUploadLinks,
+      activeUploadLinks,
+      completedUploadLinks,
+      pendingFileUploads,
+    ] = await Promise.all([
+      // Total clients
+      prisma.client.count(),
+
+      // Active clients
+      prisma.client.count({ where: { status: Status.ACTIVE } }),
+
+      // Total upload links
+      prisma.uploadLink.count(),
+
+      // Active upload links (still incomplete)
+      prisma.uploadLink.count({ where: { isActive: true } }),
+
+      // Completed document requests
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.COMPLETE },
+      }),
+
+      // Pending file uploads (requests not yet complete)
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.INCOMPLETE },
+      }),
+    ]);
+
+    const responseTime = Date.now() - startTime;
+
+    res.json({
+      data: {
+        totalClients,
+        activeClients,
+        uploadMetrics: {
+          totalUploadLinks,
+          activeUploadLinks,
+          completedUploadLinks,
+          pendingFileUploads,
+        },
+      },
+      meta: {
+        performance: {
+          responseTimeMs: responseTime,
+          under200ms: responseTime < 200,
+        },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET / List all clients
 router.get("/", async (req, res, next) => {
