@@ -42,7 +42,6 @@ router.get("/", async (req, res, next) => {
         {companyName: { contains: searchTerm, mode: "insensitive"}},
       ]
     }
-
     // 
 
     const users = await prisma.user.findMany({
