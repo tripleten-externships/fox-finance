@@ -3,16 +3,15 @@ import express, { Request, Response } from "express";
 import http from "http";
 import cors from "cors";
 import routes from "./routes";
+import healthRoutes from "./middleware/health";
 import { errorHandler } from "./middleware/errorHandler";
 
 async function start() {
   const app = express();
   const httpServer = http.createServer(app);
 
-  // Health check endpoint
-  app.get("/health", (_req: Request, res: Response) => {
-    res.status(200).json({ status: "ok" });
-  });
+  // Health check endpoints
+  app.use("/health", healthRoutes);
 
   // Middleware
   app.use(cors());

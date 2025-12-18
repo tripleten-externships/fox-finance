@@ -113,6 +113,9 @@ importers:
       '@prisma/client':
         specifier: ^6.17.1
         version: 6.17.1(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)
+      aws:
+        specifier: 0.0.3-2
+        version: 0.0.3-2
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -125,6 +128,9 @@ importers:
       express-rate-limit:
         specifier: ^7.1.5
         version: 7.5.1(express@5.1.0)
+      firebase:
+        specifier: ^11.10.0
+        version: 11.10.0
       firebase-admin:
         specifier: ^13.5.0
         version: 13.5.0
@@ -3345,6 +3351,10 @@ packages:
     engines: {node: '>= 18.0.0'}
     hasBin: true
 
+  aws@0.0.3-2:
+    resolution: {integrity: sha512-jzLTjYCTVY/m5+fA1DfUrnDIDh1o1EzcTV6fyJYJWZ8Bw0DdF6rOMmQ6Lzidl5n/M/Nq93+X2sW/JqCiflr/VA==}
+    engines: {node: '>= 0.2.0'}
+
   axe-core@4.10.3:
     resolution: {integrity: sha512-Xm7bpRXnDSX2YE2YFfBk2FnF0ep6tmG7xPh8iHee8MIcrgq762Nkce856dYtJYLkuIoYZvGfTs/PbZhideTcEg==}
     engines: {node: '>=4'}
@@ -4003,6 +4013,10 @@ packages:
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
+
+  eyes@0.1.8:
+    resolution: {integrity: sha512-GipyPsXO1anza0AOZdy69Im7hGFCNB7Y/NGjDlZGJ3GJJLtwNSb2vrzYrTYJRrRloVx7pl+bhUaTB8yiccPvFQ==}
+    engines: {node: '> 0.1.90'}
 
   farmhash-modern@1.1.0:
     resolution: {integrity: sha512-6ypT4XfgqJk/F3Yuv4SX26I3doUjt0GTG4a+JgWxXQpxXzTBq8fPUeGHfcYMMDPHJHm3yPOSjaeBwBGAHWXCdA==}
@@ -6140,6 +6154,10 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  vows@0.8.3:
+    resolution: {integrity: sha512-PVIxa/ovXhrw5gA3mz6M+ZF3PHlqX4tutR2p/y9NWPAaFVKcWBE8b2ktfr0opQM/qFmcOVWKjSCJVjnYOvjXhw==}
+    hasBin: true
 
   vue-template-compiler@2.7.16:
     resolution: {integrity: sha512-AYbUWAJHLGGQM7+cNTELw+KsOG9nl2CnSv467WobS5Cv9uk3wFcnr1Etsz2sEIHEZvw1U+o9mRlEO6QbZvUPGQ==}
@@ -10149,6 +10167,10 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.2
 
+  aws@0.0.3-2:
+    dependencies:
+      vows: 0.8.3
+
   axe-core@4.10.3: {}
 
   babel-core@7.0.0-bridge.0(@babel/core@7.28.4):
@@ -10907,6 +10929,8 @@ snapshots:
   exsolve@1.0.7: {}
 
   extend@3.0.2: {}
+
+  eyes@0.1.8: {}
 
   farmhash-modern@1.1.0: {}
 
@@ -13288,6 +13312,12 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.6.1
       yaml: 2.8.1
+
+  vows@0.8.3:
+    dependencies:
+      diff: 4.0.2
+      eyes: 0.1.8
+      glob: 7.2.3
 
   vue-template-compiler@2.7.16:
     dependencies:
