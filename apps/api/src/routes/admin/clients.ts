@@ -5,130 +5,127 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
-import zod from "zod";
+import {  UploadStatus, Status } from "@prisma/client";
 
 const router = Router();
+//helper function
+import { Response } from "express";
 
-// GET / List all clients
+const sendError = (
+  res: Response,
+  status: number,
+  message: string,
+  meta?: object
+) => {
+  return res.status(status).json({
+    error: message,
+    ...(meta && { meta }),
+  });
+};
+
+// GET /api/admin/clients - List all clients
 router.get("/", async (req, res, next) => {
   try {
-    const limit = zod
-      .number()
-      .int()
-      .max(100)
-      .default(20)
-      .parse(req.query.limit);
-
-    const cursor = req.query.cursor;
-
-    const users = await prisma.user.findMany({
-      take: limit,
-      ...(cursor ? { skip: Number(cursor) } : {}),
-      where: {
-        name: req.query.search
-          ? { contains: String(req.query.search), mode: "insensitive" }
-          : undefined,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const count = await prisma.user.count({
-      where: {
-        name: req.query.search
-          ? { contains: String(req.query.search) }
-          : undefined,
-      },
-    });
-
-    res.setHeader("X-Total-Count", count);
-    res.json({
-      items: users,
-      count,
-      pageSize: limit,
-      totalPages: Math.ceil(count / limit), // UI convenience only
-      next: users.length === limit ? users[users.length - 1].id : null,
-    });
+    // TODO: Implement endpoint
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
 });
 
-// GET / Get a specific client
+// GET /api/admin/clients/:id - Get a specific client
 router.get("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const result = await prisma.client.findUnique({
-      where: { id: id },
-    });
-
-    if (!result) {
-      return res.status(404).json({
-        message: "Client not found. Please check the ID and try again.",
-      });
-    }
-
-    res.status(200).json({
-      message: "Client details retrieved successfully.",
-      data: result,
-    });
+    // TODO: Implement endpoint
+    res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
 });
 
-// POST / Create a new client
-router.post("/", validate(createClientSchema), async (req, res, next) => {
+// GET /api/admin/clients - List all clients
+router.get("/stats", async (req, res, next) => {
+  const startTime = Date.now(); // track response time
+
   try {
-    const { firstName, lastName, email, company, phone } = req.body;
+    // TODO: Implement endpoint
+    // Run queries in parallel
 
-    const result = await prisma.client.create({
-      data: { firstName, lastName, email, company, phone },
-    });
+    const [
+      totalClients,
+      activeClients,
+      totalUploadLinks,
+      activeUploadLinks,
+      completedUploadLinks,
+      pendingFileUploads,
+      uploadsRaw,
+    ] = await Promise.all([
+      // Total clients
+      prisma.client.count(),
 
-    res.status(201).json({
-      message: "Client created successfully.",
-      data: result,
+      // Active clients
+      prisma.client.count({ where: { status: Status.ACTIVE } }),
+
+      // Total upload links
+      prisma.uploadLink.count(),
+
+      // Active upload links (still incomplete)
+      prisma.uploadLink.count({ where: { isActive: true } }),
+
+      //complete file uploads
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.COMPLETE },
+      }),
+
+      // Pending file uploads (requests not yet complete)
+      prisma.documentRequest.count({
+        where: { status: UploadStatus.INCOMPLETE },
+      }),
+
+     //  fetch uploads with clientId instead of grouping by uploadLinkId
+      prisma.upload.findMany({
+        select: {
+          id: true,
+          uploadLink: {
+            select: { clientId: true },
+          },
+        },
+      }),
+    ]);
+
+    // Aggregate uploads by clientId
+    const uploadsByClient = uploadsRaw.reduce((acc, upload) => {
+      //From this upload record, go to its uploadLink, and from that uploadLink, extract the clientId.
+      const clientId = upload.uploadLink.clientId;
+      acc[clientId] = (acc[clientId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+
+    const responseTime = Date.now() - startTime;
+
+    res.json({
+      data: {
+        totalClients,
+        activeClients,
+        uploadMetrics: {
+          totalUploadLinks,
+          activeUploadLinks,
+          completedUploadLinks,
+          pendingFileUploads,
+          uploadsByClient,
+        },
+      },
+      meta: {
+        performance: {
+          responseTimeMs: responseTime,
+          under200ms: responseTime < 200,
+        },
+        generatedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
-    next(error);
-  }
-});
-
-// PUT / Update a client
-router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { firstName, lastName, email, company, phone } = req.body;
-
-    const updated = await prisma.client.update({
-      where: { id: id },
-      data: { firstName, lastName, email, company, phone },
-    });
-
-    res.status(200).json({
-      message: "Client information updated successfully.",
-      data: updated,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// DELETE / Delete a client
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const deleted = await prisma.client.delete({
-      where: { id: id },
-    });
-
-    res.status(200).json({
-      message: "Client deleted successfully.",
-      data: deleted,
-    });
-  } catch (error) {
+    sendError(res, 500, "Failed to fetch stats", { error });
     next(error);
   }
 });

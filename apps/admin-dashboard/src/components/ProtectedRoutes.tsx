@@ -64,3 +64,4 @@ export const ProtectedRoutes: React.FC<ProtectedRoutesProps> = ({
 };
 
 export default ProtectedRoutes;
+
