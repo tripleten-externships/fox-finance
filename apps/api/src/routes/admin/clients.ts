@@ -120,23 +120,9 @@ router.get("/", async (req, res, next) => {
 
 // GET / Get a specific client
 router.get("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const result = await prisma.client.findUnique({
-      where: { id: id },
-    });
-
-    if (!result) {
-      return res.status(404).json({
-        message: "Client not found. Please check the ID and try again.",
-      });
-    }
-
-    res.status(200).json({
-      message: "Client details retrieved successfully.",
-      data: result,
-    });
+   try {
+res.status(501).json({ error: "Not implemented" });
+  
   } catch (error) {
     next(error);
   }
@@ -144,55 +130,28 @@ router.get("/:id", async (req, res, next) => {
 
 // POST / Create a new client
 router.post("/", validate(createClientSchema), async (req, res, next) => {
-  try {
-    const { firstName, lastName, email, company, phone } = req.body;
-
-    const result = await prisma.client.create({
-      data: { firstName, lastName, email, company, phone },
-    });
-
-    res.status(201).json({
-      message: "Client created successfully.",
-      data: result,
-    });
+ try {
+res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
+
 });
 
 // PUT / Update a client
 router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { firstName, lastName, email, company, phone } = req.body;
-
-    const updated = await prisma.client.update({
-      where: { id: id },
-      data: { firstName, lastName, email, company, phone },
-    });
-
-    res.status(200).json({
-      message: "Client information updated successfully.",
-      data: updated,
-    });
+ try {
+res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
+
 });
 
 // DELETE / Delete a client
 router.delete("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const deleted = await prisma.client.delete({
-      where: { id: id },
-    });
-
-    res.status(200).json({
-      message: "Client deleted successfully.",
-      data: deleted,
-    });
+  res.status(501).json({ error: "Not implemented" });
   } catch (error) {
     next(error);
   }
