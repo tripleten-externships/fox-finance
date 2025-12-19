@@ -16,7 +16,18 @@ import { HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../../lib/s3";
 import { eventBus } from "../../lib/events";
-
+//for typescript to know req.uploadLink exists without creating a new file is
+import { Request } from "express";
+interface UploadLinkData {
+  id: string;
+  clientId: string;
+  token: string;
+  expiresAt: Date;
+  isActive: boolean;
+}
+interface UploadRequest extends Request {
+  uploadLink?: UploadLinkData;
+}
 
 
 const router = Router();
@@ -52,7 +63,7 @@ router.post(
   "/complete",
   requireUploadToken,                     // attaches req.uploadLink + req.client
   validate(completeUploadSchema),         // only validates key, name, size, type, documentRequestId
-  async (req, res, next) => {
+  async (req: UploadRequest, res, next) => {
     try {
       const { key, name, size, type, documentRequestId } = req.body;
       

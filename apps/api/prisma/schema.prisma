@@ -45,36 +45,36 @@ enum Status {
 }
 
 model Client {
-  id        String   @id @default(uuid()) // Firebase UID — this is your canonical user identifier
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  company   String?
-  phone     String   @unique
-  status    Status   @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id          String       @id @default(uuid()) // Firebase UID — this is your canonical user identifier
+  email       String       @unique
+  firstName   String?
+  lastName    String?
+  company     String?
+  phone       String       @unique
+  status      Status       @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   uploadLinks UploadLink[]
 
   @@index([status])
 }
 
 model UploadLink {
-  id        String   @id
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  expiresAt DateTime
-  isActive  Boolean
+  id String @id @default(uuid())
 
-  createdById      String
-  user             User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  clientId         String
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  token            String            @unique
+  expiresAt        DateTime
+  isActive         Boolean           @default(true)
+  createdById      String?
+  user             User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
 
+  @@index([clientId])
   @@index([createdById]) // index on the foreign key to User
 }
 
@@ -84,7 +84,7 @@ enum UploadStatus {
 }
 
 model DocumentRequest {
-  id                 String  @id     @default(uuid())
+  id                 String       @id @default(uuid())
   uploadLinkId       String
   uploadLink         UploadLink   @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   requestedDocuments String[]
@@ -96,21 +96,19 @@ model DocumentRequest {
 }
 
 model Upload {
-  id                String          @id @default(uuid())
+  id                String           @id @default(uuid())
   uploadLinkId      String
-  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  documentRequestId String
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id], onDelete: Cascade)
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+  documentRequestId String?
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id], onDelete: SetNull)
   fileName          String
   fileSize          Int
+  fileType          String           @default("unknown")
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @default(now())
-  metadata          Json
+  uploadedAt        DateTime         @default(now())
+  metadata          Json?
 
   @@index([documentRequestId])
   @@index([uploadLinkId])
 }
-
-
-
