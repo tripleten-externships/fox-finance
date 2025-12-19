@@ -7,6 +7,9 @@ CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE');
 -- CreateEnum
 CREATE TYPE "UploadStatus" AS ENUM ('COMPLETE', 'INCOMPLETE');
 
+-- CreateEnum
+CREATE TYPE "DocumentType" AS ENUM ('GOVERNMENT_ID', 'PASSPORT', 'PROOF_OF_ADDRESS', 'BANK_STATEMENT', 'PAY_STUB', 'TAX_RETURN', 'OTHER');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -22,11 +25,11 @@ CREATE TABLE "User" (
 
 -- CreateTable
 CREATE TABLE "Client" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
-    "firstName" TEXT,
-    "lastName" TEXT,
-    "company" TEXT,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "company" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -37,12 +40,12 @@ CREATE TABLE "Client" (
 
 -- CreateTable
 CREATE TABLE "UploadLink" (
-    "id" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "clientId" UUID NOT NULL,
     "token" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdById" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT false,
+    "createdById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -51,9 +54,8 @@ CREATE TABLE "UploadLink" (
 
 -- CreateTable
 CREATE TABLE "DocumentRequest" (
-    "id" TEXT NOT NULL,
-    "uploadLinkId" TEXT NOT NULL,
-    "requestedDocuments" TEXT[],
+    "id" UUID NOT NULL,
+    "uploadLinkId" UUID NOT NULL,
     "instructions" TEXT,
     "status" "UploadStatus" NOT NULL DEFAULT 'INCOMPLETE',
 
@@ -61,17 +63,27 @@ CREATE TABLE "DocumentRequest" (
 );
 
 -- CreateTable
+CREATE TABLE "RequestedDocument" (
+    "id" UUID NOT NULL,
+    "name" "DocumentType" NOT NULL,
+    "description" TEXT NOT NULL,
+    "documentRequestId" UUID NOT NULL,
+
+    CONSTRAINT "RequestedDocument_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Upload" (
-    "id" TEXT NOT NULL,
-    "uploadLinkId" TEXT NOT NULL,
-    "documentRequestId" TEXT,
+    "id" UUID NOT NULL,
+    "uploadLinkId" UUID NOT NULL,
+    "documentRequestId" UUID NOT NULL,
     "fileName" TEXT NOT NULL,
-    "fileSize" INTEGER NOT NULL,
-    "fileType" TEXT NOT NULL DEFAULT 'unknown',
+    "fileSize" DECIMAL(65,30) NOT NULL,
     "s3Key" TEXT NOT NULL,
     "s3Bucket" TEXT NOT NULL,
-    "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "metadata" JSONB,
+    "fileType" TEXT NOT NULL DEFAULT 'unknown',
+    "uploadedAt" TIMESTAMP(3) NOT NULL,
+    "metadata" JSONB NOT NULL,
 
     CONSTRAINT "Upload_pkey" PRIMARY KEY ("id")
 );
@@ -83,10 +95,16 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Client_email_key" ON "Client"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Client_phone_key" ON "Client"("phone");
+CREATE INDEX "Client_phone_idx" ON "Client"("phone");
 
 -- CreateIndex
-CREATE INDEX "Client_status_idx" ON "Client"("status");
+CREATE INDEX "Client_company_idx" ON "Client"("company");
+
+-- CreateIndex
+CREATE INDEX "Client_firstName_idx" ON "Client"("firstName");
+
+-- CreateIndex
+CREATE INDEX "Client_lastName_idx" ON "Client"("lastName");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UploadLink_token_key" ON "UploadLink"("token");
@@ -95,28 +113,28 @@ CREATE UNIQUE INDEX "UploadLink_token_key" ON "UploadLink"("token");
 CREATE INDEX "UploadLink_clientId_idx" ON "UploadLink"("clientId");
 
 -- CreateIndex
-CREATE INDEX "UploadLink_createdById_idx" ON "UploadLink"("createdById");
-
--- CreateIndex
-CREATE INDEX "DocumentRequest_uploadLinkId_idx" ON "DocumentRequest"("uploadLinkId");
-
--- CreateIndex
-CREATE INDEX "Upload_documentRequestId_idx" ON "Upload"("documentRequestId");
+CREATE INDEX "UploadLink_isActive_expiresAt_idx" ON "UploadLink"("isActive", "expiresAt");
 
 -- CreateIndex
 CREATE INDEX "Upload_uploadLinkId_idx" ON "Upload"("uploadLinkId");
+
+-- CreateIndex
+CREATE INDEX "Upload_fileName_idx" ON "Upload"("fileName");
 
 -- AddForeignKey
 ALTER TABLE "UploadLink" ADD CONSTRAINT "UploadLink_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UploadLink" ADD CONSTRAINT "UploadLink_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UploadLink" ADD CONSTRAINT "UploadLink_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DocumentRequest" ADD CONSTRAINT "DocumentRequest_uploadLinkId_fkey" FOREIGN KEY ("uploadLinkId") REFERENCES "UploadLink"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Upload" ADD CONSTRAINT "Upload_uploadLinkId_fkey" FOREIGN KEY ("uploadLinkId") REFERENCES "UploadLink"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RequestedDocument" ADD CONSTRAINT "RequestedDocument_documentRequestId_fkey" FOREIGN KEY ("documentRequestId") REFERENCES "DocumentRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Upload" ADD CONSTRAINT "Upload_documentRequestId_fkey" FOREIGN KEY ("documentRequestId") REFERENCES "DocumentRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Upload" ADD CONSTRAINT "Upload_uploadLinkId_fkey" FOREIGN KEY ("uploadLinkId") REFERENCES "UploadLink"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Upload" ADD CONSTRAINT "Upload_documentRequestId_fkey" FOREIGN KEY ("documentRequestId") REFERENCES "DocumentRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
