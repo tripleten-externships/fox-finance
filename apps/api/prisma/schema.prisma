@@ -84,7 +84,8 @@ model Client {
 model UploadLink {
   id               String            @id @default(uuid()) @db.Uuid
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId         String
+  clientId         String             @db.Uuid
+
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
@@ -102,7 +103,7 @@ model UploadLink {
 model DocumentRequest {
   id                 String              @id @default(uuid()) @db.Uuid
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
-  uploadLinkId       String
+  uploadLinkId       String               @db.Uuid
   requestedDocuments RequestedDocument[] //Array of documents
   instructions       String
   status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
@@ -114,15 +115,16 @@ model RequestedDocument {
   name              DocumentType //hard-coded list of document types as listed in the enum
   description       String
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String?
+  documentRequestId String?       @db.Uuid
 }
 
 model Upload {
   id                String          @id @default(uuid()) @db.Uuid
   uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String
+  uploadLinkId      String          @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?           @db.Uuid
+
   fileName          String
   fileSize          Decimal
   s3Key             String
