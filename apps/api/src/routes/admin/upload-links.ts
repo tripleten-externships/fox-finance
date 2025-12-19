@@ -104,9 +104,36 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const { clientId, documentRequests, expirationDays = 7 } = req.body;
+
+    // Validate input
+    if (!clientId) {
+      return res.status(400).json({ error: "Client ID is required" });
+    }
+
+    // Generate secure token
+    const token = generateToken();
+
+    // Calculate expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+    // Create UploadLink record in the database
+    const uploadLink = await prisma.uploadLink.create({
+      data: {
+        token,
+        expiresAt,
+        client: { connect: { id: clientId } },
+        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
+        documentRequests: { create: documentRequests },
+      },
+    });
+
+    // Return the full upload URL
+    const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
+    res.status(201).json({ uploadUrl, uploadLink });
   } catch (error) {
+    console.error("Error creating upload link:", error);
     next(error);
   }
 });
