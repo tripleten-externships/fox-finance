@@ -56,3 +56,10 @@ storybook-static/
 *.pid.lock
 tmp/
 temp/
+
+**/scripts/credentials  
+**/scripts/*.credentials.json 
+
+.gitconfig
+.lesshst
+.viminfo

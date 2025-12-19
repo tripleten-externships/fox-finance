@@ -9,8 +9,8 @@
   "scripts": {
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down",
- "dev": "pnpm db:start && pnpm --parallel --filter \"api\" --filter \"admin-dashboard\" dev",
-"storybook": "pnpm --filter ./packages/ui storybook",
+    "dev": "pnpm db:start && pnpm --parallel --filter admin-dashboard --filter api dev",
+    "storybook": "pnpm --filter ./packages/ui storybook",
     "build": "pnpm -r build"
   },
   
