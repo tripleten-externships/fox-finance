@@ -45,14 +45,15 @@ enum DocumentType {
 // ============================================================================
 
 model User {
-  id          String       @id // Firebase UID — this is your canonical user identifier
-  email       String       @unique
-  name        String?
-  photoUrl    String?
-  role        Role         @default(USER)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  uploadLinks UploadLink[]
+  id                 String       @id // Firebase UID — this is your canonical user identifier
+  email              String       @unique
+  name               String?
+  photoUrl           String?
+  role               Role         @default(USER)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  createdUploadLinks UploadLink[] @relation("CreatedLinks")
+  updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
 }
 
 // ============================================================================
@@ -88,9 +89,11 @@ model UploadLink {
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
-  createdBy        User              @relation(fields: [createdById], references: [id])
+  createdBy        User              @relation("CreatedLinks", fields: [createdById], references: [id])
   createdById      String
   createdAt        DateTime          @default(now())
+  updatedBy        User?             @relation("UpdatedLinks", fields: [updatedById], references: [id])
+  updatedById      String?
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
