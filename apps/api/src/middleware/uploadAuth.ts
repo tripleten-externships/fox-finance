@@ -6,6 +6,7 @@ export interface UploadAuthRequest extends Request {
     id: string;
     clientId: string;
     token: string;
+    documentRequestId: string;
   };
 }
 
