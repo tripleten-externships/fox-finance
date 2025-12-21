@@ -8,7 +8,11 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./apps/api/src/types"
+    ]
   },
   "include": ["apps", "packages"]
 }

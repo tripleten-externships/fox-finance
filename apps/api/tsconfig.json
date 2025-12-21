@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
+     "typeRoots": ["./node_modules/@types", "./src/types"],
+     "types": ["node", "express", "vite/client"],
+ "outDir": "dist",
     "rootDir": "src",
     "module": "CommonJS",
     "esModuleInterop": true,
@@ -10,5 +12,6 @@
       "@lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src"]
+ "include": ["src", "src/types"]
+
 }
