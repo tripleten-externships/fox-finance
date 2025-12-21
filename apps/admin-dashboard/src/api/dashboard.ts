@@ -1,6 +1,6 @@
 // apps/admin-dashboard/src/api/dashboard.ts
-
-export async function fetchDashboardData() {
+import type {DashboardData} from "../hooks/useDashboardData"
+export async function fetchDashboardData():  Promise<DashboardData> {
   const res = await fetch("/api/dashboard");
 
   if (!res.ok) {

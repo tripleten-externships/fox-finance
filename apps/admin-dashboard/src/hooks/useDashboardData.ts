@@ -40,21 +40,37 @@ export function useDashboardData() {
       // Normal polling when active
       return 5000; // meets the 5-second requirement
     },
+      // Continue polling even when tab is hidden (but at a slower interval above)
+      refetchIntervalInBackground: true,
+
+     // Refresh when user returns to the tab
     refetchOnWindowFocus: true,
+     // No stale cache — always fresh
     staleTime: 0,
+   //Graceful retry behavior
+    retry: 1,
+    //Prevent undefined UI flicker
+    placeholderData: {
+      totalUsers: 0,
+      activeUsers: 0,
+      uploadsToday: 0,
+      lastUpdated: new Date().toISOString(),
+    },
   });
 
-  // ✅ Optimistic UI example
+  // Optimistic UI example
   const updateDashboardOptimistically = (
     partialUpdate: Partial<DashboardData>
   ) => {
     queryClient.setQueryData<DashboardData>(["dashboard"], (previousData) => ({
       ...(previousData ?? {}),
       ...partialUpdate,
+      lastUpdated: new Date().toISOString(),
+
     }));
   };
 
-  // ✅ Graceful handling of connection issues
+  // Graceful handling of connection issues
   useEffect(() => {
     const handleOnline = () => refetch();
     window.addEventListener("online", handleOnline);
@@ -69,15 +85,4 @@ export function useDashboardData() {
   };
 }
 
-// ✅ 3. fetchDashboardData must return DashboardData
-// Your hook expects:
-// useQuery<DashboardData>({
-//   queryFn: fetchDashboardData,
-// });
 
-// So your API function must be typed like:
-// export async function fetchDashboardData(): Promise<DashboardData> {
-//   // ...
-// }
-
-// If it returns any, TypeScript will complain inside your UI.
