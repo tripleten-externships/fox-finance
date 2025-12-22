@@ -94,7 +94,7 @@ router.post(
                 fileName: file.fileName,
                 fileSize: file.contentLength,
                 s3Key: key,
-                s3Bucket: process.env.S3_BUCKET!,
+                s3Bucket: process.env.S3_UPLOADS_BUCKET!,
                 metadata: {},
               },
             });
@@ -129,7 +129,7 @@ router.post(
           fileName: file.fileName,
           fileSize: file.contentLength,
           s3Key: key,
-          s3Bucket: process.env.S3_BUCKET!,
+          s3Bucket: process.env.S3_UPLOADS_BUCKET!,
           metadata: {},
         },
       });
