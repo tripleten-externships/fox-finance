@@ -90,7 +90,7 @@ router.post(
               data: {
                 uploadBatchId: batch.id,
                 uploadLinkId,
-                documentRequestId,
+                ...(documentRequestId && { documentRequestId }),
                 fileName: file.fileName,
                 fileSize: file.contentLength,
                 s3Key: key,
@@ -125,7 +125,7 @@ router.post(
       await prisma.upload.create({
         data: {
           uploadLinkId,
-          documentRequestId,
+          ...(documentRequestId && { documentRequestId }),
           fileName: file.fileName,
           fileSize: file.contentLength,
           s3Key: key,

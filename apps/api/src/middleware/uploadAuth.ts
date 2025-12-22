@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-// import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma";
 
 export interface UploadAuthRequest extends Request {
   uploadLink?: {
     id: string;
     clientId: string;
     token: string;
-    documentRequestId: string;
+    documentRequestId?: string;
   };
 }
 
@@ -16,41 +16,46 @@ export async function requireUploadToken(
   next: NextFunction
 ) {
   try {
-    const token =
-      req.headers.authorization?.replace("Bearer ", "") ||
-      (req.query.token as string);
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader?.slice(7).trim()
+      : authHeader?.trim() || (req.query.token as string);
+
+    console.log("Auth header:", JSON.stringify(authHeader));
+    console.log("Parsed token:", JSON.stringify(token));
 
     if (!token) {
       return res.status(401).json({ error: "Upload token required" });
     }
 
     // TODO: uncomment once upload links are implemented
-    // const uploadLink = await prisma.uploadLink.findUnique({
-    //   where: { token },
-    //   select: {
-    //     id: true,
-    //     clientId: true,
-    //     token: true,
-    //     expiresAt: true,
-    //     isActive: true,
-    //   },
-    // });
+    const uploadLink = await prisma.uploadLink.findFirst({
+      where: { token },
+      select: {
+        id: true,
+        clientId: true,
+        token: true,
+        expiresAt: true,
+        isActive: true,
+      },
+    });
+    console.log("UploadLink found:", uploadLink);
 
-    // if (!uploadLink) {
-    //   return res.status(401).json({ error: "Invalid upload token" });
-    // }
+    if (!uploadLink) {
+      return res.status(401).json({ error: "Invalid upload token" });
+    }
 
-    // if (!uploadLink.isActive) {
-    //   return res
-    //     .status(401)
-    //     .json({ error: "Upload link has been deactivated" });
-    // }
+    if (!uploadLink.isActive) {
+      return res
+        .status(401)
+        .json({ error: "Upload link has been deactivated" });
+    }
 
-    // if (new Date() > uploadLink.expiresAt) {
-    //   return res.status(401).json({ error: "Upload link has expired" });
-    // }
+    if (new Date() > uploadLink.expiresAt) {
+      return res.status(401).json({ error: "Upload link has expired" });
+    }
 
-    // (req as UploadAuthRequest).uploadLink = uploadLink;
+    (req as UploadAuthRequest).uploadLink = uploadLink;
     next();
   } catch (error) {
     console.error("Upload token verification error:", error);

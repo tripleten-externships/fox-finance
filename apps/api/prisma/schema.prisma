@@ -122,8 +122,8 @@ model Upload {
   id                String          @id @default(uuid()) @db.Uuid
   uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
   uploadLinkId      String          @db.Uuid
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String          @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?          @db.Uuid
   fileName          String
   fileSize          Decimal
   s3Key             String
