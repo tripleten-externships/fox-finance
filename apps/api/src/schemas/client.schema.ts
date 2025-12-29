@@ -46,6 +46,7 @@ export const updateClientSchema = z.object({
     id: z.string().uuid("Client ID must be a valid UUID"),
   }),
 
+<<<<<<< Updated upstream
   body: z
     .object({
       firstName: z
@@ -84,3 +85,19 @@ export const updateClientSchema = z.object({
 // -----------------------------
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
+=======
+// FORM SCHEMA (client-side)
+// -----------------------------
+
+export const clientFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email"),
+  company: z.string().optional().nullable(),
+  phone: z.string().optional(),
+});
+
+// Form type
+export type ClientFormValues = z.infer<typeof clientFormSchema>;
+
+>>>>>>> Stashed changes

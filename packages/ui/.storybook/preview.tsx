@@ -3,7 +3,10 @@ import React, { useEffect } from "react";
 import { ThemeProvider, useTheme } from "@fox-finance/theme";
 import "@fox-finance/theme/styles/globals.css";
 
-const ColorModeLoader = ({ colorMode }) => {
+
+type ColorMode = "light" | "dark";
+
+const ColorModeLoader = ({ colorMode }:  { colorMode: ColorMode }) => {
   const { setColorMode } = useTheme();
   useEffect(() => {
     console.log("Setting color mode to:", colorMode);

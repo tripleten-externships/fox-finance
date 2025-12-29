@@ -1,3 +1,4 @@
+//pnpm create:dev-admin --email "johnzeeze@yahoo.com" --name "kebede"
 {
   "compilerOptions": {
     "target": "ES2020",

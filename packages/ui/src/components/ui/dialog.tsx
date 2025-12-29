@@ -2,7 +2,13 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
-import { cn } from "@/utils/index";
+// import { cn } from "@/utils/index";
+// I changed the above to the following b/c relative imports solve Typescript issue
+// only works inside your admin-dashboard app, because that app defines the alias @.
+// But your UI package does NOT have that alias.
+// So Vite and TypeScript fail to resolve it, and your build breaks.
+
+import { cn } from "../../utils";
 
 const Dialog = DialogPrimitive.Root;
 

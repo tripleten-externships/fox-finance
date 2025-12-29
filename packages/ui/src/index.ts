@@ -47,3 +47,14 @@ export {
   type Theme,
   type ColorMode,
 } from "@fox-finance/theme";
+
+//I added this based on AI suggestion 
+// ⭐ Export Form components
+export {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "./components/ui/form";
