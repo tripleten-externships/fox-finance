@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-// import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma";
 
 export interface UploadAuthRequest extends Request {
   uploadLink: {
@@ -24,32 +24,34 @@ export async function requireUploadToken(
     }
 
     // TODO: uncomment once upload links are implemented
-    // const uploadLink = await prisma.uploadLink.findUnique({
-    //   where: { token },
-    //   select: {
-    //     id: true,
-    //     clientId: true,
-    //     token: true,
-    //     expiresAt: true,
-    //     isActive: true,
-    //   },
-    // });
+    const uploadLink = await prisma.uploadLink.findUnique({
+      where: { token },
+      select: {
+        id: true,
+        clientId: true,
+        token: true,
+        expiresAt: true,
+        isActive: true,
+        client:true,
+      },
+     
+    });
 
-    // if (!uploadLink) {
-    //   return res.status(401).json({ error: "Invalid upload token" });
-    // }
+    if (!uploadLink) {
+      return res.status(401).json({ error: "Invalid upload token" });
+    }
 
-    // if (!uploadLink.isActive) {
-    //   return res
-    //     .status(401)
-    //     .json({ error: "Upload link has been deactivated" });
-    // }
+    if (!uploadLink.isActive) {
+      return res
+        .status(401)
+        .json({ error: "Upload link has been deactivated" });
+    }
 
-    // if (new Date() > uploadLink.expiresAt) {
-    //   return res.status(401).json({ error: "Upload link has expired" });
-    // }
+    if (uploadLink.expiresAt && new Date() > uploadLink.expiresAt) {
+      return res.status(403).json({ error: "Upload link has expired" });
+    }
 
-    // (req as UploadAuthRequest).uploadLink = uploadLink;
+    (req as UploadAuthRequest).uploadLink =  {id:uploadLink.id,clientId:uploadLink.clientId,token:uploadLink.token};
     next();
   } catch (error) {
     console.error("Upload token verification error:", error);
