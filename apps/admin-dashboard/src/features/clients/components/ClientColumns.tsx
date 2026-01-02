@@ -1,6 +1,5 @@
-import { createColumnHelper } from "@tanstack/react-table";
+import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "../../../../../../packages/ui/src/components/ui/badge";
-
 export type Client = {
   id: string;
   name: string;
@@ -12,7 +11,8 @@ export type Client = {
 
 const columnHelper = createColumnHelper<Client>();
 
-export const columns = [
+//  Change ColumnDef<Client>[] to ColumnDef<Client, any>[]
+export const columns: ColumnDef<Client, any>[] = [
   columnHelper.accessor("name", {
     header: "Name",
     enableSorting: true,
@@ -26,19 +26,24 @@ export const columns = [
   }),
   columnHelper.accessor("status", {
     header: "Status",
-    cell: ({ getValue }) => {
-      const status = getValue();
+    cell: (info) => {
+      const status = info.getValue();
       return (
-        <Badge color={status === "active" ? "green" : "gray"} variant="default">
-          {status}
+        <Badge 
+          variant={status === "active" ? "default" : "secondary"}
+          className={status === "active" ? "bg-green-500 text-white" : "bg-gray-400 text-white"}
+        >
+          {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       );
     },
   }),
   columnHelper.accessor("createdAt", {
-    header: "Created",
+    header: "Created Date",
     enableSorting: true,
-    cell: ({ getValue }) =>
-      new Date(getValue()).toLocaleDateString(),
+    cell: (info) => {
+      const date = info.getValue();
+      return date ? new Date(date).toLocaleDateString() : "N/A";
+    },
   }),
 ];

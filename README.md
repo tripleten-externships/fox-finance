@@ -807,3 +807,461 @@ git pull                  # Pull latest changes
 **Questions or need help?** Contact your mentor or ask in the team channel.
 
 **Happy coding! 🚀**
+# Fox Finance Monorepo Structure
+<!-- 
+├── apps
+│   ├── admin-dashboard
+│   │   └── src/features/clients/components
+│   │       ├── ClientTable.tsx
+│   │       ├── ClientColumns.tsx
+│   │       ├── ClientForm.tsx
+│   │       ├── EditClientModal.tsx
+│   │       ├── index.ts (Barrel file)
+│   │       └── QuickActions.tsx
+│   └── api
+│       └── src
+│           ├── middleware/validation.ts
+│           └── scripts/createDevAdminUser.ts
+├── packages
+│   └── ui
+│       └── src/components/ui
+│           ├── form.tsx
+│           └── form.stories.tsx
+└── README.md -->
+fox-finance
+
+├─ apps
+
+│  ├─ admin-dashboard
+
+│  │  ├─ index.html
+
+│  │  ├─ package.json
+
+│  │  ├─ postcss.config.js
+
+│  │  ├─ public
+
+│  │  │  └─ favicon.ico
+
+│  │  ├─ README.md
+
+│  │  ├─ src
+
+│  │  │  ├─ App.tsx
+
+│  │  │  ├─ components
+
+│  │  │  │  └─ ProtectedRoutes.tsx
+
+│  │  │  ├─ contexts
+
+│  │  │  │  └─ AuthContext.tsx
+
+│  │  │  ├─ features
+
+│  │  │  │  ├─ auth
+
+│  │  │  │  │  ├─ components
+
+│  │  │  │  │  │  └─ GoogleLogo.tsx
+
+│  │  │  │  │  ├─ index.tsx
+
+│  │  │  │  │  └─ pages
+
+│  │  │  │  │     └─ Login.tsx
+
+│  │  │  │  └─ clients
+
+│  │  │  │     └─ components
+
+│  │  │  │        ├─ ClientForm.tsx
+
+│  │  │  │        └─ EditClientModal.tsx
+
+│  │  │  ├─ hooks
+
+│  │  │  │  └─ useAuth.ts
+
+│  │  │  ├─ layouts
+
+│  │  │  │  └─ AuthLayout.tsx
+
+│  │  │  ├─ lib
+
+│  │  │  │  └─ firebase.ts
+
+│  │  │  └─ main.tsx
+
+│  │  ├─ tailwind.config.js
+
+│  │  ├─ tsconfig.app.json
+
+│  │  ├─ tsconfig.json
+
+│  │  ├─ tsconfig.node.json
+
+│  │  └─ vite.config.ts
+
+│  ├─ api
+
+│  │  ├─ .dockerignore
+
+│  │  ├─ Dockerfile
+
+│  │  ├─ package.json
+
+│  │  ├─ prisma
+
+│  │  │  ├─ migrations
+
+│  │  │  │  ├─ 20251122201658_initial_schema_dump
+
+│  │  │  │  │  └─ migration.sql
+
+│  │  │  │  ├─ 20251130001647_fix_documentrequest_id_primary_key
+
+│  │  │  │  │  └─ migration.sql
+
+│  │  │  │  ├─ 20251205153755_intial_schema_model
+
+│  │  │  │  │  └─ migration.sql
+
+│  │  │  │  ├─ 20251208113652_add_id_defaults
+
+│  │  │  │  │  └─ migration.sql
+
+│  │  │  │  └─ migration_lock.toml
+
+│  │  │  └─ schema.prisma
+
+│  │  ├─ README.md
+
+│  │  ├─ scripts
+
+│  │  │  ├─ createDevAdminUser.md
+
+│  │  │  └─ createDevAdminUser.ts
+
+│  │  ├─ src
+
+│  │  │  ├─ firebase.ts
+
+│  │  │  ├─ index.ts
+
+│  │  │  ├─ lib
+
+│  │  │  │  ├─ prisma.ts
+
+│  │  │  │  └─ s3.ts
+
+│  │  │  ├─ middleware
+
+│  │  │  │  ├─ auth.ts
+
+│  │  │  │  ├─ errorHandler.ts
+
+│  │  │  │  ├─ uploadAuth.ts
+
+│  │  │  │  └─ validation.ts
+
+│  │  │  ├─ routes
+
+│  │  │  │  ├─ admin
+
+│  │  │  │  │  ├─ clients.ts
+
+│  │  │  │  │  ├─ index.ts
+
+│  │  │  │  │  └─ upload-links.ts
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  └─ upload
+
+│  │  │  │     └─ index.ts
+
+│  │  │  ├─ schemas
+
+│  │  │  │  ├─ client.schema.ts
+
+│  │  │  │  └─ uploadLink.schema.ts
+
+│  │  │  └─ services
+
+│  │  │     └─ s3.service.ts
+
+│  │  └─ tsconfig.json
+
+│  └─ infra
+
+│     ├─ .npmignore
+
+│     ├─ bin
+
+│     │  ├─ infra.d.ts
+
+│     │  ├─ infra.js
+
+│     │  └─ infra.ts
+
+│     ├─ cdk.context.json
+
+│     ├─ cdk.json
+
+│     ├─ jest.config.js
+
+│     ├─ lib
+
+│     │  ├─ api-stack.d.ts
+
+│     │  ├─ api-stack.js
+
+│     │  ├─ api-stack.ts
+
+│     │  ├─ config.d.ts
+
+│     │  ├─ config.js
+
+│     │  ├─ config.ts
+
+│     │  ├─ constructs
+
+│     │  │  ├─ static-site.d.ts
+
+│     │  │  ├─ static-site.js
+
+│     │  │  └─ static-site.ts
+
+│     │  ├─ database-stack.d.ts
+
+│     │  ├─ database-stack.js
+
+│     │  ├─ database-stack.ts
+
+│     │  ├─ frontend-stack.d.ts
+
+│     │  ├─ frontend-stack.js
+
+│     │  ├─ frontend-stack.ts
+
+│     │  ├─ infra-stack.d.ts
+
+│     │  ├─ infra-stack.js
+
+│     │  ├─ infra-stack.ts
+
+│     │  ├─ network-stack.d.ts
+
+│     │  ├─ network-stack.js
+
+│     │  ├─ network-stack.ts
+
+│     │  ├─ storybook-stack.d.ts
+
+│     │  ├─ storybook-stack.js
+
+│     │  └─ storybook-stack.ts
+
+│     ├─ package.json
+
+│     └─ tsconfig.json
+
+├─ docker-compose.yml
+
+├─ package.json
+
+├─ packages
+
+│  ├─ api-types
+
+│  │  ├─ package.json
+
+│  │  └─ src
+
+│  │     ├─ index.ts
+
+│  │     └─ schemas.ts
+
+│  ├─ config
+
+│  │  ├─ package.json
+
+│  │  └─ README.md
+
+│  ├─ theme
+
+│  │  ├─ package.json
+
+│  │  ├─ postcss.config.js
+
+│  │  ├─ README.md
+
+│  │  ├─ src
+
+│  │  │  ├─ hooks
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  ├─ useColorMode.ts
+
+│  │  │  │  └─ useTheme.ts
+
+│  │  │  ├─ index.ts
+
+│  │  │  ├─ providers
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  └─ ThemeProvider.tsx
+
+│  │  │  ├─ styles
+
+│  │  │  │  └─ globals.css
+
+│  │  │  ├─ tailwind
+
+│  │  │  │  ├─ config.ts
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  └─ plugins.ts
+
+│  │  │  ├─ tokens
+
+│  │  │  │  ├─ breakpoints.ts
+
+│  │  │  │  ├─ colors.ts
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  ├─ shadows.ts
+
+│  │  │  │  ├─ spacing.ts
+
+│  │  │  │  └─ typography.ts
+
+│  │  │  ├─ types
+
+│  │  │  │  ├─ index.ts
+
+│  │  │  │  ├─ theme.ts
+
+│  │  │  │  └─ tokens.ts
+
+│  │  │  └─ utils
+
+│  │  │     ├─ css-variables.ts
+
+│  │  │     ├─ index.ts
+
+│  │  │     └─ theme-helpers.ts
+
+│  │  ├─ tsconfig.json
+
+│  │  ├─ vite.config.ts
+
+│  │  ├─ vite.config.ts.timestamp-1767045255687-8c25c706d4e46.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767045583451-bb65355ea5e6a.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767046412036-f309665d9c6ff.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767046736987-f0a0f57b054e.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767047026316-525394783e6e.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767048198243-62391d05fdff6.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767048531061-d7ff00eb44fd1.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767048756510-2ed882153ac38.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767048829092-8efda1346763c.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767048863144-dc128dcecc6a7.mjs
+
+│  │  ├─ vite.config.ts.timestamp-1767049365654-d4b16c3b1c073.mjs
+
+│  │  └─ vite.config.ts.timestamp-1767049733428-678e74050bac4.mjs
+
+│  └─ ui
+
+│     ├─ .storybook
+
+│     │  ├─ main.ts
+
+│     │  └─ preview.tsx
+
+│     ├─ components.json
+
+│     ├─ package.json
+
+│     ├─ postcss.config.js
+
+│     ├─ README.md
+
+│     ├─ src
+
+│     │  ├─ components
+
+│     │  │  └─ ui
+
+│     │  │     ├─ badge.stories.tsx
+
+│     │  │     ├─ badge.tsx
+
+│     │  │     ├─ button.stories.tsx
+
+│     │  │     ├─ button.tsx
+
+│     │  │     ├─ card.stories.tsx
+
+│     │  │     ├─ card.tsx
+
+│     │  │     ├─ dialog.stories.tsx
+
+│     │  │     ├─ dialog.tsx
+
+│     │  │     ├─ form.stories.tsx
+
+│     │  │     ├─ form.tsx
+
+│     │  │     ├─ input.stories.tsx
+
+│     │  │     ├─ input.tsx
+
+│     │  │     ├─ select.stories.tsx
+
+│     │  │     ├─ select.tsx
+
+│     │  │     ├─ showcase.stories.tsx
+
+│     │  │     └─ sonner.tsx
+
+│     │  ├─ index.ts
+
+│     │  └─ utils
+
+│     │     ├─ cn.ts
+
+│     │     └─ index.ts
+
+│     ├─ tailwind.config.js
+
+│     ├─ tsconfig.json
+
+│     └─ vite.config.ts
+
+├─ pnpm-lock.yaml
+
+├─ pnpm-workspace.yaml
+
+├─ README.md
+
+└─ tsconfig.json
+
+
+
+```

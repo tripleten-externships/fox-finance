@@ -23,6 +23,14 @@ export {
   DialogDescription,
 } from "./components/ui/dialog";
 export {
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormField,
+} from "./components/ui/form";
+export {
   Select,
   SelectGroup,
   SelectValue,
@@ -35,7 +43,7 @@ export {
   SelectScrollDownButton,
 } from "./components/ui/select";
 export { Toaster, toast } from "./components/ui/sonner";
-
+export { Label } from "./components/ui/label";
 // Export utilities
 export { cn, cnUI } from "./utils";
 

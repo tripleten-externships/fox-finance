@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodTypeAny, ZodObject } from "zod";
-import { ParsedQs } from "qs";
-import { ParamsDictionary } from "express-serve-static-core";
 
 // Allow body/query/params to be optional
 export type RequestSchema = ZodObject<{
@@ -35,8 +33,8 @@ export const validate =
 
     // Cast to satisfy Express types
     req.body = result.data.body;
-    req.query = result.data.query as ParsedQs;
-    req.params = result.data.params as ParamsDictionary;
+    (req as any).query = result.data.query;
+    (req as any).params = result.data.params;
 
     next();
   };

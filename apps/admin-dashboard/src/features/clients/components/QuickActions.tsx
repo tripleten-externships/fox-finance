@@ -1,4 +1,4 @@
-export function QuickActions({ id }: { id: string }) {
+export function QuickActions({ id: _id}: { id: string }) {
   return (
     <div className="flex gap-3 text-sm">
       <button className="text-blue-600">Edit</button>

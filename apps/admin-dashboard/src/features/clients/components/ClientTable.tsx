@@ -8,20 +8,25 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
-
+ 
+import type { 
+  Row, 
+  Cell, 
+ SortingState, 
+} from "@tanstack/react-table";
+ 
 import { columns } from "./ClientColumns";
 import type { Client } from "./ClientColumns";
 
 import { ClientTableSkeleton } from "./ClientTableSkeleton";
 import { QuickActions } from "./QuickActions";
 import { ExpandedDetails } from "./ClientDetails";
-import type { SortingState } from "@tanstack/react-table";
 
 
 export function ClientTable() {
   const [data, setData] = React.useState<Client[]>([]);
   const [loading, setLoading] = React.useState(true);
- const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const [expanded, setExpanded] = React.useState({});
 
@@ -35,75 +40,80 @@ export function ClientTable() {
     }
     load();
   }, []);
-//prepared dummy table instead of fetch to make sanity check
-//   React.useEffect(() => {
-//   setLoading(false);
-//   setData([
-//     {
-//       id: "1",
-//       name: "Test User",
-//       email: "test@example.com",
-//       company: "Test Company",
-//       status: "active",
-//       createdAt: new Date().toISOString(),
-//     },
-//     {
-//       id: "2",
-//       name: "Another User",
-//       email: "another@example.com",
-//       company: "Another Co",
-//       status: "inactive",
-//       createdAt: new Date().toISOString(),
-//     },
-//   ]);
-// }, []);
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting, expanded },
-    onSortingChange: setSorting,
-    onExpandedChange: setExpanded,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: { pageSize: 20 },
-    },
-  });
-  console.log(table);
-  if (loading) return <ClientTableSkeleton />;
+  //prepared dummy table instead of fetch to make sanity check
+  //   React.useEffect(() => {
+  //   setLoading(false);
+  //   setData([
+  //     {
+  //       id: "1",
+  //       name: "Test User",
+  //       email: "test@example.com",
+  //       company: "Test Company",
+  //       status: "active",
+  //       createdAt: new Date().toISOString(),
+  //     },
+  //     {
+  //       id: "2",
+  //       name: "Another User",
+  //       email: "another@example.com",
+  //       company: "Another Co",
+  //       status: "inactive",
+  //       createdAt: new Date().toISOString(),
+  //     },
+  //   ]);
+  // }, []);
+// Explicitly type the useReactTable hook
+const table = useReactTable({
+  data,
+  columns, // Ensure columns is exported as ColumnDef<Client>[] in ClientColumns.tsx
+  state: { sorting, expanded },
+  onSortingChange: setSorting,
+  onExpandedChange: setExpanded,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getPaginationRowModel: getPaginationRowModel(),
+  initialState: {
+    pagination: { pageSize: 20 },
+  },
+});
+  
+if (loading) return <ClientTableSkeleton />;
 
   return (
     <div className="w-full overflow-x-auto">
-
       {/* Desktop Table */}
       <table className="hidden md:table w-full border-collapse">
         console.log("ROWS:", table.getRowModel().rows);
-        <thead>
-          {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id}>
-              {hg.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="p-3 text-left cursor-pointer"
-                  onClick={header.column.getToggleSortingHandler()}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-              <th className="p-3">Actions</th>
-            </tr>
-          ))}
-        </thead>
-
+<thead>
+  {table.getHeaderGroups().map((hg) => (
+    <tr key={hg.id}>
+      {hg.headers.map((header) => (
+        <th
+          key={header.id}
+          className="p-3 text-left cursor-pointer"
+          onClick={header.column.getToggleSortingHandler()}
+        >
+          {header.isPlaceholder
+            ? null
+            : flexRender(
+                header.column.columnDef.header,
+                header.getContext()
+              )}
+        </th>
+      ))}
+      <th className="p-3">Actions</th>
+    </tr>
+  ))}
+</thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
+          {table.getRowModel().rows.map((row: Row<Client>) => (
             <React.Fragment key={row.id}>
               <tr
                 className="border-b hover:bg-gray-50 cursor-pointer"
                 onClick={() => row.toggleExpanded()}
               >
-                {row.getVisibleCells().map((cell) => (
+                {/* Strictly type the cell here */}
+                {row.getVisibleCells().map((cell: Cell<Client, unknown>) => (
                   <td key={cell.id} className="p-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
@@ -115,7 +125,10 @@ export function ClientTable() {
 
               {row.getIsExpanded() && (
                 <tr className="bg-gray-50">
-                  <td colSpan={columns.length + 1} className="p-4">
+                  <td
+                    colSpan={table.getAllColumns().length + 1}
+                    className="p-4"
+                  >
                     <ExpandedDetails client={row.original} />
                   </td>
                 </tr>
