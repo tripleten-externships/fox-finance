@@ -18,8 +18,11 @@
     "noEmit": false,
     "jsx": "react-jsx",
     "baseUrl": ".",
+    "jsxImportSource": "react",
+
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "*": ["node_modules/*", "../../node_modules/*"]
     }
   },
   "include": [

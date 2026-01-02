@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // -----------------------------
@@ -45,50 +46,11 @@ export const updateClientSchema = z.object({
   params: z.object({
     id: z.string().uuid("Client ID must be a valid UUID"),
   }),
-
-<<<<<<< Updated upstream
-  body: z
-    .object({
-      firstName: z
-        .string()
-        .trim()
-        .min(1, "First name cannot be empty")
-        .max(100, "First name is too long")
-        .optional(),
-
-      lastName: z
-        .string()
-        .trim()
-        .min(1, "Last name cannot be empty")
-        .max(100, "Last name is too long")
-        .optional(),
-
-      email: z.string().email("Email must be valid").optional().nullable(),
-
-      company: z.string().max(200).optional().nullable(),
-
-      phone: z
-        .string()
-        .regex(
-          /^(?:\+1\s?)?(?:\(?[2-9][0-9]{2}\)?)[\s-]?(?:[2-9][0-9]{2})[\s-]?[0-9]{4}$/,
-          "Phone must be digits with optional +1"
-        )
-        .optional(),
-    })
-    .refine((data) => Object.keys(data).length > 0, {
-      message: "At least one field must be provided for update",
-    }),
 });
 
 // -----------------------------
-// TYPES
-// -----------------------------
-export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
-export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
-=======
 // FORM SCHEMA (client-side)
 // -----------------------------
-
 export const clientFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -99,5 +61,3 @@ export const clientFormSchema = z.object({
 
 // Form type
 export type ClientFormValues = z.infer<typeof clientFormSchema>;
-
->>>>>>> Stashed changes

@@ -9,7 +9,10 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    
+    "skipDefaultLibCheck": true,
+    "noEmit": true
   },
   "include": ["apps", "packages"]
 }

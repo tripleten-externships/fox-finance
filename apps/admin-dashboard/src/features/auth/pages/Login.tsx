@@ -13,7 +13,7 @@ import { GoogleLogo } from "../components/GoogleLogo";
 import useAuth from "../../../hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState } from "react";
 import {
   getMultiFactorResolver,
   GoogleAuthProvider,
@@ -119,7 +119,7 @@ export function Login() {
       });
   };
 
-  const onGoogleClick = (e: SyntheticEvent) => {
+ const onGoogleClick = (e: React.MouseEvent<HTMLButtonElement>) =>  {
     e.preventDefault();
 
     setIsLoading(true);
@@ -251,7 +251,7 @@ export function Login() {
               <Input
                 type="password"
                 placeholder="Enter two-factor verification code"
-                onChange={(e) => setVerificationCode(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVerificationCode(e.target.value)}
               />
             </div>
           )}

@@ -5,8 +5,8 @@
 //   role: role.toLowerCase(),
 // });
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// import { useState, useEffect } from "react";
+// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // I created features/clients/components/clientForm.tsx & EdieClientModal.tsx
 // I created two new files form.stories.tsx and form.tsx
 // issue Cannot find module '@tanstack/react-query' poped up.
@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 //In ui/src/package.json, I added to "peerDependencies" react-hook-form:^7.49.3 & removed
 // react-hook-form:^7.49.3 from "dependencies" & added to "devDependencies" so storybook can use it
 // then did "pnpm istall" & "ctrl + shift + p" -> "TypeScript: Restart TS Server"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +40,6 @@ interface EditClientModalProps {
 
 export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
   const queryClient = useQueryClient();
-  const [hasChanges, setHasChanges] = useState(false);
 
   // Fetch existing client data
   const { data, isLoading } = useQuery({
@@ -56,6 +56,7 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
+      if (!res.ok) throw new Error("Failed to update");
       return res.json();
     },
 
@@ -67,16 +68,16 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
       const previousClients = queryClient.getQueryData(["clients"] as const);
       const previousClient = queryClient.getQueryData(["client", id] as const);
 
-      // Update list
+      // Update list cache immediately
       queryClient.setQueryData(["clients"], (old: any) =>
         old
           ? old.map((client: any) =>
-              client.id === id ? { ...client, ...updatedValues } : client
-            )
+            client.id === id ? { ...client, ...updatedValues } : client
+          )
           : old
       );
 
-      // Update detail
+      // Update detail cache immediately
       queryClient.setQueryData(["client", id], (old: any) =>
         old ? { ...old, ...updatedValues } : old
       );
@@ -95,34 +96,28 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
     },
 
     // 🔄 Revalidate after success
-    onSettled: () => {
+   onSettled: () => {
+      // This refreshes the main list
       queryClient.invalidateQueries({ queryKey: ["clients"] as const });
+  
+      // ✅ This refreshes the specific client's details
       queryClient.invalidateQueries({ queryKey: ["client", id] as const });
     },
   });
 
-  // Warn on browser navigation if unsaved changes
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanges) {
-        e.preventDefault();
-        // Modern browsers still require setting returnValue to trigger the dialog,
-        // but TS marks it deprecated, so we cast to avoid the warning.
-        e.returnValue = ""; // still needed for Chrome
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [hasChanges]);
-
-  const handleSubmit = (values: ClientFormValues) => {
-    if (!hasChanges) {
+  // ✅ Updated handleSubmit receives isDirty directly from ClientForm
+  const handleSubmit = (values: ClientFormValues, isDirty: boolean) => {
+    // AC: Confirm if no changes were made
+    if (!isDirty) {
       const confirmSave = window.confirm("No changes detected. Save anyway?");
       if (!confirmSave) return;
     }
 
-    mutation.mutate(values);
-    onClose();
+    mutation.mutate(values, {
+      onSuccess: () => {
+        onClose();
+      },
+    });
   };
 
   return (
@@ -136,13 +131,13 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
         </DialogHeader>
 
         {isLoading ? (
-          <div className="p-4">Loading...</div>
+          <div className="p-4 text-center">Loading client data...</div>
         ) : (
           <ClientForm
             mode="edit"
             initialValues={data}
             onSubmit={handleSubmit}
-            onChange={() => setHasChanges(true)}
+            isLoading={mutation.isPending}
           />
         )}
       </DialogContent>

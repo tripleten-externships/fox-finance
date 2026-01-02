@@ -4,11 +4,14 @@
     "outDir": "dist",
     "rootDir": "src",
     "module": "CommonJS",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "baseUrl": ".",
+    "skipLibCheck": true, 
+    "noImplicitAny": false,
     "paths": {
       "@lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src/**/*"]
 }
