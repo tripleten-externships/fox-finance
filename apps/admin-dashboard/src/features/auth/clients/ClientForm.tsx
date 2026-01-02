@@ -4,10 +4,29 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { CreateClientInput } from '../../../../../api/src/schemas/client.schema';
 import { createClientSchema } from '../../../../../api/src/schemas/client.schema';
+import { postClient } from "../../../lib/api";
+//import elements
+import { 
+  Button, 
+  Input , 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  
+} from "@fox-finance/ui";
 
-export default function ClientForm() {
+import {colors} from "../../../../../../packages/theme/src/tokens/colors"; // Ensure theme is loaded
+
+interface ClientFormProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function ClientForm({ open = true, onOpenChange }: ClientFormProps) {
   const [fullName, setFullName] = useState('');
   const [phoneDisplay, setPhoneDisplay] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const {
     register,
@@ -30,11 +49,18 @@ export default function ClientForm() {
       phone: ''
     }
   });
+const createClient = (data: CreateClientInput) => {
+  return postClient(data);
+};
 
   // Watch for changes to show real-time feedback
   const watchedEmail = watch('email');
   const watchedFirstName = watch('firstName');
   const watchedLastName = watch('lastName');
+  const watchedPhone = watch('phone');
+
+  // Check if all required fields are filled
+  const isFormComplete = watchedFirstName && watchedLastName && watchedEmail && watchedPhone;
 
   const handleNameUpdate = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
@@ -100,160 +126,169 @@ export default function ClientForm() {
   const onSubmit = async (data: CreateClientInput) => {
     try {
       console.log('Form data:', data);
-      // Submit to API here
-      // await createClient(data);
-      reset(); // Reset form after successful submit
+      await createClient(data);
+      
+      // Show success message
+      setSuccessMessage(`✅ Client "${data.firstName} ${data.lastName}" created successfully!`);
+      
+      // Clear form
+      reset();
+      setFullName('');
+      setPhoneDisplay('');
+      
+      // Close modal after a brief delay to show success message
+      setTimeout(() => {
+        setSuccessMessage('');
+        onOpenChange?.(false);
+      }, 2000);
+      
     } catch (error) {
-      console.error('Submit error:', error);
+      console.error('Error creating client:', error);
+      setSuccessMessage('❌ Failed to create client. Please try again.');
+      
+      // Clear error message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
     }
   };
 
+  const handleCancel = () => {
+    reset();
+    setFullName('');
+    setPhoneDisplay('');
+    setSuccessMessage(''); // Clear any success message
+    onOpenChange?.(false);
+  };
+
   return (
-    <div className="create-client_container">
-      <h1 className="client-form_title">Create Client</h1>
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="create-client_form">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="gap-6 !rounded-[10px]" 
         
-        {/* Full Name Input */}
-        <div className="form-field">
-          <label htmlFor="fullName">Full Name:</label>
-          <input 
-            id="fullName"
-            type="text" 
-            value={fullName}
-            onChange={handleNameUpdate}
-            placeholder="Enter first and last name"
-            className={`form-input ${
-              (errors.firstName || errors.lastName) ? 'error' : 
-              (watchedFirstName && watchedLastName) ? 'valid' : ''
-            }`}
-          />
+      >
+        <DialogHeader className="">
+          <DialogTitle>Create Client Access</DialogTitle>
           
-          {/* Name-specific error messages */}
-          {errors.firstName && (
-            <span className="error-message">
-              <i className="error-icon">⚠</i>
-              {errors.firstName.message}
-            </span>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex-1">
+          {/* Success/Error Message */}
+          {successMessage && (
+            <div className={`p-3 rounded-[8px] text-sm font-medium text-center ${
+              successMessage.includes('✅') 
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {successMessage}
+            </div>
           )}
-          {errors.lastName && (
-            <span className="error-message">
-              <i className="error-icon">⚠</i>
-              {errors.lastName.message}
-            </span>
-          )}
-          
-          {/* Success indicator */}
-          {watchedFirstName && watchedLastName && !errors.firstName && !errors.lastName && (
-            <span className="success-message">
-              <i className="success-icon">✓</i>
-              Name looks good!
-            </span>
-          )}
-        </div>
 
-        {/* Email Input */}
-        <div className="form-field">
-          <label htmlFor="email">Email:</label>
-          <input 
-            id="email"
-            type="email" 
-            {...register("email", {
-              onChange: handleEmailValidation
-            })}
-            placeholder="Enter email address"
-            className={`form-input ${
-              errors.email ? 'error' : 
-              watchedEmail && !errors.email ? 'valid' : ''
-            }`}
-          />
-          
-          {errors.email && (
-            <span className="error-message">
-              <i className="error-icon">⚠</i>
-              {errors.email.message}
-            </span>
-          )}
-          
-          {watchedEmail && !errors.email && (
-            <span className="success-message">
-              <i className="success-icon">✓</i>
-              Email format is valid
-            </span>
-          )}
-        </div>
+          {/* Full Name Input */}
+          <div className="space-y-2">
+            <label htmlFor="fullName" className="text-sm font-medium">
+              Client's Name
+            </label>
+            <Input 
+              id="fullName"
+              value={fullName}
+              onChange={handleNameUpdate}
+              placeholder="Enter first and last name"
+              className="!rounded-[8px]"
+            />
+            
+            {/* Name-specific error messages */}
+            {errors.firstName && (
+              <div className="flex items-center gap-1 text-sm" style={{ color: `hsl(${colors.error[500]})` }}>
+                <span style={{ color: `hsl(${colors.error[500]})` }}>⚠</span>
+                {errors.firstName.message}
+              </div>
+            )}
+            {errors.lastName && (
+              <div className="flex items-center gap-1 text-sm" style={{ color: `hsl(${colors.error[500]})` }}>
+                <span style={{ color: `hsl(${colors.error[500]})` }}>⚠</span>
+                {errors.lastName.message}
+              </div>
+            )}
+          </div>
 
-        {/* Company Input */}
-        <div className="form-field">
-          <label htmlFor="company">Company:</label>
-          <input 
-            id="company"
-            type="text" 
-            {...register("company", {
-              onChange: () => trigger('company')
-            })}
-            placeholder="Enter company name (optional)"
-            className={`form-input ${
-              errors.company ? 'error' : 
-              watch('company') ? 'valid' : ''
-            }`}
-          />
-          
-          {errors.company && (
-            <span className="error-message">
-              <i className="error-icon">⚠</i>
-              {errors.company.message}
-            </span>
-          )}
-        </div>
+          {/* Email Input */}
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">
+              Client's Email
+            </label>
+            <Input 
+              id="email"
+              type="email"
+              placeholder="Enter email address"
+              className="!rounded-[8px]"
+              {...register("email", {
+                onChange: handleEmailValidation
+              })}
+            />
+            
+            {errors.email && (
+              <div className="flex items-center gap-1 text-sm" style={{ color: `hsl(${colors.error[500]})` }}>
+                <span style={{ color: `hsl(${colors.error[500]})` }}>⚠</span>
+                {errors.email.message}
+              </div>
+            )}
+          </div>
 
-        {/* Phone Input */}
-        <div className="form-field">
-          <label htmlFor="phone">Phone Number:</label>
-          <input 
-            id="phone"
-            type="tel" 
-            value={phoneDisplay}
-            onChange={handlePhoneUpdate}
-            placeholder="(123) 456-7890"
-            maxLength={17}
-            className={`form-input ${
-              errors.phone ? 'error' : 
-              watch('phone') && !errors.phone ? 'valid' : ''
-            }`}
-          />
-          
-          {errors.phone && (
-            <span className="error-message">
-              <i className="error-icon">⚠</i>
-              {errors.phone.message}
-            </span>
-          )}
-          
-          {watch('phone') && !errors.phone && (
-            <span className="success-message">
-              <i className="success-icon">✓</i>
-              Phone format is valid
-            </span>
-          )}
-        </div>
+          {/* Phone Input */}
+          <div className="space-y-2">
+            <label htmlFor="phone" className="text-sm font-medium">
+              Phone Number
+            </label>
+            <Input 
+              id="phone"
+              type="tel"
+              value={phoneDisplay}
+              onChange={handlePhoneUpdate}
+              placeholder="(123) 456-7890"
+              maxLength={17}
+              className="!rounded-[8px]"
+            />
+            
+            {errors.phone && (
+              <div className="flex items-center gap-1 text-sm" style={{ color: `hsl(${colors.error[500]})` }}>
+                <span style={{ color: `hsl(${colors.error[500]})` }}>⚠</span>
+                {errors.phone.message}
+              </div>
+            )}
+          </div>
 
-        {/* Hidden inputs for react-hook-form */}
-        <input type="hidden" {...register("firstName")} />
-        <input type="hidden" {...register("lastName")} />
-        <input type="hidden" {...register("phone")} />
+          {/* Hidden inputs for react-hook-form */}
+          <input type="hidden" {...register("firstName")} />
+          <input type="hidden" {...register("lastName")} />
+          <input type="hidden" {...register("phone")} />
 
-        <div className="buttons_container">
-          <button 
-            type="submit" 
-            disabled={isSubmitting || Object.keys(errors).length > 0}
-            className="submit-button"
-          >
-            {isSubmitting ? 'Creating...' : 'Create Client'}
-          </button>
-          <button type="button" className="cancel-button">Cancel</button>
-        </div>
-      </form>
-    </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || Object.keys(errors).length > 0 || !isFormComplete}
+              loading={isSubmitting}
+              varient="destructive"
+              className="flex-1 !rounded-[8px] hover:opacity-80 transition-opacity duration-200"
+              style={{ backgroundColor: `hsl(${colors.neutral[950]})`, color: 'white' }}
+              
+            >
+              {isSubmitting ? 'Creating...' : 'Create Client'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={handleCancel}
+              varient="secondary"
+              className="flex-1 !rounded-[8px] hover:opacity-70 transition-opacity duration-200"
+              
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

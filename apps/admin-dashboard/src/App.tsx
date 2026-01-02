@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
+import ClientForm from "./features/auth/clients/ClientForm";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
               <ProtectedRoutes>
                 <Routes>
                   <Route path="/dashboard" element={<div>Dashboard</div>} />
+                  <Route path="/clients/new" element={<ClientForm />} />
                   <Route
                     path="/"
                     element={<Navigate to="/dashboard" replace />}
