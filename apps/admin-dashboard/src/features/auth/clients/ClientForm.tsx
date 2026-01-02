@@ -26,7 +26,7 @@ interface ClientFormProps {
 export default function ClientForm({ open = true, onOpenChange }: ClientFormProps) {
   const [fullName, setFullName] = useState('');
   const [phoneDisplay, setPhoneDisplay] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const {
     register,
@@ -128,27 +128,23 @@ const createClient = (data: CreateClientInput) => {
       console.log('Form data:', data);
       await createClient(data);
       
-      // Show success message
-      setSuccessMessage(`✅ Client "${data.firstName} ${data.lastName}" created successfully!`);
-      
       // Clear form
       reset();
       setFullName('');
       setPhoneDisplay('');
       
-      // Close modal after a brief delay to show success message
+      // Close modal after brief delay
       setTimeout(() => {
-        setSuccessMessage('');
         onOpenChange?.(false);
-      }, 2000);
+      }, 500);
       
     } catch (error) {
       console.error('Error creating client:', error);
-      setSuccessMessage('❌ Failed to create client. Please try again.');
+      setErrorMessage('❌ Failed to create client. Please try again.');
       
       // Clear error message after 3 seconds
       setTimeout(() => {
-        setSuccessMessage('');
+        setErrorMessage('');
       }, 3000);
     }
   };
@@ -157,7 +153,7 @@ const createClient = (data: CreateClientInput) => {
     reset();
     setFullName('');
     setPhoneDisplay('');
-    setSuccessMessage(''); // Clear any success message
+    setErrorMessage(''); // Clear any error message
     onOpenChange?.(false);
   };
 
@@ -173,14 +169,10 @@ const createClient = (data: CreateClientInput) => {
         </DialogHeader>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex-1">
-          {/* Success/Error Message */}
-          {successMessage && (
-            <div className={`p-3 rounded-[8px] text-sm font-medium text-center ${
-              successMessage.includes('✅') 
-                ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              {successMessage}
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="p-3 rounded-[8px] text-sm font-medium text-center bg-red-50 text-red-700 border border-red-200">
+              {errorMessage}
             </div>
           )}
 
