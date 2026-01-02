@@ -3,6 +3,9 @@ import { z } from "zod";
 // -----------------------------
 // CREATE CLIENT SCHEMA (Zod v4)
 // -----------------------------
+// -----------------------------
+// CREATE CLIENT SCHEMA (Zod v4)
+// -----------------------------
 export const createClientSchema = z.object({
   body: z.object({
     firstName: z
@@ -24,9 +27,9 @@ export const createClientSchema = z.object({
 
     company: z
       .string()
-      .max(200, "Company name is too long")
+      .max(200)
       .optional()
-      .nullable(),
+      .default(""),
 
     phone: z
       .string()
@@ -35,6 +38,9 @@ export const createClientSchema = z.object({
         "Phone number must be digits with optional +1"
       )
       .optional(),
+      
+    // MOVE THIS INSIDE THE BODY OBJECT
+    status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
   }),
 });
 
@@ -84,3 +90,12 @@ export const updateClientSchema = z.object({
 // -----------------------------
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
+// Add this at the very bottom
+// export type ClientFormValues = CreateClientInput;
+// Add these at the bottom of apps/api/src/schemas/client.schema.ts
+
+// 1. Export the schema object the form needs for validation
+export const clientFormSchema = createClientSchema.shape.body;
+
+// 2. Export the type the form needs for TypeScript
+export type ClientFormValues = z.infer<typeof clientFormSchema>;

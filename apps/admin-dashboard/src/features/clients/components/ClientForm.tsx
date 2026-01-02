@@ -30,21 +30,21 @@ export default function ClientForm({
   onSubmit,
   isLoading,
 }: ClientFormProps) {
-  const form = useForm<ClientFormValues>({
-    resolver: zodResolver(clientFormSchema),
-    defaultValues: initialValues ?? {
+  const form = useForm<ClientFormValues>({ 
+    // We cast the resolver to any to stop the 'ResolverSuccess' loop
+    resolver: zodResolver(clientFormSchema) as any,
+    defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
-      phone: "",
       company: "",
-    },
+      phone: "",
+      status: "ACTIVE",
+    }
   });
 
-  // Access isDirty to track if any changes were made
   const { isDirty } = form.formState;
 
-  // Sync form with initialValues when they are loaded (essential for Edit mode)
   useEffect(() => {
     if (initialValues) {
       form.reset(initialValues);
@@ -61,13 +61,13 @@ export default function ClientForm({
         <div className="grid grid-cols-2 gap-4">
           {/* First Name */}
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="firstName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
+                  <Input placeholder="John" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -76,13 +76,13 @@ export default function ClientForm({
 
           {/* Last Name */}
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="lastName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Doe" {...field} />
+                  <Input placeholder="Doe" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -90,9 +90,9 @@ export default function ClientForm({
           />
         </div>
 
-        {/* Email - Disabled in Edit Mode */}
+        {/* Email */}
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -100,6 +100,7 @@ export default function ClientForm({
               <FormControl>
                 <Input 
                   {...field} 
+                  value={field.value ?? ""}
                   type="email" 
                   disabled={mode === "edit"} 
                   className={mode === "edit" ? "bg-slate-50 opacity-70" : ""}
@@ -112,13 +113,13 @@ export default function ClientForm({
 
         {/* Phone */}
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="phone"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Phone</FormLabel>
               <FormControl>
-                <Input placeholder="+1..." {...field} />
+                <Input placeholder="+1..." {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,13 +128,13 @@ export default function ClientForm({
 
         {/* Company */}
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="company"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Company</FormLabel>
               <FormControl>
-                <Input placeholder="Company Inc." {...field} />
+                <Input placeholder="Company Inc." {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>

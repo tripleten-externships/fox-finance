@@ -1,4 +1,4 @@
-import React from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "../../../../../../packages/ui/src/components/ui/dialog";
 import ClientForm from "./ClientForm";
-import { Client } from "./ClientColumns";
+import type { Client } from "../types";
 
 interface EditClientModalProps {
   client: Client | null;
@@ -34,7 +34,7 @@ export function EditClientModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Client: {client.name}</DialogTitle>
+          <DialogTitle>Edit Client: {`${client.firstName} ${client.lastName}`}</DialogTitle>
         </DialogHeader>
         <ClientForm
           mode="edit"
