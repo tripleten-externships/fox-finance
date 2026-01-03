@@ -16,15 +16,11 @@ function getArg(flag: string): string | undefined {
 async function main() {
   const email = getArg("--email");
   const name = getArg("--name");
-  const password = getArg("--password") || "password123"; // Default dev password
   const roleArg = (getArg("--role") || "ADMIN").toUpperCase();
 
   if (!email || !name) {
     console.error(
-      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--password <password>] [--role ADMIN|USER]'
-    );
-    console.error(
-      'If --password is omitted, default password "password123" will be used'
+      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--role ADMIN|USER]'
     );
     process.exit(1);
   }
@@ -63,21 +59,13 @@ async function main() {
       console.log(
         `ℹ️  Firebase user already exists with UID: ${firebaseUser.uid}`
       );
-
-      // Update existing user with password if it doesn't have one
-      console.log("➡️  Setting/updating password for existing user…");
-      await admin.auth().updateUser(firebaseUser.uid, { password });
-      console.log("✅ Password updated for existing user");
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
         firebaseUser = await admin.auth().createUser({
           email,
           displayName: name,
-          password,
         });
-        console.log(
-          `✅ Created Firebase user with UID: ${firebaseUser.uid} and password`
-        );
+        console.log(`✅ Created Firebase user with UID: ${firebaseUser.uid}`);
       } else {
         console.error("❌ Error fetching/creating Firebase user:", err);
         process.exit(1);
@@ -150,7 +138,6 @@ async function main() {
       email,
       uid,
       role,
-      password, // Include password in credentials file for easy reference
       idToken,
       refreshToken,
       createdAt: new Date().toISOString(),
@@ -160,10 +147,7 @@ async function main() {
 
     console.log("✅ Dev credentials written to:");
     console.log(`   ${outPath}`);
-    console.log("\nFrontend Login Credentials:");
-    console.log(`   Email: ${email}`);
-    console.log(`   Password: ${password}`);
-    console.log("\nAPI Authentication Token for Apollo Sandbox/Postman:");
+    console.log("\nUse this token in Apollo Sandbox headers:\n");
     console.log("  {");
     console.log('    "authorization": "Bearer ' + idToken + '"');
     console.log("  }");
