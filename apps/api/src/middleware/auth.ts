@@ -34,7 +34,6 @@ export async function requireAuth(
       email: decoded.email,
       role: decoded.role || "USER",
     };
-
     next();
   } catch (error) {
     return res.status(401).json({ error: "Invalid authentication token" });
