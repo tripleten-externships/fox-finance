@@ -11,7 +11,8 @@
     "db:stop": "docker compose down",
     "dev": "pnpm db:start && pnpm --parallel --filter admin-dashboard --filter api dev",
     "storybook": "pnpm --filter ./packages/ui storybook",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "create:dev-admin": "cd apps/api && npx ts-node scripts/createDevAdminUser.ts"
   },
   "packageManager": "pnpm@10.17.1"
 }
