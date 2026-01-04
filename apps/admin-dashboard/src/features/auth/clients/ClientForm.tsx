@@ -14,6 +14,7 @@ import {
   DialogHeader, 
   DialogTitle,
   
+  toast
 } from "@fox-finance/ui";
 
 import {colors} from "../../../../../../packages/theme/src/tokens/colors"; // Ensure theme is loaded
@@ -32,7 +33,7 @@ export default function ClientForm({ open = true, onOpenChange }: ClientFormProp
     register,
     handleSubmit,
     setValue,
-    clearErrors,
+   
     formState: { errors, isSubmitting },
     trigger, // For manual validation
     watch, // To watch field values
@@ -127,6 +128,12 @@ const createClient = (data: CreateClientInput) => {
     try {
       console.log('Form data:', data);
       await createClient(data);
+      
+      // Show success toast
+      toast.success(`Client "${data.firstName} ${data.lastName}" created successfully!`, {
+        description: "The client has been added to the system.",
+        duration: 3000,
+      });
       
       // Clear form
       reset();
