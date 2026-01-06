@@ -35,9 +35,8 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {
-      // TODO: Implement endpoint
+    // TODO: Implement endpoint
     res.status(501).json({ error: "Not implemented" });
-
   } catch (error) {
     console.error("Error creating upload link:", error);
     next(error);

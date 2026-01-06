@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
@@ -34,8 +33,7 @@ type ClientsResponse = {
 };
 
 export function ClientTable() {
-const [sorting, setSorting] = useState<SortingState>([]);
-
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const { data, isLoading, error } = useQuery<ClientsResponse>({
     queryKey: ["clients"],
@@ -86,20 +84,19 @@ const [sorting, setSorting] = useState<SortingState>([]);
         return <span>{date.toLocaleDateString()}</span>;
       },
     },
-   {
-  id: "actions",
-  header: "Actions",
-  cell: () => (
-    <div className="flex gap-2">
-      <button className="text-blue-600 hover:underline">Edit</button>
-      <button className="text-red-600 hover:underline">Delete</button>
-      <button className="text-purple-600 hover:underline">
-        Create Link
-      </button>
-    </div>
-  ),
-},
-
+    {
+      id: "actions",
+      header: "Actions",
+      cell: () => (
+        <div className="flex gap-2">
+          <button className="text-blue-600 hover:underline">Edit</button>
+          <button className="text-red-600 hover:underline">Delete</button>
+          <button className="text-purple-600 hover:underline">
+            Create Link
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const table = useReactTable<Client>({

@@ -32,7 +32,7 @@ export async function requireAuth(
     (req as AuthenticatedRequest).user = {
       uid: decoded.uid,
       email: decoded.email,
-      role: decoded.role || "USER",
+      role: (decoded.role as string)?.toUpperCase() || "ADMIN",
     };
     next();
   } catch (error) {
@@ -43,7 +43,7 @@ export async function requireAuth(
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as AuthenticatedRequest).user;
 
-  if (user.role !== "ADMIN") {
+  if (user.role?.toUpperCase() !== "ADMIN") {
     return res.status(403).json({ error: "Admin access required" });
   }
 

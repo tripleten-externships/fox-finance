@@ -1,7 +1,3 @@
-
-
-
-
 import { Router } from "express";
 import { prisma } from "../../lib/prisma";
 import { validate } from "../../middleware/validation";
@@ -9,7 +5,7 @@ import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
-import {  UploadStatus, Status } from "@prisma/client";
+import { UploadStatus, Status } from "@prisma/client";
 import zod from "zod";
 const router = Router();
 //helper function
@@ -120,7 +116,7 @@ router.get("/stats", async (req, res, next) => {
         where: { status: UploadStatus.INCOMPLETE },
       }),
 
-     //  fetch uploads with clientId instead of grouping by uploadLinkId
+      //  fetch uploads with clientId instead of grouping by uploadLinkId
       prisma.upload.findMany({
         select: {
           id: true,
@@ -138,7 +134,6 @@ router.get("/stats", async (req, res, next) => {
       acc[clientId] = (acc[clientId] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-
 
     const responseTime = Date.now() - startTime;
 

@@ -20,7 +20,7 @@ export const createClientSchema = z.object({
     email: z
       .string()
       .min(1, "Email is required")
-      .email("Invalid email address"),
+      .email({ message: "Invalid email address" }),
 
     company: z
       .string()
@@ -43,7 +43,7 @@ export const createClientSchema = z.object({
 // -----------------------------
 export const updateClientSchema = z.object({
   params: z.object({
-    id: z.string().uuid("Client ID must be a valid UUID"),
+    id: z.string().uuid({ version: "v4", message: "Invalid UUID format" }),
   }),
 
   body: z
@@ -62,7 +62,11 @@ export const updateClientSchema = z.object({
         .max(100, "Last name is too long")
         .optional(),
 
-      email: z.string().email("Email must be valid").optional().nullable(),
+      email: z
+        .string()
+        .email({ message: "Email must be valid" })
+        .optional()
+        .nullable(),
 
       company: z.string().max(200).optional().nullable(),
 
