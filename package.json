@@ -13,5 +13,10 @@
     "storybook": "pnpm --filter ./packages/ui storybook",
     "build": "pnpm -r build"
   },
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.17.1",
+  "pnpm": {
+  "overrides": {
+    "zod": "^3.23.8"
+  }
+}
 }

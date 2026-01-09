@@ -36,7 +36,7 @@ type LoginFormInputs = {
 };
 
 const LoginSchema = z.object({
-  email: z.email({ message: "Invalid email address" }),
+  email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(8, { message: "Password is too short" }),
 });
 
@@ -168,7 +168,7 @@ export function Login() {
       email: "",
       password: "",
     },
-    resolver: zodResolver(LoginSchema),
+    resolver: zodResolver(z.object(LoginSchema.shape)),
   });
 
   const onSubmit = async (data: LoginFormInputs) => {
