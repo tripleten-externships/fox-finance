@@ -1,25 +1,5 @@
-// // ⭐ ADD THIS BLOCK ⭐
-// console.log("➡️  Setting Firebase custom claims…");
-
-// await admin.auth().setCustomUserClaims(uid, {
-//   role: role.toLowerCase(),
-// });
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// I created features/clients/components/clientForm.tsx & EdieClientModal.tsx
-// I created two new files form.stories.tsx and form.tsx
-// issue Cannot find module '@tanstack/react-query' poped up.
-// I did cd apps/admin-dashboard & pnpm add @tanstack/react-query
-// Added into tsconfig.app.json  [ /* REQUIRED for pnpm monorepos */ "baseUrl": ".",]
-// after adding "baseUrl": ".": 1. restarted TS server "Ctrl + Shift + P → TypeScript: Restart TS Server"
-//2. - Restart VS Code
-// 3. - Run pnpm dev
-// now  Cannot find module '@tanstack/react-query' issue solved
-
-//In ui/src/package.json, I added to "peerDependencies" react-hook-form:^7.49.3 & removed
-// react-hook-form:^7.49.3 from "dependencies" & added to "devDependencies" so storybook can use it
-// then did "pnpm istall" & "ctrl + shift + p" -> "TypeScript: Restart TS Server"
 import {
   Dialog,
   DialogContent,
@@ -28,7 +8,7 @@ import {
   DialogDescription,
 } from "../../../../../../packages/ui/src/components/ui/dialog";
 
-import ClientForm from "./ClientForm";
+import ClientForm from "./ClientForm.tsx";
 import type { ClientFormValues } from "../../../../../api/src/schemas/client.schema";
 
 interface EditClientModalProps {
@@ -84,7 +64,7 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
       return { previousClients, previousClient };
     },
 
-    // ❌ Rollback on error
+    //Graceful handling of connection issues
     onError: (_err, _vars, ctx) => {
       if (ctx?.previousClients) {
         queryClient.setQueryData(["clients"], ctx.previousClients);
@@ -94,7 +74,7 @@ export function EditClientModal({ id, open, onClose }: EditClientModalProps) {
       }
     },
 
-    // 🔄 Revalidate after success
+    // Dashboard reflects changes within 5 seconds & No page refresh
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] as const });
       queryClient.invalidateQueries({ queryKey: ["client", id] as const });

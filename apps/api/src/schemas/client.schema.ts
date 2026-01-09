@@ -84,3 +84,4 @@ export const updateClientSchema = z.object({
 // -----------------------------
 export type CreateClientInput = z.infer<typeof createClientSchema>["body"];
 export type UpdateClientInput = z.infer<typeof updateClientSchema>["body"];
+export type ClientFormValues = CreateClientInput;
