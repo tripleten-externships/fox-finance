@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -19,7 +21,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fox-finance/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": [
@@ -30,5 +33,6 @@
     "dist",
     "node_modules",
     "storybook-static"
-  ]
+  ],
+  "references": [{ "path": "../../packages/ui" }]
 }
