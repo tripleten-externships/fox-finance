@@ -14,8 +14,6 @@ import { degradeIfDatabaseUnavailable, prisma } from "../../lib/prisma";
 import { HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../../lib/s3";
-// Event bus used to notify other parts of the system (email service, etc.)
-import { eventBus } from "../../lib/events";
 import { s3Service } from "../../services/s3.service";
 //for typescript to know req.uploadLink exists without creating a new file is
 
@@ -160,7 +158,6 @@ router.post(
 );
 
 // POST /api/upload/complete - Record completed upload
-// POST /api/upload/complete - Record completed upload
 router.post(
   "/complete",
   requireUploadToken, // Middleware attaches req.uploadLink
@@ -226,14 +223,7 @@ router.post(
           }),
           { expiresIn: 3600 } // 1 hour
         );
-        // --- Step 4: Emit an event for downstream services ---
-        // Example: email service sends a notification to the client.
-        eventBus.emit("upload.completed", {
-          uploadId: upload.id,
-          uploadLinkId: uploadLink.id,
-          documentRequestId,
-        });
-        // --- Step 5: Respond to the client with confirmation ---
+        // --- Step 4: Respond to the client with confirmation ---
         return res.json({
           message: "Upload confirmed",
           upload: {
