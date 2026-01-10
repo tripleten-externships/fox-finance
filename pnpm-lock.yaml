@@ -110,6 +110,9 @@ importers:
       '@fox-finance/api-types':
         specifier: workspace:*
         version: link:../../packages/api-types
+      '@fox-finance/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@prisma/client':
         specifier: ^6.17.1
         version: 6.17.1(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)
