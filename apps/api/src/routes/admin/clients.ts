@@ -195,20 +195,4 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
-// I copied from github b/c it was deleted during merge conflict resolution
-// GET /api/admin/clients - List all clients
-router.get(
-  "/stats", async (req, res, next) => {
- 
-
-    try {
-      // TODO: Implement endpoint
-      // Run queries in parallel
- res.status(501).json({ error: "Not implemented" });
-    } catch (error) {
-      
-      next(error);
-    }
-  }
-);
 export default router;
