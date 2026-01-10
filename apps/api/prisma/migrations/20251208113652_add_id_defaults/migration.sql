@@ -1,5 +1,6 @@
 /*
   Warnings:
+
   - The primary key for the `Client` table will be changed. If it partially fails, the table could be left without primary key constraint.
   - The primary key for the `DocumentRequest` table will be changed. If it partially fails, the table could be left without primary key constraint.
   - The primary key for the `RequestedDocument` table will be changed. If it partially fails, the table could be left without primary key constraint.
@@ -15,6 +16,7 @@
   - Changed the type of `uploadLinkId` on the `Upload` table. No cast exists, the column would be dropped and recreated, which cannot be done if there is data, since the column is required.
   - Changed the type of `documentRequestId` on the `Upload` table. No cast exists, the column would be dropped and recreated, which cannot be done if there is data, since the column is required.
   - Changed the type of `documentRequestId` on the `RequestedDocument` table. No cast exists, the column would be dropped and recreated.
+
 */
 
 -- Step 1: Drop all foreign key constraints
