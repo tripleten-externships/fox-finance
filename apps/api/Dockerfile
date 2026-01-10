@@ -62,6 +62,11 @@ COPY packages/api-types ./packages/api-types
 # Copy config package source if needed
 COPY packages/config ./packages/config
 
+# Build workspace dependencies
+# The API depends on @fox-finance/config which must be compiled (TypeScript → JavaScript)
+# before the API can be built. We build from the workspace root using pnpm filters.
+RUN pnpm --filter @fox-finance/config build
+
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
