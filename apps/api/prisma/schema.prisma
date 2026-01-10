@@ -94,6 +94,7 @@ model UploadLink {
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
+  UploadBatch      UploadBatch[]
 
   @@index([clientId])
   @@index([isActive, expiresAt])
@@ -118,18 +119,35 @@ model RequestedDocument {
 }
 
 model Upload {
-  id                String          @id @default(uuid()) @db.Uuid
-  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String          @db.Uuid
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String          @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String           @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?          @db.Uuid
   fileName          String
   fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @updatedAt
+  uploadedAt        DateTime         @updatedAt
   metadata          Json
+  UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId     String?          @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])
+}
+
+model UploadBatch {
+  id           String     @id @default(uuid()) @db.Uuid
+  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId String     @db.Uuid
+
+  status        String
+  totalFiles    Int
+  uploadedFiles Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads Upload[]
 }
