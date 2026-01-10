@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../lib/prisma";
+import { degradeIfDatabaseUnavailable, prisma } from "../lib/prisma";
 
 export interface UploadAuthRequest extends Request {
   uploadLink?: {
@@ -21,25 +21,22 @@ export async function requireUploadToken(
       ? authHeader?.slice(7).trim()
       : authHeader?.trim() || (req.query.token as string);
 
-    console.log("Auth header:", JSON.stringify(authHeader));
-    console.log("Parsed token:", JSON.stringify(token));
-
     if (!token) {
       return res.status(401).json({ error: "Upload token required" });
     }
 
-    // TODO: uncomment once upload links are implemented
-    const uploadLink = await prisma.uploadLink.findFirst({
-      where: { token },
-      select: {
-        id: true,
-        clientId: true,
-        token: true,
-        expiresAt: true,
-        isActive: true,
-      },
-    });
-    console.log("UploadLink found:", uploadLink);
+    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findFirst({
+        where: { token },
+        select: {
+          id: true,
+          clientId: true,
+          token: true,
+          expiresAt: true,
+          isActive: true,
+        },
+      })
+    );
 
     if (!uploadLink) {
       return res.status(401).json({ error: "Invalid upload token" });
