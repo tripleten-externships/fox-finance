@@ -6,7 +6,8 @@
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
     "build": "pnpm generate && tsc -p tsconfig.json",
     "generate": "prisma generate",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "create:dev-admin": "ts-node -r tsconfig-paths/register scripts/createDevAdminUser.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
@@ -14,11 +15,12 @@
     "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@fox-finance/api-types": "workspace:*",
     "@prisma/client": "^6.17.1",
-    "aws-sdk": "^2.1692.0",
+    "aws": "0.0.3-2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^7.1.5",
+    "firebase": "^11.10.0",
     "firebase-admin": "^13.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
