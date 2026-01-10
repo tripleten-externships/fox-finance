@@ -6,7 +6,8 @@
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
     "build": "pnpm generate && tsc -p tsconfig.json",
     "generate": "prisma generate",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "create:dev-admin": "ts-node -r tsconfig-paths/register scripts/createDevAdminUser.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",

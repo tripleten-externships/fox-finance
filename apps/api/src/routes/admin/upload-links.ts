@@ -13,35 +13,97 @@ function generateToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-// GET /api/admin/upload-links - List all upload links
+// GET /api/admin/upload-links - List all upload links with pagination, filters, sorting
 router.get("/", async (req, res, next) => {
   try {
-    const uploadLinks = await degradeIfDatabaseUnavailable(() =>
+    const {
+      pageSize = "20",
+      clientId,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      cursor,
+    } = req.query;
+
+    const limit = Math.min(Number(pageSize) || 20, 100);
+
+    const where: any = {};
+
+    if (clientId) where.clientId = String(clientId);
+
+    if (status) {
+      if (status === "active") {
+        where.isActive = true;
+        where.expiresAt = { gt: new Date() };
+      }
+      if (status === "expired") {
+        where.expiresAt = { lt: new Date() };
+      }
+      if (status === "inactive") {
+        where.isActive = false;
+      }
+    }
+
+    const items = await degradeIfDatabaseUnavailable(() =>
       prisma.uploadLink.findMany({
-        include: { client: true, createdBy: true },
+        where,
+        take: limit,
+        ...(cursor ? { skip: 1, cursor: { id: String(cursor) } } : {}),
+        orderBy: { [sortBy as string]: sortOrder },
+        include: {
+          client: true,
+          _count: { select: { uploads: true } },
+        },
       })
     );
-    res.json(uploadLinks);
+
+    const total = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.count({ where })
+    );
+
+    res.setHeader("X-Total-Count", total);
+    res.json({
+      data: items,
+      pagination: {
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        nextCursor: items.length === limit ? items[items.length - 1].id : null,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-// GET /api/admin/upload-links/:id - Get a specific upload link with details
+// GET /api/admin/upload-links/:id - Get a specific upload link with all details
 router.get("/:id", async (req, res, next) => {
   try {
-    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+    const { id } = req.params;
+
+    const link = await degradeIfDatabaseUnavailable(() =>
       prisma.uploadLink.findUnique({
-        where: { id: req.params.id },
-        include: { client: true, createdBy: true, documentRequests: true },
+        where: { id },
+        include: {
+          client: true,
+          uploads: { orderBy: { uploadedAt: "desc" } },
+          _count: { select: { uploads: true } },
+        },
       })
     );
 
-    if (!uploadLink) {
-      return res.status(404).json({ error: "Upload link not found" });
-    }
+    if (!link) return res.status(404).json({ error: "Upload link not found" });
 
-    res.json(uploadLink);
+    const lastUpload =
+      link.uploads.length > 0 ? link.uploads[0].uploadedAt : null;
+
+    res.json({
+      ...link,
+      stats: {
+        uploadCount: link._count.uploads,
+        lastUploadAt: lastUpload,
+      },
+    });
   } catch (error) {
     next(error);
   }
