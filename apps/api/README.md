@@ -5,7 +5,6 @@
 The API supports two types of users:
 
 - **Admins**: Authenticated via Firebase, manage clients and upload links
-
 - **Upload Users**: Authenticated via secure tokens, upload documents to encrypted S3
 
 ## Project Structure
