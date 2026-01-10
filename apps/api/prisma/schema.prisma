@@ -88,8 +88,8 @@ model UploadLink {
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
-  createdBy        User              @relation(fields: [createdById], references: [id])
-  createdById      String 
+  createdBy        User?             @relation(fields: [createdById], references: [id])
+  createdById      String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
@@ -115,23 +115,23 @@ model RequestedDocument {
   name              DocumentType //hard-coded list of document types as listed in the enum
   description       String
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String?  @db.Uuid
+  documentRequestId String?          @db.Uuid
 }
 
 model Upload {
-  id                String          @id @default(uuid()) @db.Uuid
-  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String          @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String           @db.Uuid
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
   documentRequestId String?          @db.Uuid
   fileName          String
   fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @updatedAt
+  uploadedAt        DateTime         @updatedAt
   metadata          Json
-  UploadBatch       UploadBatch?    @relation(fields: [uploadBatchId], references: [id])
-  uploadBatchId     String?         @db.Uuid
+  UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId     String?          @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])

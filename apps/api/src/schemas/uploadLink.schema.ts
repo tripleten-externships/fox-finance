@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const createUploadLinkSchema = z.object({
   body: z.object({
-    clientId: z.string().cuid({
-      message: "Client ID must be a valid CUID",
+    clientId: z.string().uuid({
+      message: "Client ID must be a valid UUID",
     }),
     expiresAt: z.string().datetime(),
     maxUploads: z
