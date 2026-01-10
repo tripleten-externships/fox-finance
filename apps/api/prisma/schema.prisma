@@ -88,12 +88,13 @@ model UploadLink {
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
-  createdBy        User              @relation(fields: [createdById], references: [id])
-  createdById      String
+  createdBy        User?             @relation(fields: [createdById], references: [id])
+  createdById      String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
+  UploadBatch      UploadBatch[]
 
   @@index([clientId])
   @@index([isActive, expiresAt])
@@ -102,8 +103,7 @@ model UploadLink {
 model DocumentRequest {
   id                 String              @id @default(uuid()) @db.Uuid
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
-  uploadLinkId       String               @db.Uuid
-
+  uploadLinkId       String              @db.Uuid
   requestedDocuments RequestedDocument[] //Array of documents
   instructions       String?
   status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
@@ -114,25 +114,42 @@ model RequestedDocument {
   id                String           @id @default(uuid()) @db.Uuid
   name              DocumentType //hard-coded list of document types as listed in the enum
   description       String
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String          @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?          @db.Uuid
 }
 
 model Upload {
-  id                String          @id @default(uuid()) @db.Uuid
-  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String          @db.Uuid
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String           @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String           @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?          @db.Uuid
   fileName          String
   fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  fileType           String    @default("unknown")
+  fileType          String           @default("unknown")
 
-  uploadedAt        DateTime        @updatedAt
-  metadata          Json
+  uploadedAt    DateTime     @updatedAt
+  metadata      Json
+  UploadBatch   UploadBatch? @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId String?      @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])
+}
+
+model UploadBatch {
+  id           String     @id @default(uuid()) @db.Uuid
+  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId String     @db.Uuid
+
+  status        String
+  totalFiles    Int
+  uploadedFiles Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads Upload[]
 }

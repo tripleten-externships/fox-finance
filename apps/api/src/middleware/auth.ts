@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { admin } from "../firebase";
+import { prisma } from "../lib/prisma";
 
 export interface AuthenticatedRequest extends Request {
   user: {
@@ -29,10 +30,18 @@ export async function requireAuth(
 
     const decoded = await admin.auth().verifyIdToken(token);
 
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.sub },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
     (req as AuthenticatedRequest).user = {
       uid: decoded.uid,
       email: decoded.email,
-      role: decoded.role || "USER",
+      role: user.role || "USER",
     };
 
     next();
