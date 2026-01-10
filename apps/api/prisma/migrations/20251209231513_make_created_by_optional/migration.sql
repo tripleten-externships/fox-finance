@@ -1,5 +1,5 @@
 -- DropForeignKey
-ALTER TABLE "public/connnection_limit=20"."UploadLink" DROP CONSTRAINT "UploadLink_createdById_fkey";
+ALTER TABLE "UploadLink" DROP CONSTRAINT "UploadLink_createdById_fkey";
 
 -- AlterTable
 ALTER TABLE "UploadLink" ALTER COLUMN "createdById" DROP NOT NULL;

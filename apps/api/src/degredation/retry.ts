@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { logger } from "./degredation";
+import { getLogger } from "@fox-finance/config";
+
+const logger = getLogger();
 
 // Retries transient database errors with exponential backoff (1s, 2s, 4s)
 export async function runRetry<T>(

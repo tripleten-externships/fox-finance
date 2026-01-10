@@ -1,5 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { logger } from "../degredation/degredation";
+import { getLogger } from "@fox-finance/config";
+
+const logger = getLogger();
 
 declare global {
   // Prevent multiple Prisma instances in dev (Hot Reload fix)
