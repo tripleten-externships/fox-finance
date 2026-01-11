@@ -151,8 +151,9 @@ RUN echo '{\n\
 RUN echo '#!/bin/sh\n\
   set -e\n\
   \n\
-  # Construct DATABASE_URL from environment variables\n\
-  export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  # Construct APP_DATABASE_URL from environment variables\n\
+  export APP_DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  export DATABASE_URL="$APP_DATABASE_URL"\n\
   \n\
   echo "Running database migrations..."\n\
   cd /app/apps/api && \
