@@ -20,6 +20,7 @@ COPY packages/config/package.json ./packages/config/
 
 # Copy Prisma schema (needed for postinstall script)
 COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/
 
 # Install dependencies with frozen lockfile for reproducibility
 RUN pnpm install --frozen-lockfile
@@ -49,6 +50,7 @@ COPY packages/config/package.json ./packages/config/
 
 # Copy Prisma schema
 COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/
 
 # Copy root TypeScript config
 COPY tsconfig.json ./
@@ -107,6 +109,7 @@ COPY packages/config/package.json ./packages/config/
 
 # Copy Prisma schema and migrations for runtime
 COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/
 
 # Install production dependencies only (skip scripts since we copy generated client from builder)
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
