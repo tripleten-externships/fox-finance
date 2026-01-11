@@ -154,8 +154,8 @@ RUN echo '#!/bin/sh\n\
   # Construct DATABASE_URL from environment variables\n\
   export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
   \n\
-  \n\
   echo "Running database migrations..."\n\
+  cd /app/apps/api && \
   npx prisma migrate deploy\n\
   \n\
   echo "Starting application..."\n\
