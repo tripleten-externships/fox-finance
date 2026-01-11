@@ -7,7 +7,8 @@
     "build": "pnpm generate && tsc -p tsconfig.json",
     "generate": "prisma generate",
     "start": "node dist/index.js",
-    "create:dev-admin": "ts-node -r tsconfig-paths/register scripts/createDevAdminUser.ts"
+    "create:dev-admin": "ts-node -r tsconfig-paths/register scripts/createDevAdminUser.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",

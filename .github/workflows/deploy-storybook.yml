@@ -106,12 +106,12 @@ jobs:
         id: infra
         run: |
           BUCKET=$(aws cloudformation describe-stacks \
-            --stack-name dev-Storybook \
+            --stack-name fox-finance-dev-Storybook \
             --query 'Stacks[0].Outputs[?ExportName==`dev-storybook-BucketName`].OutputValue' \
             --output text)
 
           DIST_ID=$(aws cloudformation describe-stacks \
-            --stack-name dev-Storybook \
+            --stack-name fox-finance-dev-Storybook \
             --query 'Stacks[0].Outputs[?ExportName==`dev-storybook-DistributionId`].OutputValue' \
             --output text)
 
@@ -249,12 +249,12 @@ jobs:
         id: infra
         run: |
           BUCKET=$(aws cloudformation describe-stacks \
-            --stack-name prod-Storybook \
+            --stack-name fox-finance-prod-Storybook \
             --query 'Stacks[0].Outputs[?ExportName==`prod-storybook-BucketName`].OutputValue' \
             --output text)
 
           DIST_ID=$(aws cloudformation describe-stacks \
-            --stack-name prod-Storybook \
+            --stack-name fox-finance-prod-Storybook \
             --query 'Stacks[0].Outputs[?ExportName==`prod-storybook-DistributionId`].OutputValue' \
             --output text)
 
