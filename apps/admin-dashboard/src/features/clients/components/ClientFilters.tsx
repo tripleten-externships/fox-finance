@@ -51,7 +51,7 @@ export default function Clientfilters() {
       let myData = [...data];
 
       if (search) {
-        const searchData = search.toLowerCase();
+        const searchData = (search || "").trim().toLowerCase();
         myData = myData.filter(
           (item) =>
             item.name.toLowerCase().includes(searchData) ||
