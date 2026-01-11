@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
-    "build": "pnpm generate && tsc -p tsconfig.json",
+    "build": "pnpm prisma:generate && tsc -p tsconfig.json",
     "prisma:generate": "pnpm --filter @fox-finance/prisma build",
     "prisma:migrate:dev": "pnpm --filter @fox-finance/prisma prisma:migrate:dev",
     "prisma:studio": "pnpm --filter @fox-finance/prisma prisma:studio",
