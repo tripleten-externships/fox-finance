@@ -1,9 +1,7 @@
 #!/usr/bin/env ts-node
 
 import "dotenv/config";
-import { Role } from "@prisma/client";
-import { prisma } from "../src/lib/prisma";
-import { admin } from "../src/firebase";
+import { admin, prisma, Role } from "@fox-finance/prisma";
 import * as fs from "fs";
 import * as path from "path";
 

@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import { randomBytes } from "crypto";
-import { degradeIfDatabaseUnavailable } from "../../degredation/degredation";
 
 const router = Router();
 

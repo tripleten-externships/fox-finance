@@ -9,10 +9,7 @@ import {
   completeUploadSchema,
 } from "../../schemas/uploadLink.schema";
 import { s3Service } from "../../services/s3.service";
-import { prisma } from "../../lib/prisma";
-import { string } from "zod";
-import { error } from "console";
-import { degradeIfDatabaseUnavailable } from "src/degredation/degredation";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 
 const router = Router();
 

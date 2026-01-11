@@ -1,11 +1,10 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import {
   createClientSchema,
   updateClientSchema,
 } from "../../schemas/client.schema";
-import { degradeIfDatabaseUnavailable } from "../../degredation/degredation";
 import zod from "zod";
 
 const router = Router();

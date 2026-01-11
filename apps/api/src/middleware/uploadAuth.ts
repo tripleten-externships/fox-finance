@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { degradeIfDatabaseUnavailable, prisma } from "../lib/prisma";
+import { degradeIfDatabaseUnavailable, prisma } from "@fox-finance/prisma";
 
 export interface UploadAuthRequest extends Request {
   uploadLink?: {
