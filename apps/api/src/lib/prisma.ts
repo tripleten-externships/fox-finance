@@ -1,3 +1,4 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { getLogger } from "@fox-finance/config";
 
@@ -34,7 +35,7 @@ const getDatabaseUrl = () => {
 export const prisma =
   global.prisma ||
   new PrismaClient({
-    datasourceUrl: getDatabaseUrl(),
+    adapter: new PrismaPg({ connectionString: getDatabaseUrl() }),
     log: [
       { emit: "event", level: "query" },
       { emit: "event", level: "error" },
