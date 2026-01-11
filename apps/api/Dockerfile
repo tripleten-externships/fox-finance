@@ -167,7 +167,7 @@ RUN echo '#!/bin/sh\n\
   ls -la ./prisma/ || echo "Prisma directory not found!"\n\
   \n\
   echo "Running database migrations..."\n\
-  npx prisma migrate deploy --schema=./prisma/schema.prisma\n\
+  env DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}" npx prisma migrate deploy --schema=./prisma/schema.prisma\n\
   \n\
   echo "Starting application..."\n\
   export TS_NODE_PROJECT=./tsconfig.runtime.json\n\
