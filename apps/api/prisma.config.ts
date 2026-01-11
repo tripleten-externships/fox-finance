@@ -1,8 +1,35 @@
 import "dotenv/config";
 import type { PrismaConfig } from "prisma";
-import { env } from "prisma/config";
 
-console.log("Prisma config - DATABASE_URL:", env("DATABASE_URL"));
+function buildDatabaseUrl() {
+  const {
+    DATABASE_USERNAME,
+    DATABASE_PASSWORD,
+    DATABASE_HOST,
+    DATABASE_PORT,
+    DATABASE_NAME,
+  } = process.env;
+
+  if (
+    !DATABASE_USERNAME ||
+    !DATABASE_PASSWORD ||
+    !DATABASE_HOST ||
+    !DATABASE_NAME
+  ) {
+    throw new Error(
+      "Missing one of DATABASE_USERNAME/DATABASE_PASSWORD/DATABASE_HOST/DATABASE_NAME"
+    );
+  }
+
+  const u = new URL("postgresql://");
+  u.username = DATABASE_USERNAME; // auto-encodes reserved chars
+  u.password = DATABASE_PASSWORD; // auto-encodes reserved chars
+  u.hostname = DATABASE_HOST;
+  u.port = DATABASE_PORT ?? "5432";
+  u.pathname = `/${DATABASE_NAME}`;
+
+  return u.toString();
+}
 
 export default {
   schema: "prisma/schema.prisma",
@@ -10,6 +37,6 @@ export default {
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: buildDatabaseUrl(),
   },
 } satisfies PrismaConfig;
