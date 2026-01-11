@@ -107,12 +107,12 @@ jobs:
         run: |
           BUCKET=$(aws cloudformation describe-stacks \
             --stack-name fox-finance-dev-Storybook \
-            --query 'Stacks[0].Outputs[?ExportName==`dev-storybook-BucketName`].OutputValue' \
+            --query 'Stacks[0].Outputs[?ExportName==`fox-finance-dev-storybook-BucketName`].OutputValue' \
             --output text)
 
           DIST_ID=$(aws cloudformation describe-stacks \
             --stack-name fox-finance-dev-Storybook \
-            --query 'Stacks[0].Outputs[?ExportName==`dev-storybook-DistributionId`].OutputValue' \
+            --query 'Stacks[0].Outputs[?ExportName==`fox-finance-dev-storybook-DistributionId`].OutputValue' \
             --output text)
 
           echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
@@ -250,12 +250,12 @@ jobs:
         run: |
           BUCKET=$(aws cloudformation describe-stacks \
             --stack-name fox-finance-prod-Storybook \
-            --query 'Stacks[0].Outputs[?ExportName==`prod-storybook-BucketName`].OutputValue' \
+            --query 'Stacks[0].Outputs[?ExportName==`fox-finance-prod-storybook-BucketName`].OutputValue' \
             --output text)
 
           DIST_ID=$(aws cloudformation describe-stacks \
             --stack-name fox-finance-prod-Storybook \
-            --query 'Stacks[0].Outputs[?ExportName==`prod-storybook-DistributionId`].OutputValue' \
+            --query 'Stacks[0].Outputs[?ExportName==`fox-finance-prod-storybook-DistributionId`].OutputValue' \
             --output text)
 
           echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
