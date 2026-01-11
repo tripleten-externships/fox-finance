@@ -10,18 +10,14 @@ function buildDatabaseUrl() {
     DATABASE_NAME,
   } = process.env;
 
-  if (
-    !DATABASE_USERNAME ||
-    !DATABASE_PASSWORD ||
-    !DATABASE_HOST ||
-    !DATABASE_NAME
-  ) {
-    throw new Error(
-      "Missing one of DATABASE_USERNAME/DATABASE_PASSWORD/DATABASE_HOST/DATABASE_NAME"
-    );
-  }
+  console.log("Building database URL with:", {
+    DATABASE_USERNAME,
+    DATABASE_HOST,
+    DATABASE_PORT,
+    DATABASE_NAME,
+  });
 
-  return `postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`;
+  return `postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?schema=public`;
 }
 
 export default {

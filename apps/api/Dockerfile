@@ -72,16 +72,6 @@ RUN pnpm --filter @fox-finance/config build
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
-# Create .env file with DATABASE_URL for Prisma client generation
-# The actual values don't matter since we just need to generate the client
-RUN echo '\n\
-  DATABASE_USERNAME=dummy\n\
-  DATABASE_PASSWORD=dummy\n\
-  DATABASE_HOST=dummy\n\
-  DATABASE_PORT=5432\n\
-  DATABASE_NAME=dummy\n\
-  ' > /app/apps/api/.env
-
 # Generate Prisma client with linux binary target
 # IMPORTANT: Unset DATABASE_URL so Prisma client doesn't embed build-time connection string
 # This forces Prisma to always use the runtime DATABASE_URL environment variable
@@ -166,7 +156,7 @@ RUN echo '#!/bin/sh\n\
   \n\
   echo "Running database migrations..."\n\
   cd /app/apps/api && \
-  npx prisma migrate deploy\n\
+  npx prisma migrate deploy --config prisma.config.ts\n\
   \n\
   echo "Starting application..."\n\
   exec node dist/index.js' > /app/apps/api/start.sh && \
