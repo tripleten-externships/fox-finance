@@ -75,7 +75,11 @@ ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 # Create .env file with DATABASE_URL for Prisma client generation
 # The actual values don't matter since we just need to generate the client
 RUN echo '\n\
-  DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  DATABASE_USERNAME=dummy\n\
+  DATABASE_PASSWORD=dummy\n\
+  DATABASE_HOST=dummy\n\
+  DATABASE_PORT=5432\n\
+  DATABASE_NAME=dummy\n\
   ' > /app/apps/api/.env
 
 # Generate Prisma client with linux binary target
