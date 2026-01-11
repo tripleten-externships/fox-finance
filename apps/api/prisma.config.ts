@@ -27,5 +27,6 @@ export default {
   },
   datasource: {
     url: buildDatabaseUrl(),
+    shadowDatabaseUrl: buildDatabaseUrl(),
   },
 } satisfies PrismaConfig;
