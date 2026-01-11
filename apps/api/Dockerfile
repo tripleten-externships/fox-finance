@@ -151,8 +151,20 @@ RUN echo '{\n\
 RUN echo '#!/bin/sh\n\
   set -e\n\
   \n\
+  echo "=== Environment Variable Debug Info ==="\n\
+  echo "DATABASE_HOST: ${DATABASE_HOST}"\n\
+  echo "DATABASE_PORT: ${DATABASE_PORT}"\n\
+  echo "DATABASE_NAME: ${DATABASE_NAME}"\n\
+  echo "DATABASE_USERNAME exists: $([ -n "$DATABASE_USERNAME" ] && echo "yes" || echo "NO")"\n\
+  echo "DATABASE_PASSWORD exists: $([ -n "$DATABASE_PASSWORD" ] && echo "yes" || echo "NO")"\n\
+  echo "======================================"\n\
+  \n\
   # Construct DATABASE_URL from environment variables\n\
   export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  \n\
+  echo "DATABASE_URL constructed successfully"\n\
+  echo "Prisma schema location: ./prisma/schema.prisma"\n\
+  ls -la ./prisma/ || echo "Prisma directory not found!"\n\
   \n\
   echo "Running database migrations..."\n\
   npx prisma migrate deploy --schema=./prisma/schema.prisma\n\
