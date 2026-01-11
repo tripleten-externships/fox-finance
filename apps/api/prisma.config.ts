@@ -21,14 +21,7 @@ function buildDatabaseUrl() {
     );
   }
 
-  const u = new URL("postgresql://");
-  u.username = DATABASE_USERNAME; // auto-encodes reserved chars
-  u.password = DATABASE_PASSWORD; // auto-encodes reserved chars
-  u.hostname = DATABASE_HOST;
-  u.port = DATABASE_PORT ?? "5432";
-  u.pathname = `/${DATABASE_NAME}`;
-
-  return u.toString();
+  return `postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`;
 }
 
 export default {
