@@ -72,6 +72,8 @@ RUN pnpm --filter @fox-finance/config build
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
+# Create .env file with DATABASE_URL for Prisma client generation
+# The actual values don't matter since we just need to generate the client
 RUN echo '\n\
   DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
   ' > /app/apps/api/.env
@@ -114,10 +116,6 @@ COPY packages/config/package.json ./packages/config/
 # Copy Prisma schema and migrations for runtime
 COPY apps/api/prisma ./apps/api/prisma
 COPY apps/api/prisma.config.ts ./apps/api/
-
-RUN echo '\n\
-  DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
-  ' > /app/apps/api/.env
 
 # Install production dependencies only (skip scripts since we copy generated client from builder)
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
@@ -163,6 +161,8 @@ RUN echo '#!/bin/sh\n\
   set -e\n\
   \n\
   echo "Running database migrations..."\n\
+  export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  \n\
   cd /app/apps/api && \
   npx prisma migrate deploy\n\
   \n\
