@@ -15,9 +15,9 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy package.json files for all workspace packages
 COPY apps/api/package.json ./apps/api/
+COPY packages/config/package.json ./packages/config/
 COPY packages/prisma/package.json ./packages/prisma/
 COPY packages/api-types/package.json ./packages/api-types/
-COPY packages/config/package.json ./packages/config/
 
 # Copy Prisma schema (needed for postinstall script)
 COPY packages/prisma/prisma ./packages/prisma/prisma
@@ -39,16 +39,16 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 COPY --from=deps /app/packages/prisma/node_modules ./packages/prisma/node_modules
 COPY --from=deps /app/packages/api-types/node_modules ./packages/api-types/node_modules
-COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 
 # Copy workspace configuration
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/api-types/package.json ./packages/api-types/
-COPY packages/prisma/package.json ./packages/prisma/
 COPY packages/config/package.json ./packages/config/
+COPY packages/prisma/package.json ./packages/prisma/
 
 # Copy Prisma schema and TypeScript configs
 COPY packages/prisma/prisma ./packages/prisma/prisma
@@ -67,6 +67,10 @@ COPY apps/api/tsconfig.json ./apps/api/
 COPY packages/api-types ./packages/api-types
 # Copy config package source if needed
 COPY packages/config ./packages/config
+
+# Build config package
+WORKDIR /app/packages/config
+RUN pnpm build
 
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
@@ -106,9 +110,9 @@ ENV NODE_ENV=production
 # Copy workspace configuration
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/config/package.json ./packages/config/
 COPY packages/prisma/package.json ./packages/prisma/
 COPY packages/api-types/package.json ./packages/api-types/
-COPY packages/config/package.json ./packages/config/
 
 # Copy Prisma schema and migrations for runtime
 COPY packages/prisma/prisma ./packages/prisma/prisma
