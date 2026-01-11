@@ -147,12 +147,14 @@ RUN echo '{\n\
   }\n\
   }' > /app/apps/api/tsconfig.runtime.json
 
+# Create .env file that loads environment variables at runtime
+RUN echo '\n\
+  DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
+  ' > /app/apps/api/.env
+
 # Create startup script that constructs DATABASE_URL, runs migrations, then starts the app
 RUN echo '#!/bin/sh\n\
   set -e\n\
-  \n\
-  # Construct DATABASE_URL from environment variables\n\
-  export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
   \n\
   echo "Running database migrations..."\n\
   cd /app/apps/api && \
