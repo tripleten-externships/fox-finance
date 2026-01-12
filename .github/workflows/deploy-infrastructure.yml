@@ -222,7 +222,6 @@ jobs:
     if: |
       (github.event_name == 'workflow_call' && inputs.environment == 'prod') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
-    needs: deploy-dev
     environment: prod
     steps:
       - name: Checkout code
