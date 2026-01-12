@@ -99,8 +99,8 @@ export const devConfig: EnvironmentConfig = {
     memory: 1024, // 1 GB
     minTaskCount: 1,
     maxTaskCount: 4,
-    containerPort: 4000,
-    healthCheckPath: "/health",
+    containerPort: 80,
+    healthCheckPath: "/",
     targetCpuUtilization: 70,
     targetMemoryUtilization: 70,
   },
@@ -163,8 +163,8 @@ export const prodConfig: EnvironmentConfig = {
     memory: 2048, // 2 GB
     minTaskCount: 2,
     maxTaskCount: 10,
-    containerPort: 4000,
-    healthCheckPath: "/health",
+    containerPort: 80,
+    healthCheckPath: "/",
     targetCpuUtilization: 70,
     targetMemoryUtilization: 70,
   },
