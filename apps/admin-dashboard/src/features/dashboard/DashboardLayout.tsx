@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   Card,
@@ -17,6 +17,7 @@ import {
   FaUserPlus,
 } from "react-icons/fa";
 import useAuth from "../../hooks/useAuth";
+import MetricsCard from "./components/MetricsCard";
 
 const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
   children,
@@ -30,6 +31,40 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
       console.error("Error signing out:", error);
     }
   };
+
+  const [metrics, setMetrics] = useState({
+    totalClients: 0,
+    pendingFiles: 0,
+    activeLinks: 0,
+  })
+
+  //Fetch metrics data
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch('API for metrics');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch metrics');
+        }
+        const data = await response.json();
+
+        setMetrics({
+          totalClients: data.totalClients,
+          pendingFiles: data.pendingFiles,
+          activeLinks: data.activeLinks,
+        });
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+      } finally {
+
+      }
+    };
+
+    fetchMetrics();
+  }, []);
+
+
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -76,34 +111,30 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
           {/* Top Section - Three Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {/* Total Clients Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Total Clients</CardTitle>
-                  <FaUsers className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </CardHeader>
-            </Card>
+            <MetricsCard
+            title ="Total Clients"
+            value = {metrics.totalClients}
+            icon ={<FaUsers/>}
+            descriptor="Active Applications"
+            />
 
             {/* Pending Files Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Pending Files</CardTitle>
-                  <FaFile className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </CardHeader>
-            </Card>
+            <MetricsCard
+            title ="Pending Files"
+            value = {metrics.pendingFiles}
+            icon ={<FaFile/>}
+            descriptor="Awaiting review"
+            />
+            
 
             {/* Active Links Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Active Links</CardTitle>
-                  <FaLink className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </CardHeader>
-            </Card>
+            <MetricsCard
+            title ="Active Links"
+            value = {metrics.activeLinks}
+            icon ={<FaLink/>}
+            descriptor="Secure access codes"
+            />
+          
           </div>
 
           {/* Bottom Section - Two Full-Width Cards */}
