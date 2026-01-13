@@ -41,7 +41,7 @@ export async function requireAuth(
       uid: decoded.uid,
       email: decoded.email,
       role: (decoded.role as string)?.toUpperCase() || "ADMIN",
-      role: user.role || "USER",
+      
     };
     next();
   } catch (error) {

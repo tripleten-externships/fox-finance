@@ -19,6 +19,7 @@
     "@fox-finance/api-types": "workspace:*",
     "@fox-finance/config": "workspace:*",
     "@fox-finance/prisma": "workspace:*",
+    "@prisma/client": "^6.19.1",
     "aws": "0.0.3-2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

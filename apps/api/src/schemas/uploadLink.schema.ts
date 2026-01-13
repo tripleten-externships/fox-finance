@@ -63,7 +63,7 @@ export const getPresignedUrlSchema = z.object({
               message: "Invalid MIME type",
             }),
           contentLength: z
-            .number({ invalid_type_error: "File size must be a number" })
+            .number( { message: "File size must be a number" } )
             .int({ message: "File size must be a whole number" })
             .positive({ message: "File size must be greater than zero" })
             .max(50 * 1024 * 1024, {
