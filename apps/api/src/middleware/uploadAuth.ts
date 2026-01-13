@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../lib/prisma";
+import { degradeIfDatabaseUnavailable, prisma } from "@fox-finance/prisma";
 
 export interface UploadAuthRequest extends Request {
-  uploadLink: {
+  uploadLink?: {
     id: string;
     clientId: string;
     token: string;
+    documentRequestId?: string;
   };
 }
 
@@ -15,25 +16,27 @@ export async function requireUploadToken(
   next: NextFunction
 ) {
   try {
-    const token =
-      req.headers.authorization?.replace("Bearer ", "") ||
-      (req.query.token as string);
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader?.slice(7).trim()
+      : authHeader?.trim() || (req.query.token as string);
 
     if (!token) {
       return res.status(401).json({ error: "Upload token required" });
     }
 
-    // TODO: uncomment once upload links are implemented
-    const uploadLink = await prisma.uploadLink.findUnique({
-      where: { token },
-      select: {
-        id: true,
-        clientId: true,
-        token: true,
-        expiresAt: true,
-        isActive: true,
-      },
-    });
+    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findFirst({
+        where: { token },
+        select: {
+          id: true,
+          clientId: true,
+          token: true,
+          expiresAt: true,
+          isActive: true,
+        },
+      })
+    );
 
     if (!uploadLink) {
       return res.status(401).json({ error: "Invalid upload token" });
