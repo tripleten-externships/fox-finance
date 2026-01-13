@@ -89,18 +89,40 @@ You must pass at least:
 - `--email` → User email
 - `--name` → Display name
 - `--role` → Optional (defaults to ADMIN)
+- `--password` → Optional password for the user
 
-### Example
+### Examples
+
+#### Basic usage without password
 
 ```bash
 pnpm create:dev-admin -- --email dev@example.com --name "Dev Admin"
 ```
+
+#### With a custom password
+
+```bash
+pnpm create:dev-admin -- --email dev@example.com --name "Dev Admin" --password "SecurePassword123"
+```
+
+#### With role and password
+
+```bash
+pnpm create:dev-admin -- --email user@example.com --name "Test User" --role USER --password "TestPass456"
+```
+
+### Password Behavior
+
+- **For new users**: If `--password` is provided, the Firebase user will be created with that password
+- **For existing users**: If `--password` is provided, the existing user's password will be updated to the new value
+- **When omitted**: The script works as before—Firebase will create users without passwords (they can later sign in via email link or other providers)
 
 ### What the script does:
 
 - **Ensures a Firebase Auth user exists**
   - Fetches by email
   - Creates it if not found
+  - Sets or updates password if `--password` is provided
 - **Upserts the Prisma user**
   - Uses the Firebase UID as the Prisma id so both stay in sync.
 - **Generates a Firebase custom token**
