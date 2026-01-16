@@ -1,88 +1,47 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  Button,
-  toast,
 } from "@fox-finance/ui";
+import { Button } from "@fox-finance/ui";
 
 type DeleteClientDialogProps = {
   open: boolean;
-  clientId: string;
   clientName: string;
   onClose: () => void;
-  onDeleted: () => void;
 };
 
 export const DeleteClientDialog: React.FC<DeleteClientDialogProps> = ({
   open,
-  clientId,
   clientName,
   onClose,
-  onDeleted,
 }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/clients/${clientId}`,
-        { method: "DELETE" }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete client");
-      }
-
-      toast.success(`Client "${clientName}" deleted`, {
-        description: "The client has been permanently removed.",
-        duration: 3000,
-      });
-
-      onDeleted(); 
-      onClose();
-    } catch (error) {
-      toast.error("Failed to delete client", {
-        description: "Please try again or contact support.",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  if (!open) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete client</DialogTitle>
+          <DialogTitle>
+            Delete {clientName}?
+          </DialogTitle>
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">
-          Are you sure you want to delete{" "}
-          <strong>{clientName}</strong>?  
-          This action cannot be undone.
+          This action is permanent. Deleting this client may also remove
+          associated upload links and uploaded files.
         </p>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isDeleting}
-          >
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
 
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            loading={isDeleting}
-          >
-            Delete
+          <Button variant="destructive">
+            Delete Client
           </Button>
         </DialogFooter>
       </DialogContent>
