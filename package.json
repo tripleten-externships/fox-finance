@@ -15,5 +15,11 @@
     "lint": "pnpm -r --parallel run lint",
     "type-check": "pnpm -r --workspace-concurrency=1 run type-check"
   },
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.18"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
