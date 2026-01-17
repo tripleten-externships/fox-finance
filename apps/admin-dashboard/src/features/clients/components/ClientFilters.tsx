@@ -108,7 +108,7 @@ return (
         >
           Clear All
         </button>
-      )}
+      // {/* )} */}
     </div>
 
     {/* Active filter chips */}
