@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import {
   createClientSchema,
@@ -21,32 +21,85 @@ router.get("/", async (req, res, next) => {
 
     const cursor = req.query.cursor;
 
-    const users = await prisma.user.findMany({
-      take: limit,
-      ...(cursor ? { skip: Number(cursor) } : {}),
-      where: {
-        name: req.query.search
-          ? { contains: String(req.query.search), mode: "insensitive" }
-          : undefined,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const count = await prisma.user.count({
-      where: {
-        name: req.query.search
-          ? { contains: String(req.query.search) }
-          : undefined,
-      },
-    });
+    const [clients, count] = await degradeIfDatabaseUnavailable(() =>
+      Promise.all([
+        prisma.client.findMany({
+          take: limit,
+          ...(cursor ? { skip: Number(cursor) } : {}),
+          where: {
+            OR: req.query.search
+              ? [
+                  {
+                    firstName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    lastName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    email: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    company: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                ]
+              : undefined,
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.client.count({
+          where: {
+            OR: req.query.search
+              ? [
+                  {
+                    firstName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    lastName: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    email: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    company: {
+                      contains: String(req.query.search),
+                      mode: "insensitive",
+                    },
+                  },
+                ]
+              : undefined,
+          },
+        }),
+      ])
+    );
 
     res.setHeader("X-Total-Count", count);
     res.json({
-      items: users,
+      items: clients,
       count,
       pageSize: limit,
       totalPages: Math.ceil(count / limit), // UI convenience only
-      next: users.length === limit ? users[users.length - 1].id : null,
+      next: clients.length === limit ? clients[clients.length - 1].id : null,
     });
   } catch (error) {
     next(error);
@@ -58,9 +111,11 @@ router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await prisma.client.findUnique({
-      where: { id: id },
-    });
+    const result = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.findUnique({
+        where: { id: id },
+      })
+    );
 
     if (!result) {
       return res.status(404).json({
@@ -82,9 +137,11 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
   try {
     const { firstName, lastName, email, company, phone } = req.body;
 
-    const result = await prisma.client.create({
-      data: { firstName, lastName, email, company, phone },
-    });
+    const result = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.create({
+        data: { firstName, lastName, email, company, phone },
+      })
+    );
 
     res.status(201).json({
       message: "Client created successfully.",
@@ -101,10 +158,12 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
     const { id } = req.params;
     const { firstName, lastName, email, company, phone } = req.body;
 
-    const updated = await prisma.client.update({
-      where: { id: id },
-      data: { firstName, lastName, email, company, phone },
-    });
+    const updated = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.update({
+        where: { id: id },
+        data: { firstName, lastName, email, company, phone },
+      })
+    );
 
     res.status(200).json({
       message: "Client information updated successfully.",
@@ -120,9 +179,11 @@ router.delete("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const deleted = await prisma.client.delete({
-      where: { id: id },
-    });
+    const deleted = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.delete({
+        where: { id: id },
+      })
+    );
 
     res.status(200).json({
       message: "Client deleted successfully.",

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
+import DashboardLayout from "./features/dashboard/DashboardLayout";
 
 function App() {
   return (
@@ -14,7 +15,7 @@ function App() {
             element={
               <ProtectedRoutes>
                 <Routes>
-                  <Route path="/dashboard" element={<div>Dashboard</div>} />
+                  <Route path="/dashboard" element={<DashboardLayout />} />
                   <Route
                     path="/"
                     element={<Navigate to="/dashboard" replace />}

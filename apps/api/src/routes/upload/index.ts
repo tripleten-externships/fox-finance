@@ -9,7 +9,7 @@ import {
   completeUploadSchema,
 } from "../../schemas/uploadLink.schema";
 import { s3Service } from "../../services/s3.service";
-import { prisma } from "../../lib/prisma";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 
 const router = Router();
 
@@ -28,10 +28,117 @@ router.post(
   "/presigned-url",
   requireUploadToken,
   validate(getPresignedUrlSchema),
-  async (req, res, next) => {
+  async (req: UploadAuthRequest, res, next) => {
     try {
-      // TODO: Implement endpoint
-      res.status(501).json({ error: "Not implemented" });
+      if (!req.uploadLink) {
+        return res.status(401).json({ error: "Upload link missing" });
+      }
+
+      const { id: uploadLinkId, clientId, documentRequestId } = req.uploadLink;
+
+      const files = Array.isArray(req.body.files) ? req.body.files : [req.body];
+
+      const ALLOWED_FILE_TYPES = ["image/png", "image/jpeg", "application/pdf"];
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+      for (const file of files) {
+        if (!ALLOWED_FILE_TYPES.includes(file.contentType)) {
+          return res
+            .status(400)
+            .json({ error: `Unsupported file type: ${file.fileName}` });
+        }
+
+        if (file.contentLength > MAX_FILE_SIZE) {
+          return res
+            .status(400)
+            .json({ error: `File too large: ${file.fileName}` });
+        }
+      }
+
+      if (files.length > 1) {
+        const batch = await degradeIfDatabaseUnavailable(() =>
+          prisma.uploadBatch.create({
+            data: {
+              uploadLinkId,
+              status: "pending",
+              totalFiles: files.length,
+              uploadedFiles: 0,
+            },
+          })
+        );
+        const uploads = await degradeIfDatabaseUnavailable(() =>
+          prisma.$transaction(async (tx) => {
+            const results: Array<{
+              fileName: string;
+              s3Key: string;
+              presignedUrl: string;
+            }> = [];
+
+            for (const file of files) {
+              const key = s3Service.generateKey({
+                uploadLinkId,
+                fileName: file.fileName,
+                clientId,
+              });
+
+              const presigned = await s3Service.generatePresignedUrl({
+                key,
+                contentType: file.contentType,
+                contentLength: file.contentLength,
+              });
+
+              await tx.upload.create({
+                data: {
+                  uploadBatchId: batch.id,
+                  uploadLinkId,
+                  ...(documentRequestId && { documentRequestId }),
+                  fileName: file.fileName,
+                  fileSize: file.contentLength,
+                  s3Key: key,
+                  s3Bucket: process.env.S3_UPLOADS_BUCKET!,
+                  metadata: {},
+                },
+              });
+              results.push({
+                fileName: file.fileName,
+                s3Key: key,
+                presignedUrl: presigned.url,
+              });
+            }
+            return results;
+          })
+        );
+        return res.json({ batchId: batch.id, uploads });
+      }
+
+      const file = files[0];
+      const key = s3Service.generateKey({
+        uploadLinkId,
+        fileName: file.fileName,
+        clientId,
+      });
+
+      const presigned = await s3Service.generatePresignedUrl({
+        key,
+        contentType: file.contentType,
+        contentLength: file.contentLength,
+      });
+
+      await degradeIfDatabaseUnavailable(() =>
+        prisma.upload.create({
+          data: {
+            uploadLinkId,
+            ...(documentRequestId && { documentRequestId }),
+            fileName: file.fileName,
+            fileSize: file.contentLength,
+            s3Key: key,
+            s3Bucket: process.env.S3_UPLOADS_BUCKET!,
+            metadata: {},
+          },
+        })
+      );
+
+      return res.json({ url: presigned.url, key });
     } catch (error) {
       next(error);
     }
