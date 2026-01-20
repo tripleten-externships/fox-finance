@@ -125,6 +125,18 @@ const createClient = (data: CreateClientInput) => {
   };
 
   const onSubmit = async (data: CreateClientInput) => {
+    // First check for validation errors and display them in the popup
+    const validationErrors = [];
+    if (errors.firstName) validationErrors.push(`Name: ${errors.firstName.message}`);
+    if (errors.lastName) validationErrors.push(`Name: ${errors.lastName.message}`);
+    if (errors.email) validationErrors.push(`Email: ${errors.email.message}`);
+    if (errors.phone) validationErrors.push(`Phone: ${errors.phone.message}`);
+    
+    if (validationErrors.length > 0) {
+      setErrorMessage(`Please fix the following errors:\n• ${validationErrors.join('\n• ')}`);
+      return;
+    }
+
     try {
       console.log('Form data:', data);
       await createClient(data);
@@ -139,6 +151,7 @@ const createClient = (data: CreateClientInput) => {
       reset();
       setFullName('');
       setPhoneDisplay('');
+      setErrorMessage(''); // Clear any error message
       
       // Close modal after brief delay
       setTimeout(() => {
@@ -146,13 +159,52 @@ const createClient = (data: CreateClientInput) => {
       }, 500);
       
     } catch (error) {
-      console.error('Error creating client:', error);
-      setErrorMessage('❌ Failed to create client. Please try again.');
+      console.error('Full error object:', error);
       
-      // Clear error message after 3 seconds
+      // Use the backend error message directly
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error && typeof error === 'object' && 'response' in error && error.response) {
+        const response = error.response as any;
+        console.log('Response status:', response.status);
+        console.log('Response data:', response.data);
+        
+        // Use the error message from the backend error handler
+        if (response.data?.error) {
+          errorMessage = response.data.error;
+        } else if (response.data?.message) {
+          errorMessage = response.data.message;
+        } else if (response.status === 409) {
+          // Force email error for 409 status as fallback
+          errorMessage = 'Email is already in use';
+        } else if (response.status === 400) {
+          errorMessage = 'Please check your information and try again';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later';
+        }
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        const msg = error.message as string;
+        console.log('Error message:', msg);
+        
+        // Check if it's a network error
+        if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+          errorMessage = 'Network error. Try again later';
+        } else if (msg.toLowerCase().includes('timeout')) {
+          errorMessage = 'Request timed out. Try again later';
+        } else if (msg.toLowerCase().includes('email')) {
+          errorMessage = 'Email is already in use';
+        } else if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
+          errorMessage = 'Email is already in use';
+        }
+      }
+      
+      console.log('Final error message:', errorMessage);
+      setErrorMessage(errorMessage);
+      
+      // Clear error message after 4 seconds
       setTimeout(() => {
         setErrorMessage('');
-      }, 3000);
+      }, 4000);
     }
   };
 
@@ -178,8 +230,10 @@ const createClient = (data: CreateClientInput) => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex-1">
           {/* Error Message */}
           {errorMessage && (
-            <div className="p-3 rounded-[8px] text-sm font-medium text-center bg-red-50 text-red-700 border border-red-200">
-              {errorMessage}
+            <div className="p-3 rounded-[8px] text-sm font-medium bg-red-50 text-red-700 border border-red-200">
+              <div className="whitespace-pre-line text-left">
+                {errorMessage}
+              </div>
             </div>
           )}
 
@@ -245,7 +299,7 @@ const createClient = (data: CreateClientInput) => {
               value={phoneDisplay}
               onChange={handlePhoneUpdate}
               placeholder="(123) 456-7890"
-              maxLength={17}
+              maxLength={14}
               className="!rounded-[8px]"
             />
             

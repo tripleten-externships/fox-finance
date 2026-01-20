@@ -3,6 +3,7 @@ import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import ClientForm from "./features/auth/clients/ClientForm";
+import { Toaster } from "@fox-finance/ui";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             }
           />
         </Routes>
+        <Toaster position="top-center" />
       </AuthProvider>
     </BrowserRouter>
   );
