@@ -1,4 +1,10 @@
-import { Prisma, PrismaClient, Role } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  Role,
+  Status,
+  UploadStatus,
+} from "@prisma/client";
 import { getLogger } from "@fox-finance/config";
 
 const logger = getLogger();
@@ -71,4 +77,4 @@ prisma.$on("warn" as never, (e: Prisma.LogEvent) => {
   });
 });
 
-export { Prisma, Role };
+export { Prisma, Role, Status, UploadStatus };
