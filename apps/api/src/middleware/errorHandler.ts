@@ -8,38 +8,27 @@ export function errorHandler(
   res: Response,
   next: NextFunction,
 ) {
-  console.log("🔥 ERROR HANDLER TRIGGERED!");
-  console.log("Error type:", err.constructor.name);
-  console.log("Error code:", err.code);
-  console.log("Error message:", err.message);
-  console.error("Full error:", err);
+  console.error("Error:", err);
 
   if (res.headersSent) {
-    console.log("Headers already sent, passing to next");
     return next(err);
   }
 
   // Handle Prisma specific errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    console.log("✅ Detected Prisma error!");
     // Unique constraint violations
     if (err.code === "P2002") {
-      console.log("✅ Unique constraint violation detected");
       const field = err.meta?.target as string[];
-      console.log("✅ Target field:", field);
 
       if (field && field.includes("email")) {
-        console.log("✅ Email conflict - sending 409 response");
         return res.status(409).json({
           error: "Email is already in use",
         });
       } else if (field && field.includes("phone")) {
-        console.log("✅ Phone conflict - sending 409 response");
         return res.status(409).json({
           error: "Phone number is already in use",
         });
       } else {
-        console.log("✅ Generic conflict - sending 409 response");
         return res.status(409).json({
           error: "This information is already in use",
         });
