@@ -11,6 +11,7 @@ import {
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 const router = Router();
 
 // GET /api/upload/verify?token=xyz - Verify upload token and get requirements
@@ -150,10 +151,54 @@ router.post(
   "/complete",
   requireUploadToken,
   validate(completeUploadSchema),
-  async (req, res, next) => {
+  async (req: UploadAuthRequest, res, next) => {
+    
     try {
-      // TODO: Implement endpoint
-      res.status(501).json({ error: "Not implemented" });
+      if (!req.uploadLink) {
+        return res.status(401).json({ error: "Upload link missing" });
+      }
+
+      // 1. Extract data
+      const { s3Key, fileName, fileSize, fileType } = req.body;
+      const { id: uploadLinkId, documentRequestId } = req.uploadLink;
+
+      // 2. Update the Database record
+      // We find the record first to get the unique 'id'
+      const existingUpload = await degradeIfDatabaseUnavailable(() =>
+        prisma.upload.findFirst({
+          where: { s3Key: s3Key }
+        })
+      );
+
+      if (!existingUpload) {
+        return res.status(404).json({ error: "Upload record not found for the provided S3 key" });
+      }
+
+      const upload = await degradeIfDatabaseUnavailable(() =>
+        prisma.upload.update({
+          where: { id: existingUpload.id }, // Using the unique primary key
+          data: {
+            fileName,
+            fileSize: fileSize.toString(),
+            uploadLinkId,
+            ...(documentRequestId && { documentRequestId }),
+          },
+        })
+      );
+
+      // 3. Generate a download URL
+      const presignedData = await s3Service.generatePresignedUrl({
+        key: s3Key,
+        contentType: fileType,
+        contentLength: Number(fileSize),
+      });
+
+      // 4. Return success
+      return res.status(200).json({
+        message: "Upload confirmed",
+        upload,
+        downloadUrl: presignedData.url,
+      });
     } catch (error) {
       next(error);
     }
