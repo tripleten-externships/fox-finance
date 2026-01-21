@@ -12,7 +12,9 @@
     "dev": "pnpm db:start && pnpm --parallel --filter admin-dashboard --filter api dev",
     "storybook": "pnpm --filter ./packages/ui storybook",
     "build": "pnpm -r build",
-    "create:dev-admin": "cd apps/api && npx ts-node scripts/createDevAdminUser.ts"
+    "create:dev-admin": "cd apps/api && npx ts-node scripts/createDevAdminUser.ts",
+    "lint": "pnpm -r --parallel run lint",
+    "type-check": "pnpm -r --workspace-concurrency=1 run type-check"
   },
   "packageManager": "pnpm@10.17.1"
 }

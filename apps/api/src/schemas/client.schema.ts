@@ -24,7 +24,7 @@ export const createClientSchema = z.object({
       .string()
       .regex(
         /^(?:\+1\s?)?(?:\(?[2-9][0-9]{2}\)?)[\s-]?(?:[2-9][0-9]{2})[\s-]?[0-9]{4}$/,
-        "Phone number must be digits",
+        "Phone number must be digits with optional +1",
       )
       .optional(),
   }),
@@ -32,7 +32,7 @@ export const createClientSchema = z.object({
 
 export const updateClientSchema = z.object({
   params: z.object({
-    id: z.string().uuid("Client ID must be a valid UUID"),
+    id: z.string(),
   }),
   body: z
     .object({

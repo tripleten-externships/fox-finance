@@ -3,6 +3,7 @@ import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import ClientForm from "./features/auth/clients/ClientForm";
+import DashboardLayout from "./features/dashboard/DashboardLayout";
 import { Toaster } from "@fox-finance/ui";
 
 function App() {
@@ -16,7 +17,7 @@ function App() {
             element={
               <ProtectedRoutes>
                 <Routes>
-                  <Route path="/dashboard" element={<div>Dashboard</div>} />
+                  <Route path="/dashboard" element={<DashboardLayout />} />
                   <Route path="/clients/new" element={<ClientForm />} />
                   <Route
                     path="/"

@@ -1,9 +1,7 @@
 #!/usr/bin/env ts-node
 
 import "dotenv/config";
-import { Role } from "@prisma/client";
-import { prisma } from "../src/lib/prisma";
-import { admin } from "../src/firebase";
+import { admin, prisma, Role } from "@fox-finance/prisma";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -17,10 +15,11 @@ async function main() {
   const email = getArg("--email");
   const name = getArg("--name");
   const roleArg = (getArg("--role") || "ADMIN").toUpperCase();
+  const password = getArg("--password");
 
   if (!email || !name) {
     console.error(
-      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--role ADMIN|USER]'
+      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--role ADMIN|USER] [--password <password>]'
     );
     process.exit(1);
   }
@@ -54,18 +53,38 @@ async function main() {
 
     // 1. Create or fetch Firebase Auth user
     let firebaseUser;
+    let isNewUser = false;
     try {
       firebaseUser = await admin.auth().getUserByEmail(email);
       console.log(
         `ℹ️  Firebase user already exists with UID: ${firebaseUser.uid}`
       );
+
+      // Update password if provided for existing user
+      if (password) {
+        await admin.auth().updateUser(firebaseUser.uid, {
+          password,
+        });
+        console.log(`✅ Updated password for existing Firebase user`);
+      }
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
-        firebaseUser = await admin.auth().createUser({
+        const createUserParams: any = {
           email,
           displayName: name,
-        });
+        };
+
+        // Set password if provided for new user
+        if (password) {
+          createUserParams.password = password;
+        }
+
+        firebaseUser = await admin.auth().createUser(createUserParams);
+        isNewUser = true;
         console.log(`✅ Created Firebase user with UID: ${firebaseUser.uid}`);
+        if (password) {
+          console.log(`✅ Password set for new Firebase user`);
+        }
       } else {
         console.error("❌ Error fetching/creating Firebase user:", err);
         process.exit(1);
@@ -138,6 +157,7 @@ async function main() {
       email,
       uid,
       role,
+      password,
       idToken,
       refreshToken,
       createdAt: new Date().toISOString(),

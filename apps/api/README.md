@@ -185,7 +185,7 @@ Example:
 ```typescript
 // routes/admin/my-resource.ts
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { myResourceSchema } from "../../schemas/myResource.schema";
 
