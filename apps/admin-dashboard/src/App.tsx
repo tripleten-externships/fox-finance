@@ -18,7 +18,6 @@ function App() {
               <ProtectedRoutes>
                 <Routes>
                   <Route path="/dashboard" element={<DashboardLayout />} />
-                  <Route path="/clients/new" element={<ClientForm />} />
                   <Route
                     path="/"
                     element={<Navigate to="/dashboard" replace />}

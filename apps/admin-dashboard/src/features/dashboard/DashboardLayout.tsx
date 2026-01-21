@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Button,
   Card,
@@ -17,11 +17,13 @@ import {
   FaUserPlus,
 } from "react-icons/fa";
 import useAuth from "../../hooks/useAuth";
+import ClientForm from "../auth/clients/ClientForm";
 
 const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
   const { logout } = useAuth();
+  const [isClientFormOpen, setIsClientFormOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -29,6 +31,10 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  const handleCreateClient = () => {
+    setIsClientFormOpen(true);
   };
 
   return (
@@ -126,11 +132,14 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
             {/* Add New Client Card */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-4">
-                  <FaUserPlus className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <CardTitle>Add New Client</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <FaUserPlus className="h-8 w-8 text-muted-foreground" />
+                    <div>
+                      <CardTitle>Add New Client</CardTitle>
+                    </div>
                   </div>
+                  <Button className="bg-black rounded-[8px]" onClick={handleCreateClient}>Create Client</Button>
                 </div>
               </CardHeader>
             </Card>
@@ -139,6 +148,12 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
           {children}
         </main>
       </div>
+
+      {/* Client Form Modal */}
+      <ClientForm 
+        open={isClientFormOpen} 
+        onOpenChange={setIsClientFormOpen} 
+      />
     </div>
   );
 };

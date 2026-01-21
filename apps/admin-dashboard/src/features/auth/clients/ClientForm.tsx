@@ -1,5 +1,5 @@
 // imports
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { CreateClientInput } from '../../../../../api/src/schemas/client.schema';
@@ -8,23 +8,20 @@ import { postClient } from "../../../lib/api";
 //import elements
 import { 
   Button, 
-  Input , 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  
+  Input,
   toast
 } from "@fox-finance/ui";
 
 import {colors} from "../../../../../../packages/theme/src/tokens/colors"; // Ensure theme is loaded
 
 interface ClientFormProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function ClientForm({ open = true, onOpenChange }: ClientFormProps) {
+export default function ClientForm({ open, onOpenChange }: ClientFormProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phoneDisplay, setPhoneDisplay] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -53,6 +50,34 @@ export default function ClientForm({ open = true, onOpenChange }: ClientFormProp
 const createClient = (data: CreateClientInput) => {
   return postClient(data);
 };
+
+  // Handle animation timing
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true);
+      // Small delay to ensure DOM is ready, then start animation
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
+    } else {
+      // Add delay for smoother closing animation feel
+      const closeDelay = setTimeout(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(false);
+        });
+      }, 100); // 100ms delay before closing starts
+      
+      // Wait for animation to complete before hiding
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+      }, 900); // 100ms delay + 800ms animation
+      
+      return () => {
+        clearTimeout(closeDelay);
+        clearTimeout(timer);
+      };
+    }
+  }, [open]);
 
   // Watch for changes to show real-time feedback
   const watchedEmail = watch('email');
@@ -114,6 +139,11 @@ const createClient = (data: CreateClientInput) => {
   const handleEmailValidation = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     setValue('email', email);
+    
+    // Clear any server error message when user starts typing
+    if (errorMessage) {
+      setErrorMessage('');
+    }
     
     // Trigger email validation
     await trigger('email');
@@ -201,10 +231,13 @@ const createClient = (data: CreateClientInput) => {
       console.log('Final error message:', errorMessage);
       setErrorMessage(errorMessage);
       
-      // Clear error message after 4 seconds
-      setTimeout(() => {
-        setErrorMessage('');
-      }, 4000);
+      // Don't auto-clear email errors - let them clear when input changes
+      if (!errorMessage.toLowerCase().includes('email')) {
+        // Clear non-email errors after 4 seconds
+        setTimeout(() => {
+          setErrorMessage('');
+        }, 4000);
+      }
     }
   };
 
@@ -216,16 +249,46 @@ const createClient = (data: CreateClientInput) => {
     onOpenChange?.(false);
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="gap-6 !rounded-[10px]" 
-        
+    <>
+      {/* Custom Backdrop */}
+      <div 
+        className="fixed inset-0 z-50"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          transition: 'opacity 0.8s ease-out',
+          opacity: isAnimating ? 1 : 0
+        }}
+        onClick={() => onOpenChange(false)}
+      />
+      
+      {/* Custom Modal Content */}
+      <div 
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        onClick={() => onOpenChange(false)}
       >
-        <DialogHeader className="">
-          <DialogTitle>Create Client Access</DialogTitle>
-          
-        </DialogHeader>
+        <div 
+          className="bg-background border shadow-lg rounded-[10px] w-full max-w-md gap-6 p-6"
+          style={{
+            transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+            transform: isAnimating ? 'scale(1)' : 'scale(0.95)',
+            opacity: isAnimating ? 1 : 0
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Modal Header */}
+          <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+            <h2 className="text-lg font-semibold leading-none tracking-tight">Create Client Access</h2>
+            <button 
+              onClick={() => onOpenChange(false)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-4 w-4"
+            >
+              <span className="text-xl leading-none">×</span>
+              <span className="sr-only">Close</span>
+            </button>
+          </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex-1">
           {/* Error Message */}
@@ -341,7 +404,8 @@ const createClient = (data: CreateClientInput) => {
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </>
   );
 }
