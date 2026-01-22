@@ -24,7 +24,7 @@ export const createClientSchema = z.object({
       .string()
       .regex(
         /^(?:\+1\s?)?(?:\(?[2-9][0-9]{2}\)?)[\s-]?(?:[2-9][0-9]{2})[\s-]?[0-9]{4}$/,
-        "Phone number must be digits with optional +1",
+        "Phone number must be 10 digits",
       )
       .optional(),
   }),
