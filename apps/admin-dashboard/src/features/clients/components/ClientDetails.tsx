@@ -141,6 +141,48 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId }) => {
           {loading && <p className="text-gray-500">Loading documents...</p>}
           {error && <p className="text-red-500">{error}</p>}
 
+          {/* UPLOAD LINKS TABLE */}
+          {data?.uploadLinks && (
+            <div className="p-4 border-t">
+              {/* HEADER */}
+              <div className="flex items-center gap-2 font-semibold text-gray-900 mb-4">
+                <img src="/icons/link-intact.svg" className="w-4 h-4" />
+                Upload Links ({data.uploadLinks.length})
+              </div>
+
+              {/* LINKS LIST */}
+              <div className="space-y-2">
+                {data.uploadLinks.map((link: any) => (
+                  <div
+                    key={link.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-white hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="/icons/link.svg"
+                        className="w-5 h-5 text-gray-500"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {link.id}
+                        </p>
+                        <p className="text-xs text-gray-500">{link.token}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        link.status === "Active"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {link.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {data?.recentUploads && (
             <>
               {/* EXPANDED HEADER */}
@@ -190,52 +232,6 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId }) => {
           )}
         </div>
       </div>
-      {/* UPLOAD LINKS TABLE */}
-      {data?.uploadLinks && (
-        <div className="p-4 border-t bg-gray-50">
-          {/* HEADER */}
-          <div className="flex items-center gap-2 font-semibold text-gray-900 mb-4">
-            <img src="/icons/link-intact.svg" className="w-4 h-4" />
-            Upload Links ({data.uploadLinks.length})
-          </div>
-
-          {/* LINKS LIST */}
-          <div className="space-y-2">
-            {data.uploadLinks.map((link: any) => (
-              <div
-                key={link.id}
-                className="flex items-center justify-between p-3 border rounded-lg bg-white hover:bg-gray-50"
-              >
-                {/* LEFT */}
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/icons/link.svg"
-                    className="w-5 h-5 text-gray-500"
-                  />
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {link.id}
-                    </p>
-                    <p className="text-xs text-gray-500">{link.token}</p>
-                  </div>
-                </div>
-
-                {/* RIGHT */}
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    link.status === "Active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {link.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
