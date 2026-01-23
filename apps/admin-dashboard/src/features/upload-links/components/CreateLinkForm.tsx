@@ -42,12 +42,14 @@ interface CreateUploadLinkPayload {
 
 interface CreateLinkFormProps {
   initialClientId?: string;
+  onSuccess?: () => void;
 }
 
 const DEFAULT_EXPIRATION_DAYS = 7;
 
 export default function CreateLinkForm({
   initialClientId,
+  onSuccess,
 }: CreateLinkFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState<string>(initialClientId || "");
@@ -239,6 +241,11 @@ export default function CreateLinkForm({
       const data = await res.json();
 
       setCreatedLinkUrl(data.url);
+
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch {
       toast("Failed to create upload link");
     } finally {
@@ -342,7 +349,7 @@ export default function CreateLinkForm({
       </div>
 
       {/* Expiration date */}
-      <div className="space-y-2">
+      <div className="space-x-4">
         <label className="text-sm font-medium text-foreground">
           Expiration date
         </label>

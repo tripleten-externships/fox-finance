@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Badge, Button } from "@fox-finance/ui";
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@fox-finance/ui";
 import { MdEdit, MdEmail, MdPhone } from "react-icons/md";
 import {
   FaBuilding,
@@ -12,6 +20,9 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { apiClient } from "../../../lib/api";
+import { formatPhoneNumber } from "../../../lib/phoneUtils";
+import CreateLinkForm from "../../upload-links/components/CreateLinkForm";
+import CreateClientForm from "./CreateClientForm";
 
 // Type definitions based on Prisma schema
 interface Client {
@@ -50,10 +61,16 @@ interface UploadLink {
 
 interface ClientDetailsProps {
   client: Client;
+  onClientUpdated?: () => void; // Callback to refresh client list
 }
 
-export const ClientDetails: React.FC<ClientDetailsProps> = ({ client }) => {
+export const ClientDetails: React.FC<ClientDetailsProps> = ({
+  client,
+  onClientUpdated,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [uploadLinks, setUploadLinks] = useState<UploadLink[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +156,40 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({ client }) => {
     console.log("Download all files");
   };
 
+  // Handler for successful link creation
+  const handleLinkCreated = async () => {
+    setIsDialogOpen(false);
+    // Refresh upload links if the accordion is open
+    if (isOpen) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await apiClient(
+          `/api/admin/upload-links?clientId=${client.id}`,
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch upload links");
+        }
+        const data = await response.json();
+        setUploadLinks(data.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching upload links:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Handler for successful client edit
+  const handleClientUpdated = () => {
+    setIsEditDialogOpen(false);
+    // Notify parent to refresh the client list
+    if (onClientUpdated) {
+      onClientUpdated();
+    }
+  };
+
   return (
     <div className="border border-border rounded-lg bg-muted shadow-sm mb-4 transition-colors">
       {/* COLLAPSED ROW */}
@@ -161,7 +212,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({ client }) => {
             {client.phone && (
               <div className="flex items-center gap-1.5">
                 <MdPhone className="w-4 h-4 fill-muted-foreground opacity-70" />
-                <span>{client.phone}</span>
+                <span>{formatPhoneNumber(client.phone)}</span>
               </div>
             )}
             {client.company && (
@@ -175,22 +226,52 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({ client }) => {
 
         {/* CONTROL BUTTONS && EXPAND/COLLAPSE */}
         <div className="flex items-center gap-2 ml-4">
-          <Button
-            variant="secondary"
-            size="icon"
-            title="Generate upload link"
-            aria-label="Generate upload link"
-          >
-            <FaLink className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            title="Edit client"
-            aria-label="Edit client details"
-          >
-            <MdEdit className="w-4 h-4" />
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                title="Generate upload link"
+                aria-label="Generate upload link"
+              >
+                <FaLink className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Create Upload Link for {client.firstName} {client.lastName}
+                </DialogTitle>
+              </DialogHeader>
+              <CreateLinkForm
+                initialClientId={client.id}
+                onSuccess={handleLinkCreated}
+              />
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                title="Edit client"
+                aria-label="Edit client details"
+              >
+                <MdEdit className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Edit Client: {client.firstName} {client.lastName}
+                </DialogTitle>
+              </DialogHeader>
+              <CreateClientForm
+                client={client}
+                onSuccess={handleClientUpdated}
+              />
+            </DialogContent>
+          </Dialog>
           <Button
             onClick={() => setIsOpen(!isOpen)}
             aria-expanded={isOpen}

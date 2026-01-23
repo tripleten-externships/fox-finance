@@ -19,7 +19,7 @@ const sendError = (
   res: Response,
   status: number,
   message: string,
-  meta?: object
+  meta?: object,
 ) => {
   return res.status(status).json({
     error: message,
@@ -38,77 +38,68 @@ router.get("/", async (req, res, next) => {
       .parse(req.query.limit);
 
     const cursor = req.query.cursor;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const statusFilter = req.query.status
+      ? String(req.query.status)
+      : undefined;
+
+    // Build where clause with both search and status filters
+    const whereClause: any = {};
+
+    // Add search conditions if search term provided
+    if (search) {
+      whereClause.OR = [
+        {
+          firstName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          lastName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          phone: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          company: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    // Add status filter if provided and not "all"
+    if (statusFilter && statusFilter !== "all") {
+      whereClause.status =
+        statusFilter === "active" ? Status.ACTIVE : Status.INACTIVE;
+    }
 
     const [clients, count] = await degradeIfDatabaseUnavailable(() =>
       Promise.all([
         prisma.client.findMany({
           take: limit,
           ...(cursor ? { skip: Number(cursor) } : {}),
-          where: {
-            OR: req.query.search
-              ? [
-                  {
-                    firstName: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    lastName: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    email: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    company: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                ]
-              : undefined,
-          },
+          where: whereClause,
           orderBy: { createdAt: "desc" },
         }),
         prisma.client.count({
-          where: {
-            OR: req.query.search
-              ? [
-                  {
-                    firstName: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    lastName: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    email: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    company: {
-                      contains: String(req.query.search),
-                      mode: "insensitive",
-                    },
-                  },
-                ]
-              : undefined,
-          },
+          where: whereClause,
         }),
-      ])
+      ]),
     );
 
     res.setHeader("X-Total-Count", count);
@@ -124,14 +115,12 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// GET /api/admin/clients - List all clients
+// GET /api/admin/clients/stats - List statistics about clients and uploads
 router.get("/stats", async (req, res, next) => {
   const startTime = Date.now(); // track response time
 
   try {
-    // TODO: Implement endpoint
     // Run queries in parallel
-
     const [
       totalClients,
       activeClients,
@@ -175,12 +164,15 @@ router.get("/stats", async (req, res, next) => {
     ]);
 
     // Aggregate uploads by clientId
-    const uploadsByClient = uploadsRaw.reduce((acc, upload) => {
-      //From this upload record, go to its uploadLink, and from that uploadLink, extract the clientId.
-      const clientId = upload.uploadLink.clientId;
-      acc[clientId] = (acc[clientId] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const uploadsByClient = uploadsRaw.reduce(
+      (acc, upload) => {
+        //From this upload record, go to its uploadLink, and from that uploadLink, extract the clientId.
+        const clientId = upload.uploadLink.clientId;
+        acc[clientId] = (acc[clientId] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const responseTime = Date.now() - startTime;
 
@@ -218,7 +210,7 @@ router.get("/:id", async (req, res, next) => {
     const result = await degradeIfDatabaseUnavailable(() =>
       prisma.client.findUnique({
         where: { id: id },
-      })
+      }),
     );
 
     if (!result) {
@@ -244,7 +236,7 @@ router.post("/", validate(createClientSchema), async (req, res, next) => {
     const result = await degradeIfDatabaseUnavailable(() =>
       prisma.client.create({
         data: { firstName, lastName, email, company, phone },
-      })
+      }),
     );
 
     res.status(201).json({
@@ -266,7 +258,7 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
       prisma.client.update({
         where: { id: id },
         data: { firstName, lastName, email, company, phone },
-      })
+      }),
     );
 
     res.status(200).json({
@@ -286,7 +278,7 @@ router.delete("/:id", async (req, res, next) => {
     const deleted = await degradeIfDatabaseUnavailable(() =>
       prisma.client.delete({
         where: { id: id },
-      })
+      }),
     );
 
     res.status(200).json({
