@@ -96,7 +96,7 @@ model DocumentRequest {
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   uploadLinkId       String              @db.Uuid
   requestedDocuments RequestedDocument[] //Array of documents
-  instructions       String
+  instructions       String?
   status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
 }
@@ -131,10 +131,12 @@ model Upload {
   fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime         @updatedAt
-  metadata          Json
-  UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
-  uploadBatchId     String?          @db.Uuid
+  fileType          String           @default("unknown")
+
+  uploadedAt    DateTime     @updatedAt
+  metadata      Json
+  UploadBatch   UploadBatch? @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId String?      @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])

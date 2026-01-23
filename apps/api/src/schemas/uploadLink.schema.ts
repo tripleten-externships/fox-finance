@@ -69,8 +69,38 @@ export const getPresignedUrlSchema = z.object({
   }),
 });
 
+/**
+ * Schema for completing an upload after file has been uploaded to S3.
+ * This validates the metadata needed to finalize the upload record.
+ */
 export const completeUploadSchema = z.object({
-  body: z.object({}),
+  body: z.object({
+    s3Key: z
+      .string()
+      .min(1, { message: "S3 key is required" })
+      .max(1024, { message: "S3 key is too long" }),
+    fileName: z
+      .string()
+      .min(1, { message: "File name is required" })
+      .max(255, { message: "File name cannot exceed 255 characters" }),
+    fileSize: z
+      .number({ invalid_type_error: "File size must be a number" })
+      .int({ message: "File size must be a whole number" })
+      .positive({ message: "File size must be greater than zero" })
+      .max(50 * 1024 * 1024, {
+        message: "File size exceeds maximum permitted 50MB",
+      }),
+    fileType: z
+      .string()
+      .min(1, { message: "File type is required" })
+      .regex(/^[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+$/, {
+        message: "Invalid MIME type",
+      }),
+    documentRequestId: z
+      .string()
+      .uuid({ message: "Document request ID must be a valid UUID" })
+      .optional(),
+  }),
 });
 
 export type CreateUploadLinkBody = z.infer<

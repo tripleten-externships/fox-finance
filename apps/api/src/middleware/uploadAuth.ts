@@ -9,6 +9,17 @@ export interface UploadAuthRequest extends Request {
     documentRequestId?: string;
   };
 }
+/**
+ * requireUploadToken Middleware
+ *
+ * This middleware validates the upload token provided by the client.
+ * It supports tokens passed via:
+ *   - Authorization header: "Bearer <token>"
+ *   - Query string: ?token=<token>
+ *
+ * Once validated, it attaches the uploadLink record to req.uploadLink
+ * so downstream handlers can trust that the upload is authorized.
+ */
 
 export async function requireUploadToken(
   req: Request,
@@ -55,6 +66,7 @@ export async function requireUploadToken(
     (req as UploadAuthRequest).uploadLink = uploadLink;
     next();
   } catch (error) {
+    // Catch unexpected errors (DB issues, etc.) and return a safe response.
     console.error("Upload token verification error:", error);
     return res.status(500).json({ error: "Token verification failed" });
   }
