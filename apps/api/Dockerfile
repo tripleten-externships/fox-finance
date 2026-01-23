@@ -161,6 +161,11 @@ RUN echo '#!/bin/sh\n\
   # Construct DATABASE_URL from environment variables\n\
   export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
   \n\
+  echo "DATABASE_USERNAME: ${DATABASE_USERNAME}"\n\
+  echo "DATABASE_HOST: ${DATABASE_HOST}"\n\
+  echo "DATABASE_PORT: ${DATABASE_PORT}"\n\
+  echo "DATABASE_NAME: ${DATABASE_NAME}"\n\
+  \n\
   echo "Running database migrations..."\n\
   cd ../../packages/prisma && \
   npx prisma migrate deploy\n\
