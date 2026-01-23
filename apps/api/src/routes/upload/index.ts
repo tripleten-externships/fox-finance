@@ -148,6 +148,48 @@ router.post(
   }
 );
 
+router.patch(
+  "/:id/metadata",
+  requireUploadToken,
+  validate(updateUploadMetadataSchema),
+  async (req: UploadAuthRequest, res, next) => {
+    try {
+      if (!req.uploadLink) {
+        return res.status(401).json({ error: "Upload link missing" });
+      }
+
+      const { id } = req.params;
+      const { description, tags, category } = req.body;
+      const upload = await prisma.upload.findFirst({
+        where: {
+          id,
+          uploadLinkId: req.uploadLink.id,
+        },
+      });
+
+      if (!upload) {
+        return res.status(404).json({
+          error: "Upload was not found",
+        });
+      }
+
+      const updatedMetadata = await prisma.upload.update({
+        where: { id },
+        data: {
+          metadata: { description, tags, category },
+        },
+      });
+
+      res.status(200).json({
+        message: "Upload metadata updated successfully.",
+        data: updatedMetadata,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // POST /api/upload/complete - Record completed upload
 router.post(
   "/complete",
