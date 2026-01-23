@@ -6,7 +6,6 @@ import {
   CardHeader,
   Input,
   toast,
-  Toaster,
 } from "@fox-finance/ui";
 import { z } from "zod";
 import { GoogleLogo } from "../components/GoogleLogo";
@@ -196,7 +195,7 @@ export function Login() {
         callback: function () {
           //console.log(response);
         },
-      })
+      }),
     );
   }, []);
 
@@ -205,7 +204,6 @@ export function Login() {
       className="max-w-lg w-full mx-auto my-auto"
       onSubmit={handleSubmit(onSubmit)}
     >
-      <Toaster position="top-center" />
       <Card>
         <CardHeader>Logo Goes Here</CardHeader>
         <CardContent className="space-y-6">

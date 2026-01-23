@@ -70,7 +70,7 @@ async function main() {
       firstName: "John",
       lastName: "Smith",
       company: "Smith Consulting LLC", // Business client
-      phone: "+1-555-0101",
+      phone: "9195550101",
       status: "ACTIVE" as const,
     },
     {
@@ -78,7 +78,7 @@ async function main() {
       firstName: "Sarah",
       lastName: "Johnson",
       company: "Johnson & Associates", // Business client
-      phone: "+1-555-0102",
+      phone: "9195550102",
       status: "ACTIVE" as const,
     },
     {
@@ -86,7 +86,7 @@ async function main() {
       firstName: "Michael",
       lastName: "Chen",
       company: "Tech Innovations Inc", // Business client
-      phone: "+1-555-0103",
+      phone: "9195550103",
       status: "ACTIVE" as const,
     },
     {
@@ -94,7 +94,7 @@ async function main() {
       firstName: "Emma",
       lastName: "Davis",
       company: "Davis Financial Services", // Business client
-      phone: "+1-555-0104",
+      phone: "9195550104",
       status: "ACTIVE" as const,
     },
     {
@@ -102,7 +102,7 @@ async function main() {
       firstName: "Robert",
       lastName: "Wilson",
       // No company - Individual client
-      phone: "+1-555-0105",
+      phone: "9195550105",
       status: "ACTIVE" as const,
     },
     {
@@ -110,7 +110,7 @@ async function main() {
       firstName: "Lisa",
       lastName: "Martinez",
       // No company - Individual client
-      phone: "+1-555-0106",
+      phone: "9195550106",
       status: "ACTIVE" as const,
     },
     {
@@ -118,7 +118,7 @@ async function main() {
       firstName: "David",
       lastName: "Brown",
       // No company - Individual client
-      phone: "+1-555-0107",
+      phone: "9195550107",
       status: "INACTIVE" as const,
     },
   ];
