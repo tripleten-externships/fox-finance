@@ -10,6 +10,7 @@ import {
 } from "../../schemas/uploadLink.schema";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import { updateUploadMetadataSchema } from "src/schemas/upload.schema";
 
 const router = Router();
 
@@ -97,6 +98,7 @@ router.post(
                   s3Key: key,
                   s3Bucket: process.env.S3_UPLOADS_BUCKET!,
                   metadata: {},
+                  mimeType: file.contentType,
                 },
               });
               results.push({
@@ -134,6 +136,7 @@ router.post(
             s3Key: key,
             s3Bucket: process.env.S3_UPLOADS_BUCKET!,
             metadata: {},
+            mimeType: file.contentType,
           },
         })
       );
