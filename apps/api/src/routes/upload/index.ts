@@ -12,6 +12,7 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -24,13 +25,122 @@ const ALLOWED_FILE_TYPES = [
 ];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const PRESIGNED_URL_EXPIRY = 900; // 15 minutes
+const BEARER_TOKEN_EXPIRY = 3600 * 24 * 7; // 7 days
 
-// GET /api/upload/verify?token=xyz - Verify upload token and get requirements
-router.get("/verify", requireUploadToken, async (req, res, next) => {
+interface AuthTokenPayload {
+  uploadLinkId: string;
+  clientId: string;
+  type: "auth";
+}
+
+interface BearerTokenPayload {
+  uploadLinkId: string;
+  clientId: string;
+  type: "bearer";
+}
+
+/**
+ * GET /api/upload/verify?token=xyz
+ *
+ * Verifies an auth token from the upload link URL and returns a temporary bearer token.
+ * This endpoint is called first when a client accesses an upload link.
+ *
+ * Flow:
+ * 1. Client receives upload link with auth token in URL parameter
+ * 2. Client calls this endpoint with the auth token
+ * 3. Endpoint validates the JWT auth token and checks if upload link is valid
+ * 4. If valid, generates a new bearer token (JWT) with 7-day expiration
+ * 5. Client uses the bearer token for subsequent upload requests
+ */
+router.get("/verify", async (req, res, next) => {
   try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
+    const token = req.query.token as string;
+
+    if (!token) {
+      return res
+        .status(400)
+        .json({ error: "Token query parameter is required" });
+    }
+
+    // Get the secret from environment
+    const secret = process.env.UPLOAD_TOKEN_SECRET;
+    if (!secret) {
+      console.error("UPLOAD_TOKEN_SECRET environment variable not set");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    // Verify the JWT auth token
+    let decoded: AuthTokenPayload;
+    try {
+      decoded = jwt.verify(token, secret) as AuthTokenPayload;
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        return res.status(401).json({ error: "Auth token has expired" });
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        return res.status(401).json({ error: "Invalid auth token" });
+      }
+      throw error;
+    }
+
+    // Validate token type
+    if (decoded.type !== "auth") {
+      return res
+        .status(401)
+        .json({ error: "Invalid token type. Expected auth token." });
+    }
+
+    // Query database to validate upload link
+    const uploadLink = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findUnique({
+        where: { id: decoded.uploadLinkId },
+        select: {
+          id: true,
+          clientId: true,
+          expiresAt: true,
+          isActive: true,
+        },
+      }),
+    );
+
+    if (!uploadLink) {
+      return res.status(404).json({ error: "Upload link not found" });
+    }
+
+    // Verify the clientId matches
+    if (uploadLink.clientId !== decoded.clientId) {
+      return res.status(401).json({ error: "Token client mismatch" });
+    }
+
+    if (!uploadLink.isActive) {
+      return res
+        .status(403)
+        .json({ error: "Upload link has been deactivated" });
+    }
+
+    if (new Date() > uploadLink.expiresAt) {
+      return res.status(410).json({ error: "Upload link has expired" });
+    }
+
+    // Generate a new temporary bearer token
+    const bearerTokenPayload: BearerTokenPayload = {
+      uploadLinkId: decoded.uploadLinkId,
+      clientId: decoded.clientId,
+      type: "bearer",
+    };
+
+    const bearerToken = jwt.sign(bearerTokenPayload, secret, {
+      expiresIn: BEARER_TOKEN_EXPIRY,
+    });
+
+    return res.json({
+      token: bearerToken,
+      expiresIn: BEARER_TOKEN_EXPIRY,
+      uploadLinkId: uploadLink.id,
+      clientId: uploadLink.clientId,
+    });
   } catch (error) {
+    console.error("Error verifying auth token:", error);
     next(error);
   }
 });

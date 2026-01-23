@@ -1,6 +1,12 @@
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
+
+// Secret for JWT tokens - use environment variable or default for development
+const UPLOAD_TOKEN_SECRET =
+  process.env.UPLOAD_TOKEN_SECRET ||
+  "your-secret-key-here-change-in-production";
 
 async function main() {
   console.log("Starting seed...");
@@ -159,10 +165,19 @@ async function main() {
     return docType.id;
   };
 
-  // Helper function to generate random token
-  const generateToken = () =>
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15);
+  // Helper function to generate JWT auth token
+  const generateToken = (uploadLinkId: string, clientId: string) => {
+    return jwt.sign(
+      {
+        uploadLinkId,
+        clientId,
+        type: "auth",
+      },
+      UPLOAD_TOKEN_SECRET,
+      // No expiration - the auth token is permanently valid
+      // Upload link expiration in DB controls validity
+    );
+  };
 
   // Upload Links with varied statuses and expiration dates
   console.log("Seeding UploadLink table...");
@@ -170,7 +185,7 @@ async function main() {
   const uploadLinksData = [
     {
       clientEmail: "john.smith@example.com",
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       expiresAt: new Date("2026-03-01"), // Future date - active
       isActive: true,
       instructions:
@@ -178,7 +193,7 @@ async function main() {
     },
     {
       clientEmail: "sarah.johnson@example.com",
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       expiresAt: new Date("2026-02-15"), // Future date - active
       isActive: true,
       instructions:
@@ -186,7 +201,7 @@ async function main() {
     },
     {
       clientEmail: "michael.chen@example.com",
-      token: "expired-link-michael",
+      uniqueIdentifier: "expired-link-michael",
       expiresAt: new Date("2025-12-31"), // Past date - expired
       isActive: false,
       instructions:
@@ -194,14 +209,14 @@ async function main() {
     },
     {
       clientEmail: "emma.davis@example.com",
-      token: "active-link-emma-2026",
+      uniqueIdentifier: "active-link-emma-2026",
       expiresAt: new Date("2026-04-01"), // Future date - active
       isActive: true,
       instructions: "Please upload your passport and recent utility bill.",
     },
     {
       clientEmail: "robert.wilson@example.com",
-      token: "inactive-link-robert",
+      uniqueIdentifier: "inactive-link-robert",
       expiresAt: new Date("2026-05-01"), // Future but inactive
       isActive: false,
       instructions: "Upload proof of income and tax returns for verification.",
@@ -216,23 +231,55 @@ async function main() {
       continue;
     }
 
-    const uploadLink = await prisma.uploadLink.upsert({
-      where: { token: linkData.token },
-      update: {
-        expiresAt: linkData.expiresAt,
-        isActive: linkData.isActive,
-      },
-      create: {
+    // First, try to find existing upload link by checking if any exist for this client with similar expiry
+    const existingLink = await prisma.uploadLink.findFirst({
+      where: {
         clientId: client.id,
-        token: linkData.token,
         expiresAt: linkData.expiresAt,
-        isActive: linkData.isActive,
-        createdById: null, // No user created these (system-generated for testing)
       },
     });
-    uploadLinks.push({ ...uploadLink, instructions: linkData.instructions });
+
+    let uploadLink;
+    if (existingLink) {
+      // Update existing link
+      const jwtToken = generateToken(existingLink.id, client.id);
+      uploadLink = await prisma.uploadLink.update({
+        where: { id: existingLink.id },
+        data: {
+          token: jwtToken,
+          expiresAt: linkData.expiresAt,
+          isActive: linkData.isActive,
+        },
+      });
+    } else {
+      // Create new link with temporary token first
+      const tempLink = await prisma.uploadLink.create({
+        data: {
+          clientId: client.id,
+          token: `temp-${linkData.uniqueIdentifier}`,
+          expiresAt: linkData.expiresAt,
+          isActive: linkData.isActive,
+          createdById: null,
+        },
+      });
+
+      // Generate JWT token with the actual uploadLinkId
+      const jwtToken = generateToken(tempLink.id, client.id);
+
+      // Update with the proper JWT token
+      uploadLink = await prisma.uploadLink.update({
+        where: { id: tempLink.id },
+        data: { token: jwtToken },
+      });
+    }
+
+    uploadLinks.push({
+      ...uploadLink,
+      instructions: linkData.instructions,
+      uniqueIdentifier: linkData.uniqueIdentifier,
+    });
     console.log(
-      `Created/Updated UploadLink: ${linkData.token} for ${client.firstName} ${client.lastName}`,
+      `Created/Updated UploadLink for ${client.firstName} ${client.lastName} (ID: ${uploadLink.id})`,
     );
   }
 
@@ -246,7 +293,7 @@ async function main() {
   const documentRequestsData = [
     {
       // John Smith - Active link with complete uploads
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       instructions: "Please upload clear photos of both sides of your ID",
       status: "COMPLETE" as const,
       requestedDocs: [
@@ -262,7 +309,7 @@ async function main() {
     },
     {
       // Sarah Johnson - Active link with partial uploads
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       instructions: "Tax documentation needed for compliance",
       status: "INCOMPLETE" as const,
       requestedDocs: [
@@ -276,7 +323,7 @@ async function main() {
     },
     {
       // Michael Chen - Expired link with some uploads
-      token: "expired-link-michael",
+      uniqueIdentifier: "expired-link-michael",
       instructions: "Business verification documents",
       status: "INCOMPLETE" as const,
       requestedDocs: [
@@ -286,7 +333,7 @@ async function main() {
     },
     {
       // Emma Davis - Active link with complete uploads
-      token: "active-link-emma-2026",
+      uniqueIdentifier: "active-link-emma-2026",
       instructions: "International travel documentation",
       status: "COMPLETE" as const,
       requestedDocs: [
@@ -296,7 +343,7 @@ async function main() {
     },
     {
       // Robert Wilson - Inactive link, no uploads yet
-      token: "inactive-link-robert",
+      uniqueIdentifier: "inactive-link-robert",
       instructions: "Income verification documents",
       status: "INCOMPLETE" as const,
       requestedDocs: [
@@ -308,9 +355,13 @@ async function main() {
 
   const documentRequests: any[] = [];
   for (const reqData of documentRequestsData) {
-    const uploadLink = uploadLinks.find((ul) => ul.token === reqData.token);
+    const uploadLink = uploadLinks.find(
+      (ul) => ul.uniqueIdentifier === reqData.uniqueIdentifier,
+    );
     if (!uploadLink) {
-      console.error(`UploadLink with token ${reqData.token} not found`);
+      console.error(
+        `UploadLink with identifier ${reqData.uniqueIdentifier} not found`,
+      );
       continue;
     }
 
@@ -334,9 +385,13 @@ async function main() {
       });
     }
 
-    documentRequests.push({ ...docRequest, uploadLinkId: uploadLink.id });
+    documentRequests.push({
+      ...docRequest,
+      uploadLinkId: uploadLink.id,
+      uniqueIdentifier: reqData.uniqueIdentifier,
+    });
     console.log(
-      `Created DocumentRequest for ${reqData.token} with ${reqData.requestedDocs.length} requested documents`,
+      `Created DocumentRequest for ${reqData.uniqueIdentifier} with ${reqData.requestedDocs.length} requested documents`,
     );
   }
 
@@ -349,7 +404,7 @@ async function main() {
   const uploadsData = [
     // John Smith - Complete uploads
     {
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       fileName: "drivers-license-front.jpg",
       fileSize: 2458624, // ~2.4 MB
       fileType: "image/jpeg",
@@ -361,7 +416,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       fileName: "drivers-license-back.jpg",
       fileSize: 2351488, // ~2.2 MB
       fileType: "image/jpeg",
@@ -373,7 +428,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       fileName: "utility-bill-jan-2026.pdf",
       fileSize: 1048576, // 1 MB
       fileType: "application/pdf",
@@ -387,7 +442,7 @@ async function main() {
 
     // Sarah Johnson - Partial uploads
     {
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       fileName: "bank-statement-nov-2025.pdf",
       fileSize: 856432,
       fileType: "application/pdf",
@@ -399,7 +454,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       fileName: "bank-statement-dec-2025.pdf",
       fileSize: 923648,
       fileType: "application/pdf",
@@ -411,7 +466,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       fileName: "pay-stub-jan-2026.pdf",
       fileSize: 456789,
       fileType: "application/pdf",
@@ -425,7 +480,7 @@ async function main() {
 
     // Michael Chen - Some uploads (expired link)
     {
-      token: "expired-link-michael",
+      uniqueIdentifier: "expired-link-michael",
       fileName: "passport-photo-page.jpg",
       fileSize: 3145728, // 3 MB
       fileType: "image/jpeg",
@@ -437,7 +492,7 @@ async function main() {
       },
     },
     {
-      token: "expired-link-michael",
+      uniqueIdentifier: "expired-link-michael",
       fileName: "business-tax-2025.pdf",
       fileSize: 5242880, // 5 MB
       fileType: "application/pdf",
@@ -451,7 +506,7 @@ async function main() {
 
     // Emma Davis - Complete uploads
     {
-      token: "active-link-emma-2026",
+      uniqueIdentifier: "active-link-emma-2026",
       fileName: "passport-scan.pdf",
       fileSize: 4194304, // 4 MB
       fileType: "application/pdf",
@@ -463,7 +518,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-emma-2026",
+      uniqueIdentifier: "active-link-emma-2026",
       fileName: "water-bill-jan-2026.pdf",
       fileSize: 654321,
       fileType: "application/pdf",
@@ -477,7 +532,7 @@ async function main() {
 
     // Additional varied uploads
     {
-      token: "active-link-john-2026",
+      uniqueIdentifier: "active-link-john-2026",
       fileName: "supplemental-doc.png",
       fileSize: 1572864, // ~1.5 MB
       fileType: "image/png",
@@ -489,7 +544,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-sarah-2026",
+      uniqueIdentifier: "active-link-sarah-2026",
       fileName: "w2-form-2025.pdf",
       fileSize: 789456,
       fileType: "application/pdf",
@@ -501,7 +556,7 @@ async function main() {
       },
     },
     {
-      token: "expired-link-michael",
+      uniqueIdentifier: "expired-link-michael",
       fileName: "business-license.jpg",
       fileSize: 2097152, // 2 MB
       fileType: "image/jpeg",
@@ -513,7 +568,7 @@ async function main() {
       },
     },
     {
-      token: "active-link-emma-2026",
+      uniqueIdentifier: "active-link-emma-2026",
       fileName: "address-verification.jpg",
       fileSize: 1835008,
       fileType: "image/jpeg",
@@ -527,9 +582,13 @@ async function main() {
   ];
 
   for (const uploadData of uploadsData) {
-    const uploadLink = uploadLinks.find((ul) => ul.token === uploadData.token);
+    const uploadLink = uploadLinks.find(
+      (ul) => ul.uniqueIdentifier === uploadData.uniqueIdentifier,
+    );
     if (!uploadLink) {
-      console.error(`UploadLink with token ${uploadData.token} not found`);
+      console.error(
+        `UploadLink with identifier ${uploadData.uniqueIdentifier} not found`,
+      );
       continue;
     }
 

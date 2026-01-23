@@ -224,6 +224,9 @@ importers:
       '@prisma/client':
         specifier: ^6.17.1
         version: 6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3)
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       dotenv:
         specifier: ^16.3.1
         version: 16.6.1
@@ -239,6 +242,9 @@ importers:
       graphql-scalars:
         specifier: ^1.25.0
         version: 1.25.0(graphql@16.12.0)
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       module-alias:
         specifier: ^2.2.3
         version: 2.2.3
@@ -11765,7 +11771,7 @@ snapshots:
       jest-util: 29.7.0
       natural-compare: 1.4.0
       pretty-format: 29.7.0
-      semver: 7.7.2
+      semver: 7.7.3
     transitivePeerDependencies:
       - supports-color
 
@@ -12835,7 +12841,7 @@ snapshots:
 
   simple-update-notifier@2.0.0:
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.3
 
   sisteransi@1.0.5: {}
 
