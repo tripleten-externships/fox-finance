@@ -84,7 +84,7 @@ jobs:
       # Generate Prisma client for API
       - name: Generate Prisma Client
         working-directory: apps/api
-        run: pnpm generate
+        run: pnpm prisma:generate
 
       - name: Run ESLint
         run: |
