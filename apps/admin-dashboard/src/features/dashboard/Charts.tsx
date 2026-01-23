@@ -28,12 +28,14 @@ const Charts: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState(localStorage.getItem("chartRange") || "30d");
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/admin/stats/trends?range=${range}`);
+        const res = await fetch(`${API_URL}/api/admin/stats/trends?range=${range}`);
         if (!res.ok) throw new Error("Failed to fetch trend data");
         const json = await res.json();
         setData(json);
@@ -93,50 +95,62 @@ const Charts: React.FC = () => {
       {/* Line Chart */}
       <div>
         <h3>Uploads Over Time</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data.uploadsOverTime}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" />
-            <YAxis />
-            <ReTooltip />
-            <Line type="monotone" dataKey="count" stroke="#8884d8" />
-          </LineChart>
-        </ResponsiveContainer>
+        {data.uploadsOverTime.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No upload data available for the selected range.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data.uploadsOverTime}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <ReTooltip />
+              <Line type="monotone" dataKey="count" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Bar Chart */}
       <div>
         <h3>Uploads By Client</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data.uploadsByClient}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="clientId" />
-            <YAxis />
-            <ReTooltip />
-            <Bar dataKey="count" fill="#82ca9d" />
-          </BarChart>
-        </ResponsiveContainer>
+        {data.uploadsByClient.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No client upload data available for the selected range.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data.uploadsByClient}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="clientId" />
+              <YAxis />
+              <ReTooltip />
+              <Bar dataKey="count" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Pie Chart */}
       <div>
         <h3>File Type Distribution</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data.fileTypes}
-              dataKey="count"
-              nameKey="fileType"
-              outerRadius={100}
-              label
-            >
-              {data.fileTypes.map((_, index) => (
-                <Cell key={index} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <ReTooltip />
-          </PieChart>
-        </ResponsiveContainer>
+        {data.fileTypes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No file type data available for the selected range.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={data.fileTypes}
+                dataKey="count"
+                nameKey="fileType"
+                outerRadius={100}
+                label
+              >
+                {data.fileTypes.map((_, index) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <ReTooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
