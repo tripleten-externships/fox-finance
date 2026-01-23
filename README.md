@@ -1,6 +1,6 @@
 # 🌳 Fox Finance
 
-A modern, tree-based learning management system designed for bootcamp students to navigate structured learning paths and track their progress through interactive, hierarchical skill trees.
+A modern upload management system for Fox Finance to receive documents from users for application review
 
 ## 📚 Table of Contents
 
@@ -372,7 +372,6 @@ Use descriptive branch names that include the Jira task ID:
 Examples:
 
 ```bash
-git checkout -b feature/ST-42-implement-skill-tree-visualization
 git checkout -b bugfix/ST-87-fix-login-redirect-loop
 git checkout -b docs/ST-15-update-api-documentation
 ```
@@ -428,12 +427,12 @@ Refs: JIRA-ID
 ```markdown
 ## 📋 Description
 
-[JIRA-42] Implement Skill Tree Visualization Component
+[JIRA-42] Implement Client Visualization Component
 
 ## 🎯 What Changed
 
 - Added query to fetch user progress data
-- Implemented interactive node clicking for skill details
+- Implemented interactive node clicking for client details
 - Added unit tests for tree rendering logic
 
 ## 🤔 Why
@@ -443,9 +442,9 @@ Users need a visual representation of their learning progress to stay motivated 
 ## 🧪 How to Test
 
 1. Log in to the admin dashboard
-2. Navigate to `/dashboard/skills`
-3. Verify the skill tree renders correctly
-4. Click on a skill node and verify the details panel opens
+2. Navigate to `/dashboard/clients`
+3. Verify the client renders correctly
+4. Click on a client node and verify the details panel opens
 5. Test on mobile viewport (responsive design)
 
 ## 📸 Screenshots
@@ -612,7 +611,7 @@ import type { User } from "@fox-finance/api-types";
 ### REST API Conventions
 
 - Use RESTful naming: Resources are nouns, HTTP methods indicate actions
-- Example: `GET /api/users/:id`, `POST /api/users`, `PUT /api/skills/:id/progress`
+- Example: `GET /api/users/:id`, `POST /api/users`, `PUT /api/clients/:id/progress`
 - Group related endpoints in route modules for better organization
 
 ### Testing Standards

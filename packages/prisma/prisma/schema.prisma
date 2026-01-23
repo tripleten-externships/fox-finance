@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -28,16 +29,6 @@ enum Status {
 enum UploadStatus {
   COMPLETE
   INCOMPLETE
-}
-
-enum DocumentType {
-  GOVERNMENT_ID
-  PASSPORT
-  PROOF_OF_ADDRESS
-  BANK_STATEMENT
-  PAY_STUB
-  TAX_RETURN
-  OTHER //Can be specified in more detail by the client in the description field
 }
 
 // ============================================================================
@@ -68,7 +59,7 @@ model Client {
   email       String       @unique
   firstName   String
   lastName    String
-  company     String
+  company     String?
   phone       String
   status      Status       @default(ACTIVE)
   createdAt   DateTime     @default(now())
@@ -84,16 +75,17 @@ model Client {
 model UploadLink {
   id               String            @id @default(uuid()) @db.Uuid
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId         String
+  clientId         String            @db.Uuid
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
-  createdBy        User              @relation(fields: [createdById], references: [id])
-  createdById      String
+  createdBy        User?             @relation(fields: [createdById], references: [id])
+  createdById      String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
+  UploadBatch      UploadBatch[]
 
   @@index([clientId])
   @@index([isActive, expiresAt])
@@ -102,34 +94,65 @@ model UploadLink {
 model DocumentRequest {
   id                 String              @id @default(uuid()) @db.Uuid
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
-  uploadLinkId       String
+  uploadLinkId       String              @db.Uuid
   requestedDocuments RequestedDocument[] //Array of documents
-  instructions       String
+  instructions       String?
   status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
 }
 
 model RequestedDocument {
   id                String           @id @default(uuid()) @db.Uuid
-  name              DocumentType //hard-coded list of document types as listed in the enum
+  documentType      DocumentType     @relation(fields: [documentTypeId], references: [id])
+  documentTypeId    String
   description       String
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String?
+  documentRequestId String?          @db.Uuid
+
+  @@index([documentTypeId])
+}
+
+model DocumentType {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  description        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  requestedDocuments RequestedDocument[]
 }
 
 model Upload {
-  id                String          @id @default(uuid()) @db.Uuid
-  uploadLink        UploadLink      @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String
-  documentRequest   DocumentRequest @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String
+  id                String           @id @default(uuid()) @db.Uuid
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId      String           @db.Uuid
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentRequestId String?          @db.Uuid
   fileName          String
   fileSize          Decimal
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime        @updatedAt
-  metadata          Json
+  fileType          String           @default("unknown")
+
+  uploadedAt    DateTime     @updatedAt
+  metadata      Json
+  UploadBatch   UploadBatch? @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId String?      @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])
+}
+
+model UploadBatch {
+  id           String     @id @default(uuid()) @db.Uuid
+  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id])
+  uploadLinkId String     @db.Uuid
+
+  status        String
+  totalFiles    Int
+  uploadedFiles Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads Upload[]
 }

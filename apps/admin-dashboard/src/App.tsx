@@ -2,13 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
-
+import DashboardLayout from "./features/dashboard/DashboardLayout";
 import { ClientDetails } from "./features/clients/components/ClientDetails";
-import React from "react";
 
 function App() {
-  const [open, setOpen] = React.useState(true)
-
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -19,7 +16,11 @@ function App() {
             element={
               <ProtectedRoutes>
                 <Routes>
-                  <Route path="/dashboard" element={<ClientDetails clientId="123" isOpen={open} onClose={() => setOpen(false)} />} />
+                  <Route
+                    path="/clients"
+                    element={<ClientDetails clientId="123" />}
+                  />
+                  <Route path="/dashboard" element={<DashboardLayout />} />
                   <Route
                     path="/"
                     element={<Navigate to="/dashboard" replace />}
