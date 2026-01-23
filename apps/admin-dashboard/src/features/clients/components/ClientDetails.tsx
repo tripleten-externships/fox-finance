@@ -1,232 +1,364 @@
 import React, { useState, useEffect } from "react";
+import { Badge, Button } from "@fox-finance/ui";
+import { MdEdit, MdEmail, MdPhone } from "react-icons/md";
+import {
+  FaBuilding,
+  FaChevronDown,
+  FaChevronUp,
+  FaLink,
+  FaFile,
+  FaDownload,
+  FaCopy,
+  FaSpinner,
+} from "react-icons/fa";
+import { apiClient } from "../../../lib/api";
 
-interface ClientDetailsProps {
-  clientId: string;
+// Type definitions based on Prisma schema
+interface Client {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  company: string | null;
+  phone: string;
+  status: "ACTIVE" | "INACTIVE";
+  createdAt: string;
+  updatedAt: string;
 }
 
-export const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId }) => {
+interface Upload {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  s3Key: string;
+  s3Bucket: string;
+  fileType: string;
+  uploadedAt: string;
+}
+
+interface UploadLink {
+  id: string;
+  token: string;
+  expiresAt: string;
+  isActive: boolean;
+  createdAt: string;
+  uploads: Upload[];
+  _count: {
+    uploads: number;
+  };
+}
+
+interface ClientDetailsProps {
+  client: Client;
+}
+
+export const ClientDetails: React.FC<ClientDetailsProps> = ({ client }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [uploadLinks, setUploadLinks] = useState<UploadLink[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
 
-  /* Mock data until API is ready */
+  // Fetch upload links and uploads when accordion is expanded
   useEffect(() => {
-    if (!data) {
-      setLoading(true);
-      setTimeout(() => {
-        setData({
-          client: {
-            email: "mock@example.com",
-            firstName: "Mock",
-            lastName: "Client",
-            company: "Acme Corp",
-            phone: "555-1234",
-            status: "In Progress",
-          },
-          uploadLinks: [
-            { id: "link1", token: "abc123", status: "Active" },
-            { id: "link2", token: "xyz789", status: "Expired" },
-          ],
-          recentUploads: [
-            { id: "u1", fileName: "id-front.jpg", size: "239.92 KB" },
-            { id: "u2", fileName: "id-back.jpg", size: "233.31 KB" },
-            { id: "u3", fileName: "pay-stub-jan.pdf", size: "500.33 KB" },
-            { id: "u4", fileName: "bank-statement.pdf", size: "770.95 KB" },
-            { id: "u5", fileName: "ssa-letter.pdf", size: "337.58 KB" },
-          ],
-        });
-        setLoading(false);
-      }, 500);
-    }
-  }, [isOpen, data]);
+    if (!isOpen) return;
 
-  // useEffect(() => {
-  //   fetch(`/api/admin/clients/${clientId}/summary`)
-  //     .then((res) => res.json())
-  //     .then((json) => setData({ client: json }))
-  //     .catch(() => setError("Failed to load client summary"));
-  // }, [clientId]);
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch upload links for this client
+        const response = await apiClient(
+          `/api/admin/upload-links?clientId=${client.id}`,
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch upload links");
+        }
+        const data = await response.json();
+        setUploadLinks(data.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching upload links:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // useEffect(() => {
-  //   if (isOpen && data && !data.recentUploads) {
-  //     fetch(`/api/admin/clients/${clientId}/uploads`)
-  //       .then((res) => res.json())
-  //       .then((json) => setData((prev: any) => ({ ...prev, recentUploads: json })))
-  //       .catch(() => setError("Failed to load uploads"));
-  //   }
-  // }, [isOpen, clientId, data]);
+    fetchData();
+  }, [isOpen, client.id]);
 
-  const getStatus = (status: string) => {
-    switch (status) {
-      case "In Progress":
-        return "bg-black text-white rounded px-2 py-0.5 text-xs";
-      case "Not Started":
-        return "bg-gray-300 text-black rounded px-2 py-0.5 text-xs";
-      case "Approved":
-        return "bg-green-100 text-green-700 rounded px-2 py-0.5 text-xs";
-      case "Rejected":
-        return "bg-red-600 text-white rounded px-2 py-0.5 text-xs";
-      default:
-        return "bg-gray-200 text-gray-600 rounded px-3 py-0.5 text-xs";
+  // Extract all uploads from upload links
+  const allUploads = uploadLinks.flatMap((link) => link.uploads || []);
+
+  const getStatusVariant = (
+    status: Client["status"],
+  ): "default" | "secondary" => {
+    return status === "ACTIVE" ? "default" : "secondary";
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Helper function to copy link to clipboard
+  const copyToClipboard = async (token: string) => {
+    const uploadUrl = `${window.location.origin}/upload/${token}`;
+    try {
+      await navigator.clipboard.writeText(uploadUrl);
+      // TODO: Add toast notification for success
+      console.log("Link copied to clipboard");
+    } catch (err) {
+      console.error("Failed to copy link:", err);
     }
   };
 
+  // Helper function to handle download
+  const handleDownload = async (upload: Upload) => {
+    // TODO: Implement presigned URL generation via API
+    console.log("Download file:", upload.fileName);
+    // Placeholder: In production, this would call an API endpoint to get a presigned S3 URL
+  };
+
+  // Helper function to download all files
+  const handleDownloadAll = () => {
+    // TODO: Implement bulk download functionality
+    console.log("Download all files");
+  };
+
   return (
-    <div className="border rounded-md bg-gray-100 shadow-sm mb-4">
+    <div className="border border-border rounded-lg bg-muted shadow-sm mb-4 transition-colors">
       {/* COLLAPSED ROW */}
       <div className="flex items-center justify-between p-4">
         {/* CLIENT INFO */}
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-black">
-              {data?.client?.firstName} {data?.client?.lastName}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-foreground truncate">
+              {client.firstName} {client.lastName}
             </span>
-            {data?.client?.status && (
-              <span className={getStatus(data.client.status)}>
-                {data.client.status}
-              </span>
+            <Badge variant={getStatusVariant(client.status)}>
+              {client.status}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <MdEmail className="w-4 h-4 fill-muted-foreground opacity-70" />
+              <span className="truncate">{client.email}</span>
+            </div>
+            {client.phone && (
+              <div className="flex items-center gap-1.5">
+                <MdPhone className="w-4 h-4 fill-muted-foreground opacity-70" />
+                <span>{client.phone}</span>
+              </div>
+            )}
+            {client.company && (
+              <div className="flex items-center gap-1.5">
+                <FaBuilding className="w-4 h-4 fill-muted-foreground opacity-70" />
+                <span>{client.company}</span>
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-            <div className="flex items-center gap-1">
-              <img src="/icons/email.svg" alt="Email" className="w-4 h-4" />
-              <span>{data?.client?.email}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <img src="/icons/phone.svg" alt="Phone" className="w-4 h-4" />
-              <span>{data?.client?.phone}</span>
-            </div>
-          </div>
         </div>
+
         {/* CONTROL BUTTONS && EXPAND/COLLAPSE */}
-        <div className="flex items-center gap-2">
-          <button
-            className="p-2 rounded  bg-gray-200 hover:bg-gray-300"
+        <div className="flex items-center gap-2 ml-4">
+          <Button
+            variant="secondary"
+            size="icon"
             title="Generate upload link"
+            aria-label="Generate upload link"
           >
-            <img
-              src="/icons/link.svg"
-              alt="Generate Link"
-              className="w-4 h-4"
-            />
-          </button>
-          <button
-            className="p-2 rounded cursor-pointer bg-gray-200 hover:bg-gray-300"
+            <FaLink className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
             title="Edit client"
+            aria-label="Edit client details"
           >
-            <img src="/icons/edit.svg" alt="Edit Details" className="w-4 h-4" />
-          </button>
-          <button
+            <MdEdit className="w-4 h-4" />
+          </Button>
+          <Button
             onClick={() => setIsOpen(!isOpen)}
             aria-expanded={isOpen}
-            className="p-2 rounded cursor-pointer text-gray-600 hover:text-gray-900"
-            title="Toggle details"
+            variant="secondary"
+            size="icon"
+            title={isOpen ? "Collapse details" : "Expand details"}
+            aria-label={isOpen ? "Collapse details" : "Expand details"}
           >
-            <img
-              src={isOpen ? "/icons/up-arrow.svg" : "/icons/arrow.svg"}
-              alt="Toggle"
-              className="w-4 h-4"
-            />
-          </button>
+            {isOpen ? (
+              <FaChevronUp className="w-4 h-4" />
+            ) : (
+              <FaChevronDown className="w-4 h-4" />
+            )}
+          </Button>
         </div>
       </div>
+
       {/* EXPANDED CONTENT */}
       <div
         className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="p-4 border-t">
-          {loading && <p className="text-gray-500">Loading documents...</p>}
-          {error && <p className="text-red-500">{error}</p>}
-
-          {/* UPLOAD LINKS TABLE */}
-          {data?.uploadLinks && (
-            <div className="p-4 border-t">
-              {/* HEADER */}
-              <div className="flex items-center gap-2 font-semibold text-gray-900 mb-4">
-                <img src="/icons/link-intact.svg" className="w-4 h-4" />
-                Upload Links ({data.uploadLinks.length})
-              </div>
-
-              {/* LINKS LIST */}
-              <div className="space-y-2">
-                {data.uploadLinks.map((link: any) => (
-                  <div
-                    key={link.id}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-white hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src="/icons/link.svg"
-                        className="w-5 h-5 text-gray-500"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {link.id}
-                        </p>
-                        <p className="text-xs text-gray-500">{link.token}</p>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        link.status === "Active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {link.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        <div className="p-4 border-t border-border space-y-6">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <FaSpinner className="w-5 h-5 animate-spin mr-2" />
+              <span>Loading data...</span>
             </div>
           )}
-          {data?.recentUploads && (
+
+          {/* Error State */}
+          {error && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Error: {error}
+            </div>
+          )}
+
+          {/* Content - Only show when not loading */}
+          {!isLoading && (
             <>
-              {/* EXPANDED HEADER */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 font-semibold text-gray-900">
-                  <img src="/icons/file.svg" className="w-4 h-4" />
-                  Documents ({data.recentUploads.length})
+              {/* UPLOAD LINKS SECTION */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FaLink className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">
+                      Upload Links ({uploadLinks.length})
+                    </h3>
+                  </div>
                 </div>
 
-                <button className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-black">
-                  <img src="/icons/download.svg" className="w-4 h-4" />
-                  Download All
-                </button>
+                {uploadLinks.length === 0 ? (
+                  <div className="p-4 bg-card border border-border rounded-lg text-center text-muted-foreground text-sm">
+                    No upload links found for this client.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {uploadLinks.map((link) => {
+                      const isExpired = new Date(link.expiresAt) < new Date();
+                      const statusText = !link.isActive
+                        ? "Inactive"
+                        : isExpired
+                          ? "Expired"
+                          : "Active";
+                      const statusColor =
+                        !link.isActive || isExpired
+                          ? "text-muted-foreground"
+                          : "text-green-600 dark:text-green-500";
+
+                      return (
+                        <div
+                          key={link.id}
+                          className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <FaLink className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span
+                                  className={`text-sm font-medium ${statusColor}`}
+                                >
+                                  {statusText}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  • {link._count.uploads} upload
+                                  {link._count.uploads !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Expires: {formatDate(link.expiresAt)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Copy link"
+                            onClick={() => copyToClipboard(link.token)}
+                          >
+                            <FaCopy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* EXPANDED DOC LIST */}
-              <div className="space-y-3">
-                {data.recentUploads.map((file: any) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                  >
-                    {/* FILE NAME & ICONS */}
-                    <div className="flex items-center gap-3">
-                      <img
-                        src="/icons/file.svg"
-                        alt="file"
-                        className="w-6 h-6 text-gray-500"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {file.fileName}
-                        </p>
-                        <p className="text-sm text-gray-500">{file.size}</p>
-                      </div>
-                    </div>
-
-                    {/* DOWNLOAD ICON */}
-                    <button className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-black">
-                      <img src="/icons/download.svg" className="w-4 h-4" />
-                      Download
-                    </button>
+              {/* DOCUMENTS/RECENT UPLOADS SECTION */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FaFile className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">
+                      Documents ({allUploads.length})
+                    </h3>
                   </div>
-                ))}
+                  {allUploads.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadAll}
+                      className="flex items-center gap-2"
+                    >
+                      <FaDownload className="w-3 h-3" />
+                      Download All
+                    </Button>
+                  )}
+                </div>
+
+                {allUploads.length === 0 ? (
+                  <div className="p-4 bg-card border border-border rounded-lg text-center text-muted-foreground text-sm">
+                    No documents uploaded yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {allUploads.map((upload) => (
+                      <div
+                        key={upload.id}
+                        className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <FaFile className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {upload.fileName}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{formatFileSize(upload.fileSize)}</span>
+                              <span>•</span>
+                              <span>{formatDate(upload.uploadedAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download file"
+                          onClick={() => handleDownload(upload)}
+                        >
+                          <FaDownload className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}

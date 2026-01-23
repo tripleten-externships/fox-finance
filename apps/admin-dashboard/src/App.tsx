@@ -3,7 +3,6 @@ import { AuthFeature } from "./features/auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import DashboardLayout from "./features/dashboard/DashboardLayout";
-import { ClientDetails } from "./features/clients/components/ClientDetails";
 
 function App() {
   return (
@@ -16,10 +15,6 @@ function App() {
             element={
               <ProtectedRoutes>
                 <Routes>
-                  <Route
-                    path="/clients"
-                    element={<ClientDetails clientId="123" />}
-                  />
                   <Route path="/dashboard" element={<DashboardLayout />} />
                   <Route
                     path="/"
