@@ -19,7 +19,7 @@ async function main() {
 
   if (!email || !name) {
     console.error(
-      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--role ADMIN|USER] [--password <password>]'
+      'Usage: ts-node scripts/createDevAdminUser.ts --email <email> --name "<name>" [--role ADMIN|USER] [--password <password>]',
     );
     process.exit(1);
   }
@@ -27,8 +27,8 @@ async function main() {
   if (!Object.prototype.hasOwnProperty.call(Role, roleArg)) {
     console.error(
       `Invalid role "${roleArg}". Must be one of: ${Object.keys(Role).join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
     process.exit(1);
   }
@@ -37,7 +37,7 @@ async function main() {
 
   if (!admin) {
     console.error(
-      "Firebase admin is not initialized. Check FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL env vars."
+      "Firebase admin is not initialized. Check FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL env vars.",
     );
     process.exit(1);
   }
@@ -57,21 +57,28 @@ async function main() {
     try {
       firebaseUser = await admin.auth().getUserByEmail(email);
       console.log(
-        `ℹ️  Firebase user already exists with UID: ${firebaseUser.uid}`
+        `ℹ️  Firebase user already exists with UID: ${firebaseUser.uid}`,
       );
 
-      // Update password if provided for existing user
+      // Update password and email verification for existing user
+      const updateParams: any = {
+        emailVerified: true,
+      };
       if (password) {
-        await admin.auth().updateUser(firebaseUser.uid, {
-          password,
-        });
-        console.log(`✅ Updated password for existing Firebase user`);
+        updateParams.password = password;
+      }
+
+      await admin.auth().updateUser(firebaseUser.uid, updateParams);
+      console.log(`✅ Updated existing Firebase user and verified email`);
+      if (password) {
+        console.log(`✅ Password updated for existing Firebase user`);
       }
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
         const createUserParams: any = {
           email,
           displayName: name,
+          emailVerified: true,
         };
 
         // Set password if provided for new user
@@ -81,7 +88,9 @@ async function main() {
 
         firebaseUser = await admin.auth().createUser(createUserParams);
         isNewUser = true;
-        console.log(`✅ Created Firebase user with UID: ${firebaseUser.uid}`);
+        console.log(
+          `✅ Created new Firebase user with verified email (UID: ${firebaseUser.uid})`,
+        );
         if (password) {
           console.log(`✅ Password set for new Firebase user`);
         }
@@ -103,7 +112,7 @@ async function main() {
     });
 
     console.log(
-      `✅ Prisma user upserted. id=${user.id}, email=${user.email}, role=${user.role}`
+      `✅ Prisma user upserted. id=${user.id}, email=${user.email}, role=${user.role}`,
     );
 
     // 3. Create a custom token
@@ -122,7 +131,7 @@ async function main() {
           token: customToken,
           returnSecureToken: true,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -130,7 +139,7 @@ async function main() {
       console.error(
         "❌ Failed to exchange custom token for ID token:",
         response.status,
-        text
+        text,
       );
       process.exit(1);
     }

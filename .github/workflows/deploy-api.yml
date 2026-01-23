@@ -68,7 +68,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: dev-api
+          ECR_REPOSITORY: fox-finance-dev-api
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build with cache from monorepo root
@@ -238,7 +238,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: prod-api
+          ECR_REPOSITORY: fox-finance-prod-api
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build with cache from monorepo root

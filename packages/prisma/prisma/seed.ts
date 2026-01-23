@@ -9,7 +9,45 @@ const UPLOAD_TOKEN_SECRET =
   "your-secret-key-here-change-in-production";
 
 async function main() {
-  console.log("Starting seed...");
+  console.log("Starting database seed...");
+
+  // ============================================================================
+  // ENVIRONMENT CHECK - Prevent seeding in production
+  // ============================================================================
+  const nodeEnv = process.env.NODE_ENV?.toLowerCase();
+  const isProduction = nodeEnv === "production" || nodeEnv === "prod";
+
+  if (isProduction) {
+    console.log("⚠️  Seed script is disabled in production environment");
+    process.exit(0);
+  }
+
+  console.log("✓ Environment check passed, seeding data...");
+
+  // ============================================================================
+  // ADMIN USER
+  // ============================================================================
+  console.log("Seeding Admin User...");
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: "admin@fox-finance.net" },
+    update: {
+      name: "Ferris Bueller",
+      role: "ADMIN",
+    },
+    create: {
+      id: "vxdBr2T4C8QwMF7GbFus9pAKAB52",
+      email: "admin@fox-finance.net",
+      name: "Ferris Bueller",
+      role: "ADMIN",
+      createdAt: new Date("2026-01-23T22:10:46.286Z"),
+    },
+  });
+  console.log(`✓ Admin user seeded: ${adminUser.email}`);
+
+  // ============================================================================
+  // DOCUMENT TYPES
+  // ============================================================================
 
   // Document Types to seed
   const documentTypes = [
@@ -613,11 +651,13 @@ async function main() {
     console.log(`Created Upload: ${uploadData.fileName}`);
   }
 
+  console.log("✓ Database seeding completed successfully");
   console.log(`
   ============================================================================
   Seed completed successfully!
   ============================================================================
   Summary:
+  - Admin User: 1 (admin@fox-finance.net)
   - Document Types: ${seededDocTypes.length}
   - Clients: ${seededClients.length}
   - Upload Links: ${uploadLinks.length}

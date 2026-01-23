@@ -299,10 +299,10 @@ Solution: Check ECS service logs, verify security groups, and service configurat
 
 ```bash
 # API logs
-aws logs tail /aws/ecs/dev-api --follow
+aws logs tail /aws/ecs/fox-finance-dev-api --follow
 
 # ECS deployment events
-aws ecs describe-services --cluster dev-api-cluster --services dev-api-service
+aws ecs describe-services --cluster fox-finance-dev-api-cluster --services fox-finance-dev-api-service
 ```
 
 ## 📚 Additional Resources
