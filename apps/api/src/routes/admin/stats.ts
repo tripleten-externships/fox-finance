@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@fox-finance/prisma";
 import zod from "zod";
 
 const router = Router();
@@ -15,7 +15,12 @@ router.get("/trends", async (req, res, next) => {
 
     const now = new Date();
     const startDate = new Date();
-    const daysMap: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365 };
+    const daysMap: Record<string, number> = {
+      "7d": 7,
+      "30d": 30,
+      "90d": 90,
+      "1y": 365,
+    };
     startDate.setDate(now.getDate() - daysMap[range]);
 
     // 2️⃣ Uploads over time (line chart)
