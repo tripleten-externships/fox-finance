@@ -139,6 +139,7 @@ model Upload {
   @@index([uploadLinkId])
   @@index([fileName])
   @@index([mimeType])
+  @@index([metadata(ops: JsonbPathOps)], type: Gin)
 }
 
 model UploadBatch {
