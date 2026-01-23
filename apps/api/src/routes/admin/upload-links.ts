@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../../lib/prisma";
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
@@ -43,18 +43,23 @@ router.get("/", async (req, res, next) => {
       }
     }
 
-    const items = await prisma.uploadLink.findMany({
-      where,
-      take: limit,
-      ...(cursor ? { skip: 1, cursor: { id: String(cursor) } } : {}),
-      orderBy: { [sortBy as string]: sortOrder },
-      include: {
-        client: true,
-        _count: { select: { uploads: true } },
-      },
-    });
+    const items = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findMany({
+        where,
+        take: limit,
+        ...(cursor ? { skip: 1, cursor: { id: String(cursor) } } : {}),
+        orderBy: { [sortBy as string]: sortOrder },
+        include: {
+          client: true,
+          uploads: true,
+          _count: { select: { uploads: true } },
+        },
+      }),
+    );
 
-    const total = await prisma.uploadLink.count({ where });
+    const total = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.count({ where }),
+    );
 
     res.setHeader("X-Total-Count", total);
     res.json({
@@ -76,18 +81,21 @@ router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const link = await prisma.uploadLink.findUnique({
-      where: { id },
-      include: {
-        client: true,
-        uploads: { orderBy: { uploadedAt: "desc" } },
-        _count: { select: { uploads: true } },
-      },
-    });
+    const link = await degradeIfDatabaseUnavailable(() =>
+      prisma.uploadLink.findUnique({
+        where: { id },
+        include: {
+          client: true,
+          uploads: { orderBy: { uploadedAt: "desc" } },
+          _count: { select: { uploads: true } },
+        },
+      }),
+    );
 
     if (!link) return res.status(404).json({ error: "Upload link not found" });
 
-    const lastUpload = link.uploads.length > 0 ? link.uploads[0].uploadedAt : null;
+    const lastUpload =
+      link.uploads.length > 0 ? link.uploads[0].uploadedAt : null;
 
     res.json({
       ...link,
@@ -104,34 +112,100 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {
-    const { clientId, documentRequests, expirationDays = 7 } = req.body;
+    const { clientId, expiresAt, requestedDocuments, instructions } = req.body;
 
     // Validate input
     if (!clientId) {
       return res.status(400).json({ error: "Client ID is required" });
     }
 
+    if (!requestedDocuments || requestedDocuments.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one document must be requested" });
+    }
+
     // Generate secure token
     const token = generateToken();
 
-    // Calculate expiration date
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+    // Parse expiration date from ISO string
+    const expirationDate = new Date(expiresAt);
 
-    // Create UploadLink record in the database
-    const uploadLink = await prisma.uploadLink.create({
-      data: {
-        token,
-        expiresAt,
-        client: { connect: { id: clientId } },
-        createdBy: { connect: { id: (req as AuthenticatedRequest).user.uid } },
-        documentRequests: { create: documentRequests },
-      },
-    });
+    // Use a transaction to ensure data consistency
+    const result = await degradeIfDatabaseUnavailable(() =>
+      prisma.$transaction(async (tx) => {
+        // Create the upload link
+        const uploadLink = await tx.uploadLink.create({
+          data: {
+            token,
+            expiresAt: expirationDate,
+            clientId,
+            isActive: true,
+            createdById: (req as AuthenticatedRequest).user?.uid, // Optional for testing
+          },
+        });
+
+        // Create document request
+        const documentRequest = await tx.documentRequest.create({
+          data: {
+            uploadLinkId: uploadLink.id,
+            instructions: instructions || "",
+          },
+        });
+
+        // Process each requested document
+        const requestedDocPromises = requestedDocuments.map(
+          async (doc: { name: string; description?: string }) => {
+            // Try to find existing DocumentType by name
+            let documentType = await tx.documentType.findFirst({
+              where: { name: doc.name },
+            });
+
+            // If DocumentType doesn't exist, create it
+            if (!documentType) {
+              documentType = await tx.documentType.create({
+                data: {
+                  name: doc.name,
+                  description: doc.description || null,
+                },
+              });
+            }
+
+            // Create RequestedDocument with relation to DocumentType
+            return tx.requestedDocument.create({
+              data: {
+                documentTypeId: documentType.id,
+                description: doc.description || "",
+                documentRequestId: documentRequest.id,
+              },
+            });
+          },
+        );
+
+        await Promise.all(requestedDocPromises);
+
+        // Fetch complete upload link with relations for response
+        return tx.uploadLink.findUnique({
+          where: { id: uploadLink.id },
+          include: {
+            client: true,
+            documentRequests: {
+              include: {
+                requestedDocuments: {
+                  include: {
+                    documentType: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      }),
+    );
 
     // Return the full upload URL
-    const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
-    res.status(201).json({ uploadUrl, uploadLink });
+    const uploadUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/upload/${token}`;
+    res.status(201).json({ url: uploadUrl, uploadLink: result });
   } catch (error) {
     console.error("Error creating upload link:", error);
     next(error);
