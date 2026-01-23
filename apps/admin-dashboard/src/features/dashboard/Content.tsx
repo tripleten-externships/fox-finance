@@ -249,6 +249,7 @@ const Content: React.FC<ContentProps> = ({ loading: parentLoading }) => {
                       key={client.id}
                       client={client}
                       onClientUpdated={fetchClients}
+                      onClientDeleted={fetchClients}
                     />
                   ))}
                 </div>

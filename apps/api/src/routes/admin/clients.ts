@@ -270,14 +270,77 @@ router.put("/:id", validate(updateClientSchema), async (req, res, next) => {
   }
 });
 
-// DELETE / Delete a client
+// DELETE / Delete a client with cascading deletion
 router.delete("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // First check if client exists
+    const client = await degradeIfDatabaseUnavailable(() =>
+      prisma.client.findUnique({
+        where: { id },
+      }),
+    );
+
+    if (!client) {
+      return sendError(res, 404, "Client not found");
+    }
+
+    // Use transaction to ensure atomic deletion
+    // Delete in order to respect foreign key constraints
     const deleted = await degradeIfDatabaseUnavailable(() =>
-      prisma.client.delete({
-        where: { id: id },
+      prisma.$transaction(async (tx) => {
+        // Find all upload links for this client
+        const uploadLinks = await tx.uploadLink.findMany({
+          where: { clientId: id },
+          select: { id: true },
+        });
+
+        const uploadLinkIds = uploadLinks.map((link) => link.id);
+
+        if (uploadLinkIds.length > 0) {
+          // Delete UploadBatches associated with these upload links
+          await tx.uploadBatch.deleteMany({
+            where: { uploadLinkId: { in: uploadLinkIds } },
+          });
+
+          // Delete Uploads associated with these upload links
+          // Note: We don't delete S3 files, only database records
+          await tx.upload.deleteMany({
+            where: { uploadLinkId: { in: uploadLinkIds } },
+          });
+
+          // Delete RequestedDocuments associated with DocumentRequests
+          const documentRequests = await tx.documentRequest.findMany({
+            where: { uploadLinkId: { in: uploadLinkIds } },
+            select: { id: true },
+          });
+
+          const documentRequestIds = documentRequests.map((dr) => dr.id);
+
+          if (documentRequestIds.length > 0) {
+            await tx.requestedDocument.deleteMany({
+              where: { documentRequestId: { in: documentRequestIds } },
+            });
+          }
+
+          // Delete DocumentRequests (cascade is set, but explicit for clarity)
+          await tx.documentRequest.deleteMany({
+            where: { uploadLinkId: { in: uploadLinkIds } },
+          });
+
+          // Delete UploadLinks (cascade is set, but explicit for clarity)
+          await tx.uploadLink.deleteMany({
+            where: { clientId: id },
+          });
+        }
+
+        // Finally, delete the client
+        const deletedClient = await tx.client.delete({
+          where: { id },
+        });
+
+        return deletedClient;
       }),
     );
 
@@ -286,6 +349,7 @@ router.delete("/:id", async (req, res, next) => {
       data: deleted,
     });
   } catch (error) {
+    console.error("Error deleting client:", error);
     next(error);
   }
 });
