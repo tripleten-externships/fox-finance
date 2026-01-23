@@ -8,14 +8,11 @@ import {
   getPresignedUrlSchema,
   completeUploadSchema,
 } from "../../schemas/uploadLink.schema";
-import { degradeIfDatabaseUnavailable, prisma } from "../../lib/prisma";
-//I  imported the following
-// AWS SDK imports for verifying and retrieving S3 objects
 import { HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
-//for typescript to know req.uploadLink exists without creating a new file is
+import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 
 const router = Router();
 
@@ -76,7 +73,7 @@ router.post(
               totalFiles: files.length,
               uploadedFiles: 0,
             },
-          })
+          }),
         );
         const uploads = await degradeIfDatabaseUnavailable(() =>
           prisma.$transaction(async (tx) => {
@@ -118,7 +115,7 @@ router.post(
               });
             }
             return results;
-          })
+          }),
         );
         return res.json({ batchId: batch.id, uploads });
       }
@@ -147,14 +144,14 @@ router.post(
             s3Bucket: process.env.S3_UPLOADS_BUCKET!,
             metadata: {},
           },
-        })
+        }),
       );
 
       return res.json({ url: presigned.url, key });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // POST /api/upload/complete - Record completed upload
@@ -184,7 +181,7 @@ router.post(
             new HeadObjectCommand({
               Bucket: process.env.S3_BUCKET,
               Key: key,
-            })
+            }),
           );
         } catch {
           return res.status(400).json({
@@ -221,7 +218,7 @@ router.post(
             Bucket: process.env.S3_BUCKET,
             Key: key,
           }),
-          { expiresIn: 3600 } // 1 hour
+          { expiresIn: 3600 }, // 1 hour
         );
         // --- Step 4: Respond to the client with confirmation ---
         return res.json({
@@ -235,7 +232,7 @@ router.post(
         next(error);
       }
     })();
-  }
+  },
 );
 
 export default router;

@@ -39,6 +39,7 @@ jobs:
   cdk-diff:
     name: CDK Diff (Preview Changes)
     runs-on: ubuntu-latest
+    environment: dev
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
@@ -76,6 +77,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set CDK environment variables
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
       - name: Build CDK
         working-directory: apps/infra
@@ -122,8 +130,7 @@ jobs:
     name: Deploy to Dev
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'push' && 
-      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_call' && inputs.environment == 'dev') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     environment: dev
     steps:
@@ -162,6 +169,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set CDK environment variables
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
       - name: Check CDK bootstrap
         working-directory: apps/infra
@@ -206,9 +220,8 @@ jobs:
     name: Deploy to Prod
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_call' && inputs.environment == 'prod') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
-    needs: deploy-dev
     environment: prod
     steps:
       - name: Checkout code
@@ -246,6 +259,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set CDK environment variables
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.CDK_DEFAULT_ACCOUNT }}
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
       - name: Check CDK bootstrap
         working-directory: apps/infra
@@ -286,19 +306,63 @@ jobs:
           path: deployment-outputs-prod.json
           retention-days: 90
 
-  drift-detection:
+  drift-detection-dev:
     name: Drift Detection
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    strategy:
-      matrix:
-        environment: [dev, prod]
+    if: |
+      (github.event_name == 'workflow_call' && inputs.environment == 'dev') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    needs: deploy-dev
+    environment: dev
     steps:
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (Dev)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ matrix.environment == 'dev' && secrets.AWS_ACCESS_KEY_ID_DEV || secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ matrix.environment == 'dev' && secrets.AWS_SECRET_ACCESS_KEY_DEV || secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Detect stack drift
+        run: |
+          STACKS="${{ matrix.environment }}-Network ${{ matrix.environment }}-Database ${{ matrix.environment }}-Api ${{ matrix.environment }}-Frontend ${{ matrix.environment }}-Storybook"
+
+          for stack in $STACKS; do
+            echo "Checking drift for $stack..."
+            
+            if aws cloudformation describe-stacks --stack-name $stack > /dev/null 2>&1; then
+              DRIFT_ID=$(aws cloudformation detect-stack-drift --stack-name $stack --query StackDriftDetectionId --output text)
+              
+              # Wait for drift detection to complete
+              sleep 10
+              
+              STATUS=$(aws cloudformation describe-stack-drift-detection-status \
+                --stack-drift-detection-id $DRIFT_ID \
+                --query StackDriftStatus --output text)
+              
+              if [ "$STATUS" != "IN_SYNC" ]; then
+                echo "::warning::Drift detected in $stack - Status: $STATUS"
+              else
+                echo "✅ $stack is in sync"
+              fi
+            else
+              echo "⚠️ Stack $stack does not exist - skipping"
+            fi
+          done
+
+  drift-detection-prod:
+    name: Drift Detection
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_call' && inputs.environment == 'prod') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+    needs: deploy-prod
+    environment: prod
+    steps:
+      - name: Configure AWS credentials (Production)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Detect stack drift

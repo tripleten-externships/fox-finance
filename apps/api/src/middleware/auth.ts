@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { admin } from "../firebase";
-import { prisma } from "../lib/prisma";
+import { prisma, admin } from "@fox-finance/prisma";
 
 export interface AuthenticatedRequest extends Request {
   user: {

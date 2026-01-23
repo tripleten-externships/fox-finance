@@ -15,11 +15,12 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy package.json files for all workspace packages
 COPY apps/api/package.json ./apps/api/
-COPY packages/api-types/package.json ./packages/api-types/
 COPY packages/config/package.json ./packages/config/
+COPY packages/prisma/package.json ./packages/prisma/
+COPY packages/api-types/package.json ./packages/api-types/
 
 # Copy Prisma schema (needed for postinstall script)
-COPY apps/api/prisma ./apps/api/prisma
+COPY packages/prisma/prisma ./packages/prisma/prisma
 
 # Install dependencies with frozen lockfile for reproducibility
 RUN pnpm install --frozen-lockfile
@@ -38,17 +39,22 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/api-types/node_modules ./packages/api-types/node_modules
 COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
+COPY --from=deps /app/packages/prisma/node_modules ./packages/prisma/node_modules
+COPY --from=deps /app/packages/api-types/node_modules ./packages/api-types/node_modules
 
 # Copy workspace configuration
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/api-types/package.json ./packages/api-types/
 COPY packages/config/package.json ./packages/config/
+COPY packages/prisma/package.json ./packages/prisma/
 
-# Copy Prisma schema
-COPY apps/api/prisma ./apps/api/prisma
+# Copy Prisma schema and TypeScript configs
+COPY packages/prisma/prisma ./packages/prisma/prisma
+COPY packages/prisma/src ./packages/prisma/src
+COPY packages/prisma/tsconfig.json ./packages/prisma/
+COPY packages/prisma/tsconfig.build.json ./packages/prisma/
 
 # Copy root TypeScript config
 COPY tsconfig.json ./
@@ -62,22 +68,24 @@ COPY packages/api-types ./packages/api-types
 # Copy config package source if needed
 COPY packages/config ./packages/config
 
-# Build workspace dependencies
-# The API depends on @fox-finance/config which must be compiled (TypeScript → JavaScript)
-# before the API can be built. We build from the workspace root using pnpm filters.
-RUN pnpm --filter @fox-finance/config build
+# Build config package
+WORKDIR /app/packages/config
+RUN pnpm build
 
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
 # Generate Prisma client with linux binary target
-# IMPORTANT: Unset DATABASE_URL so Prisma client doesn't embed build-time connection string
-# This forces Prisma to always use the runtime DATABASE_URL environment variable
-WORKDIR /app/apps/api
-RUN unset DATABASE_URL && npx prisma generate --schema=./prisma/schema.prisma
+WORKDIR /app/packages/prisma
+RUN npx prisma generate
+
+# Build Prisma package
+WORKDIR /app/packages/prisma
+RUN pnpm build
 
 # Build TypeScript (using tsconfig.json since tsconfig.build.json doesn't exist)
-RUN pnpm exec tsc -p tsconfig.json
+WORKDIR /app/apps/api
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec tsc -p tsconfig.json
 
 # ============================================================================
 # Stage 3: Production
@@ -102,17 +110,19 @@ ENV NODE_ENV=production
 # Copy workspace configuration
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
-COPY packages/api-types/package.json ./packages/api-types/
 COPY packages/config/package.json ./packages/config/
+COPY packages/prisma/package.json ./packages/prisma/
+COPY packages/api-types/package.json ./packages/api-types/
 
 # Copy Prisma schema and migrations for runtime
-COPY apps/api/prisma ./apps/api/prisma
+COPY packages/prisma/prisma ./packages/prisma/prisma
 
 # Install production dependencies only (skip scripts since we copy generated client from builder)
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy generated Prisma client from builder (pnpm structure)
 COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=builder /app/packages/prisma/dist ./packages/prisma/dist
 
 # Copy built application
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
@@ -140,10 +150,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 RUN echo '{\n\
   "extends": "./tsconfig.json",\n\
   "compilerOptions": {\n\
-  "baseUrl": ".",\n\
-  "paths": {\n\
-  "@lib/*": ["./dist/lib/*"]\n\
-  }\n\
+  "baseUrl": "."\n\
   }\n\
   }' > /app/apps/api/tsconfig.runtime.json
 
@@ -155,11 +162,12 @@ RUN echo '#!/bin/sh\n\
   export DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"\n\
   \n\
   echo "Running database migrations..."\n\
-  npx prisma migrate deploy --schema=./prisma/schema.prisma\n\
+  cd ../../packages/prisma && \
+  npx prisma migrate deploy\n\
+  cd ../../apps/api\n\
   \n\
   echo "Starting application..."\n\
-  export TS_NODE_PROJECT=./tsconfig.runtime.json\n\
-  exec node -r tsconfig-paths/register dist/index.js' > /app/apps/api/start.sh && \
+  exec node dist/index.js' > /app/apps/api/start.sh && \
   chmod +x /app/apps/api/start.sh
 
 # Start the application

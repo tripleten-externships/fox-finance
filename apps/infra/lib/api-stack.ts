@@ -400,8 +400,8 @@ export class ApiStack extends cdk.Stack {
      * Add container to task definition
      */
     const container = taskDefinition.addContainer("ApiContainer", {
-      image: ecs.ContainerImage.fromRegistry("nginxdemos/hello"),
-      // image: ecs.ContainerImage.fromEcrRepository(apiRepository, "latest"),
+      // image: ecs.ContainerImage.fromRegistry("nginxdemos/hello"),
+      image: ecs.ContainerImage.fromEcrRepository(apiRepository, "latest"),
 
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: "api",
