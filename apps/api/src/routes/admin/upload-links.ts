@@ -51,6 +51,7 @@ router.get("/", async (req, res, next) => {
         orderBy: { [sortBy as string]: sortOrder },
         include: {
           client: true,
+          uploads: true,
           _count: { select: { uploads: true } },
         },
       }),

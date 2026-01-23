@@ -1,27 +1,24 @@
 import React from "react";
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Badge,
-} from "@fox-finance/ui";
+import { Button, Badge, Card, CardHeader, CardTitle } from "@fox-finance/ui";
 import {
   FaBell,
-  FaFileAlt,
-  FaUsers,
   FaFile,
+  FaFileAlt,
   FaLink,
-  FaUserFriends,
+  FaMoon,
+  FaSun,
   FaUserPlus,
+  FaUsers,
 } from "react-icons/fa";
+import { useColorMode } from "@fox-finance/theme";
 import useAuth from "../../hooks/useAuth";
+import Content from "./Content";
 
 const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
   const { logout } = useAuth();
+  const { colorMode, toggleColorMode } = useColorMode();
 
   const handleSignOut = async () => {
     try {
@@ -48,6 +45,20 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
 
             {/* Right side: Icon Buttons */}
             <div className="flex items-center gap-2">
+              {/* Theme toggle button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleColorMode}
+                aria-label={`Switch to ${colorMode === "dark" ? "light" : "dark"} mode`}
+              >
+                {colorMode === "dark" ? (
+                  <FaSun className="h-5 w-5" />
+                ) : (
+                  <FaMoon className="h-5 w-5" />
+                )}
+              </Button>
+
               {/* Notifications icon button with badge */}
               <div className="relative">
                 <Button variant="ghost" size="icon">
@@ -72,15 +83,15 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
         </header>
 
         {/* Content area */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 bg-secondary">
           {/* Top Section - Three Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {/* Total Clients Card */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Total Clients</CardTitle>
-                  <FaUsers className="h-6 w-6 text-muted-foreground" />
+                  <CardTitle className="text-md">Total Clients</CardTitle>
+                  <FaUsers className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
             </Card>
@@ -89,8 +100,8 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Pending Files</CardTitle>
-                  <FaFile className="h-6 w-6 text-muted-foreground" />
+                  <CardTitle className="text-md">Pending Files</CardTitle>
+                  <FaFile className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
             </Card>
@@ -99,8 +110,8 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Active Links</CardTitle>
-                  <FaLink className="h-6 w-6 text-muted-foreground" />
+                  <CardTitle className="text-md">Active Links</CardTitle>
+                  <FaLink className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
             </Card>
@@ -109,19 +120,7 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
           {/* Bottom Section - Two Full-Width Cards */}
           <div className="grid grid-cols-1 gap-6">
             {/* Client Management Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <FaUserFriends className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <CardTitle>Client Management</CardTitle>
-                    <CardDescription>
-                      View and manage all client applications
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
+            <Content />
 
             {/* Add New Client Card */}
             <Card>
