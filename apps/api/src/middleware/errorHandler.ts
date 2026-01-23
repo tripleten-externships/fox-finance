@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { UnavailableError } from "../degredation/degredation";
-import { Prisma } from "@prisma/client";
+import { Prisma, UnavailableError } from "@fox-finance/prisma";
 
 export function errorHandler(
   err: Error,

@@ -92,12 +92,12 @@ jobs:
         id: ecs-info
         run: |
           CLUSTER=$(aws cloudformation describe-stacks \
-            --stack-name dev-Api \
+            --stack-name fox-finance-dev-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ClusterName`].OutputValue' \
             --output text)
 
           SERVICE=$(aws cloudformation describe-stacks \
-            --stack-name dev-Api \
+            --stack-name fox-finance-dev-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ServiceName`].OutputValue' \
             --output text)
 
@@ -262,12 +262,12 @@ jobs:
         id: ecs-info
         run: |
           CLUSTER=$(aws cloudformation describe-stacks \
-            --stack-name prod-Api \
+            --stack-name fox-finance-prod-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ClusterName`].OutputValue' \
             --output text)
 
           SERVICE=$(aws cloudformation describe-stacks \
-            --stack-name prod-Api \
+            --stack-name fox-finance-prod-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ServiceName`].OutputValue' \
             --output text)
 
