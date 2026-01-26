@@ -3,14 +3,28 @@ import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
-import { randomBytes } from "crypto";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
+// Secret for JWT tokens - use environment variable or default for development
+const UPLOAD_TOKEN_SECRET =
+  process.env.UPLOAD_TOKEN_SECRET ||
+  "your-secret-key-here-change-in-production";
 
 const router = Router();
 
-// Generate a secure random token for upload links
-function generateToken(): string {
-  return randomBytes(32).toString("hex");
-}
+const generateToken = (uploadLinkId: string, clientId: string) => {
+  return jwt.sign(
+    {
+      uploadLinkId,
+      clientId,
+      type: "auth",
+    },
+    UPLOAD_TOKEN_SECRET,
+    // No expiration - the auth token is permanently valid
+    // Upload link expiration in DB controls validity
+  );
+};
 
 // GET /api/admin/upload-links - List all upload links with pagination, filters, sorting
 router.get("/", async (req, res, next) => {
@@ -126,7 +140,8 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
     }
 
     // Generate secure token
-    const token = generateToken();
+    const linkId = crypto.randomUUID();
+    const token = generateToken(linkId, clientId);
 
     // Parse expiration date from ISO string
     const expirationDate = new Date(expiresAt);
@@ -137,6 +152,7 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
         // Create the upload link
         const uploadLink = await tx.uploadLink.create({
           data: {
+            id: linkId,
             token,
             expiresAt: expirationDate,
             clientId,
