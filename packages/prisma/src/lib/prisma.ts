@@ -59,10 +59,6 @@ export const disconnect = async () => {
   }
 };
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
-
 prisma.$on("error" as never, (e: Prisma.LogEvent) => {
   logger.error("Prisma error log event", {
     target: e.target,

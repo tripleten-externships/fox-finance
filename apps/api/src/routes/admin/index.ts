@@ -2,6 +2,8 @@ import { Router } from "express";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
 import clientsRouter from "./clients";
 import uploadLinksRouter from "./upload-links";
+import statsRouter from "./stats";
+import documentTypesRouter from "./document-types";
 
 const router = Router();
 
@@ -11,5 +13,7 @@ const router = Router();
 
 router.use("/clients", clientsRouter);
 router.use("/upload-links", uploadLinksRouter);
+router.use("/stats", statsRouter);
+router.use("/document-types", documentTypesRouter);
 
 export default router;

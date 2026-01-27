@@ -3,14 +3,28 @@ import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
-import { randomBytes } from "crypto";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
+// Secret for JWT tokens - use environment variable or default for development
+const UPLOAD_TOKEN_SECRET =
+  process.env.UPLOAD_TOKEN_SECRET ||
+  "your-secret-key-here-change-in-production";
 
 const router = Router();
 
-// Generate a secure random token for upload links
-function generateToken(): string {
-  return randomBytes(32).toString("hex");
-}
+const generateToken = (uploadLinkId: string, clientId: string) => {
+  return jwt.sign(
+    {
+      uploadLinkId,
+      clientId,
+      type: "auth",
+    },
+    UPLOAD_TOKEN_SECRET,
+    // No expiration - the auth token is permanently valid
+    // Upload link expiration in DB controls validity
+  );
+};
 
 // GET /api/admin/upload-links - List all upload links with pagination, filters, sorting
 router.get("/", async (req, res, next) => {
@@ -51,13 +65,14 @@ router.get("/", async (req, res, next) => {
         orderBy: { [sortBy as string]: sortOrder },
         include: {
           client: true,
+          uploads: true,
           _count: { select: { uploads: true } },
         },
-      })
+      }),
     );
 
     const total = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.count({ where })
+      prisma.uploadLink.count({ where }),
     );
 
     res.setHeader("X-Total-Count", total);
@@ -88,7 +103,7 @@ router.get("/:id", async (req, res, next) => {
           uploads: { orderBy: { uploadedAt: "desc" } },
           _count: { select: { uploads: true } },
         },
-      })
+      }),
     );
 
     if (!link) return res.status(404).json({ error: "Upload link not found" });
@@ -111,35 +126,102 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {
-    const { clientId, documentRequests, expirationDays = 7 } = req.body;
+    const { clientId, expiresAt, requestedDocuments, instructions } = req.body;
 
     // Validate input
     if (!clientId) {
       return res.status(400).json({ error: "Client ID is required" });
     }
 
+    if (!requestedDocuments || requestedDocuments.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one document must be requested" });
+    }
+
     // Generate secure token
-    const token = generateToken();
+    const linkId = crypto.randomUUID();
+    const token = generateToken(linkId, clientId);
 
-    // Calculate expiration date
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+    // Parse expiration date from ISO string
+    const expirationDate = new Date(expiresAt);
 
-    // Create UploadLink record in the database
-    const uploadLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.create({
-        data: {
-          token,
-          expiresAt,
-          clientId,
-          createdById: (req as AuthenticatedRequest).user?.uid, // Optional for testing
-          documentRequests: { create: documentRequests },
-        },
-      })
+    // Use a transaction to ensure data consistency
+    const result = await degradeIfDatabaseUnavailable(() =>
+      prisma.$transaction(async (tx) => {
+        // Create the upload link
+        const uploadLink = await tx.uploadLink.create({
+          data: {
+            id: linkId,
+            token,
+            expiresAt: expirationDate,
+            clientId,
+            isActive: true,
+            createdById: (req as AuthenticatedRequest).user?.uid, // Optional for testing
+          },
+        });
+
+        // Create document request
+        const documentRequest = await tx.documentRequest.create({
+          data: {
+            uploadLinkId: uploadLink.id,
+            instructions: instructions || "",
+          },
+        });
+
+        // Process each requested document
+        const requestedDocPromises = requestedDocuments.map(
+          async (doc: { name: string; description?: string }) => {
+            // Try to find existing DocumentType by name
+            let documentType = await tx.documentType.findFirst({
+              where: { name: doc.name },
+            });
+
+            // If DocumentType doesn't exist, create it
+            if (!documentType) {
+              documentType = await tx.documentType.create({
+                data: {
+                  name: doc.name,
+                  description: doc.description || null,
+                },
+              });
+            }
+
+            // Create RequestedDocument with relation to DocumentType
+            return tx.requestedDocument.create({
+              data: {
+                documentTypeId: documentType.id,
+                description: doc.description || "",
+                documentRequestId: documentRequest.id,
+              },
+            });
+          },
+        );
+
+        await Promise.all(requestedDocPromises);
+
+        // Fetch complete upload link with relations for response
+        return tx.uploadLink.findUnique({
+          where: { id: uploadLink.id },
+          include: {
+            client: true,
+            documentRequests: {
+              include: {
+                requestedDocuments: {
+                  include: {
+                    documentType: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      }),
     );
+
     // Return the full upload URL
-    const uploadUrl = `${process.env.FRONTEND_URL}/upload/${token}`;
-    res.status(201).json({ uploadUrl, uploadLink });
+    const uploadUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/upload/${token}`;
+    res.status(201).json({ url: uploadUrl, uploadLink: result });
   } catch (error) {
     console.error("Error creating upload link:", error);
     next(error);
@@ -147,24 +229,76 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
 });
 
 // PATCH /api/admin/upload-links/:id/deactivate - Deactivate an upload link
-router.patch("/:id/deactivate", async (req, res, next) => {
-  try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
-  } catch (error) {
-    next(error);
+router.patch(
+  "/:id/deactivate",
+  validate(createUploadLinkSchema),
+  async (req, res, next) => {
+    const { id } = req.params;
+
+    try {
+      const uploadLink = await prisma.uploadLink.findUnique({
+        where: { id },
+      });
+
+      if (!uploadLink) {
+        return res.status(404).json({
+          error: "Upload link not found",
+        });
+      }
+
+      const updatedLink = await prisma.uploadLink.update({
+        where: { id },
+        data: {
+          isActive: false,
+          updatedById: (req as AuthenticatedRequest).user.uid,
+        },
+      });
+
+      return res.status(200).json(updatedLink);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // PATCH /api/admin/upload-links/:id/activate - Reactivate an upload link
-router.patch("/:id/activate", async (req, res, next) => {
-  try {
-    // TODO: Implement endpoint
-    res.status(501).json({ error: "Not implemented" });
-  } catch (error) {
-    next(error);
+router.patch(
+  "/:id/activate",
+  validate(createUploadLinkSchema),
+  async (req, res, next) => {
+    const { id } = req.params;
+
+    try {
+      const uploadLink = await prisma.uploadLink.findUnique({
+        where: { id },
+      });
+
+      if (!uploadLink) {
+        return res.status(404).json({
+          error: "Upload link not found",
+        });
+      }
+
+      if (uploadLink.expiresAt < new Date()) {
+        return res.status(400).json({
+          error: "Upload link is expired",
+        });
+      }
+
+      const updatedLink = await prisma.uploadLink.update({
+        where: { id },
+        data: {
+          isActive: true,
+          updatedById: (req as AuthenticatedRequest).user.uid,
+        },
+      });
+
+      return res.status(200).json(updatedLink);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // DELETE /api/admin/upload-links/:id - Delete an upload link
 router.delete("/:id", async (req, res, next) => {

@@ -7,9 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -31,29 +30,20 @@ enum UploadStatus {
   INCOMPLETE
 }
 
-enum DocumentType {
-  GOVERNMENT_ID
-  PASSPORT
-  PROOF_OF_ADDRESS
-  BANK_STATEMENT
-  PAY_STUB
-  TAX_RETURN
-  OTHER //Can be specified in more detail by the client in the description field
-}
-
 // ============================================================================
 // MODELS
 // ============================================================================
 
 model User {
-  id          String       @id // Firebase UID — this is your canonical user identifier
-  email       String       @unique
-  name        String?
-  photoUrl    String?
-  role        Role         @default(USER)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  uploadLinks UploadLink[]
+  id                 String       @id // Firebase UID — this is your canonical user identifier
+  email              String       @unique
+  name               String?
+  photoUrl           String?
+  role               Role         @default(USER)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  createdUploadLinks UploadLink[] @relation("CreatedLinks")
+  updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
 }
 
 // ============================================================================
@@ -69,7 +59,7 @@ model Client {
   email       String       @unique
   firstName   String
   lastName    String
-  company     String
+  company     String?
   phone       String
   status      Status       @default(ACTIVE)
   createdAt   DateTime     @default(now())
@@ -89,9 +79,11 @@ model UploadLink {
   token            String            @unique
   expiresAt        DateTime
   isActive         Boolean           @default(false)
-  createdBy        User?             @relation(fields: [createdById], references: [id])
-  createdById      String?
+  createdBy        User              @relation("CreatedLinks", fields: [createdById], references: [id])
+  createdById      String
   createdAt        DateTime          @default(now())
+  updatedBy        User?             @relation("UpdatedLinks", fields: [updatedById], references: [id])
+  updatedById      String?
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
@@ -106,17 +98,29 @@ model DocumentRequest {
   uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
   uploadLinkId       String              @db.Uuid
   requestedDocuments RequestedDocument[] //Array of documents
-  instructions       String
+  instructions       String?
   status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
   uploads            Upload[]
 }
 
 model RequestedDocument {
   id                String           @id @default(uuid()) @db.Uuid
-  name              DocumentType //hard-coded list of document types as listed in the enum
+  documentType      DocumentType     @relation(fields: [documentTypeId], references: [id])
+  documentTypeId    String
   description       String
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
   documentRequestId String?          @db.Uuid
+
+  @@index([documentTypeId])
+}
+
+model DocumentType {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  description        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  requestedDocuments RequestedDocument[]
 }
 
 model Upload {
@@ -130,11 +134,13 @@ model Upload {
   mimeType          String
   s3Key             String
   s3Bucket          String
-  uploadedAt        DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  metadata          Json
-  UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
-  uploadBatchId     String?          @db.Uuid
+  fileType          String           @default("unknown")
+
+  uploadedAt    DateTime     @updatedAt
+  updatedAt     DateTime     @updatedAt
+  metadata      Json
+  UploadBatch   UploadBatch? @relation(fields: [uploadBatchId], references: [id])
+  uploadBatchId String?      @db.Uuid
 
   @@index([uploadLinkId])
   @@index([fileName])
