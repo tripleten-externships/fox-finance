@@ -68,7 +68,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: dev-api
+          ECR_REPOSITORY: fox-finance-dev-api
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build with cache from monorepo root
@@ -92,12 +92,12 @@ jobs:
         id: ecs-info
         run: |
           CLUSTER=$(aws cloudformation describe-stacks \
-            --stack-name dev-Api \
+            --stack-name fox-finance-dev-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ClusterName`].OutputValue' \
             --output text)
 
           SERVICE=$(aws cloudformation describe-stacks \
-            --stack-name dev-Api \
+            --stack-name fox-finance-dev-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ServiceName`].OutputValue' \
             --output text)
 
@@ -238,7 +238,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: prod-api
+          ECR_REPOSITORY: fox-finance-prod-api
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build with cache from monorepo root
@@ -262,12 +262,12 @@ jobs:
         id: ecs-info
         run: |
           CLUSTER=$(aws cloudformation describe-stacks \
-            --stack-name prod-Api \
+            --stack-name fox-finance-prod-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ClusterName`].OutputValue' \
             --output text)
 
           SERVICE=$(aws cloudformation describe-stacks \
-            --stack-name prod-Api \
+            --stack-name fox-finance-prod-Api \
             --query 'Stacks[0].Outputs[?OutputKey==`ServiceName`].OutputValue' \
             --output text)
 
