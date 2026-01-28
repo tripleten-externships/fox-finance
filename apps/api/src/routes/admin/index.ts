@@ -8,8 +8,8 @@ import documentTypesRouter from "./document-types";
 const router = Router();
 
 // Apply auth middleware to all admin routes
-//router.use(requireAuth);
-//router.use(requireAdmin);
+router.use(requireAuth);
+router.use(requireAdmin);
 
 router.use("/clients", clientsRouter);
 router.use("/upload-links", uploadLinksRouter);

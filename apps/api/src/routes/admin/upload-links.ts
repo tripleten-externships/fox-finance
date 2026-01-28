@@ -155,9 +155,13 @@ router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
             id: linkId,
             token,
             expiresAt: expirationDate,
-            clientId,
+            client: {
+              connect: { id: clientId },
+            },
             isActive: true,
-            createdById: (req as AuthenticatedRequest).user?.uid, // Optional for testing
+            createdBy: {
+              connect: { id: (req as AuthenticatedRequest).user.uid },
+            },
           },
         });
 
@@ -258,7 +262,7 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // PATCH /api/admin/upload-links/:id/activate - Reactivate an upload link
@@ -297,7 +301,7 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // DELETE /api/admin/upload-links/:id - Delete an upload link

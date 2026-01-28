@@ -1,3 +1,5 @@
+import { getAuthToken } from "./authToken";
+
 /**
  * Determines the API base URL based on the current hostname
  */
@@ -43,5 +45,23 @@ export async function apiClient(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${path}`;
 
-  return fetch(url, options);
+  // Get the authentication token
+  const token = getAuthToken();
+
+  // Prepare headers with authorization if token exists
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Merge headers with options
+  const requestOptions: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  return fetch(url, requestOptions);
 }

@@ -7,6 +7,7 @@ import {
   type FirebaseUser,
 } from "../lib/firebase";
 import type { UserCredential } from "firebase/auth";
+import { removeAuthToken, setAuthToken } from "../lib/authToken";
 
 /**
  * Authentication context type definition
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const login = async (
     email: string,
-    password: string
+    password: string,
   ): Promise<UserCredential> => {
     try {
       return await signInWithEmailAndPassword(auth, email, password);
@@ -63,6 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       await signOut(auth);
+      // Clear the stored authentication token
+      removeAuthToken();
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
@@ -71,8 +74,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+
+      // If user is authenticated, get and store a fresh token
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          setAuthToken(token);
+        } catch (error) {
+          console.error("Error getting ID token:", error);
+        }
+      } else {
+        // User is logged out, remove token
+        removeAuthToken();
+      }
+
       setLoading(false);
     });
 

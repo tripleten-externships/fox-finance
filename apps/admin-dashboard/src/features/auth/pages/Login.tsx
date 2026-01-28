@@ -26,6 +26,7 @@ import {
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../../lib/firebase";
+import { setAuthToken } from "../../../lib/authToken";
 
 const provider = new GoogleAuthProvider();
 
@@ -69,6 +70,9 @@ export function Login() {
         });
         return;
       }
+
+      // Store the authentication token
+      setAuthToken(token);
 
       toast("Success!", {
         description: "Logging you in...",
