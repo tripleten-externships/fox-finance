@@ -226,6 +226,7 @@ async function main() {
       uniqueIdentifier: "active-link-john-2026",
       expiresAt: new Date("2026-03-01"), // Future date - active
       isActive: true,
+      updatedById: adminUser.id,
       instructions:
         "Please upload your government ID and proof of address for account verification.",
     },
@@ -234,6 +235,7 @@ async function main() {
       uniqueIdentifier: "active-link-sarah-2026",
       expiresAt: new Date("2026-02-15"), // Future date - active
       isActive: true,
+      updatedById: adminUser.id,
       instructions:
         "Please provide tax documentation and bank statements for the past 3 months.",
     },
@@ -242,6 +244,7 @@ async function main() {
       uniqueIdentifier: "expired-link-michael",
       expiresAt: new Date("2025-12-31"), // Past date - expired
       isActive: false,
+      updatedById: adminUser.id,
       instructions:
         "Upload your business registration documents and financial statements.",
     },
@@ -250,6 +253,7 @@ async function main() {
       uniqueIdentifier: "active-link-emma-2026",
       expiresAt: new Date("2026-04-01"), // Future date - active
       isActive: true,
+      updatedById: adminUser.id,
       instructions: "Please upload your passport and recent utility bill.",
     },
     {
@@ -257,6 +261,7 @@ async function main() {
       uniqueIdentifier: "inactive-link-robert",
       expiresAt: new Date("2026-05-01"), // Future but inactive
       isActive: false,
+      updatedById: adminUser.id,
       instructions: "Upload proof of income and tax returns for verification.",
     },
   ];
@@ -287,6 +292,7 @@ async function main() {
           token: jwtToken,
           expiresAt: linkData.expiresAt,
           isActive: linkData.isActive,
+          updatedById: adminUser.id,
         },
       });
     } else {
@@ -297,7 +303,8 @@ async function main() {
           token: `temp-${linkData.uniqueIdentifier}`,
           expiresAt: linkData.expiresAt,
           isActive: linkData.isActive,
-          createdById: null,
+          createdById: adminUser.id,
+          updatedById: adminUser.id,
         },
       });
 
