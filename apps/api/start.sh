@@ -11,6 +11,15 @@ export DATABASE_URL="postgresql://${ENCODED_USERNAME}:${ENCODED_PASSWORD}@${DATA
 echo "Running database migrations..."
 cd ../../packages/prisma
 npx prisma migrate deploy --schema=./prisma/schema.prisma
+
+# Run seed script only in non-production environments
+if [ "$NODE_ENV" != "production" ]; then
+  echo "Running database seed (NODE_ENV=$NODE_ENV)..."
+  npx prisma db seed
+else
+  echo "Skipping database seed (NODE_ENV=$NODE_ENV)"
+fi
+
 cd ../../apps/api
 
 echo "Starting application..."

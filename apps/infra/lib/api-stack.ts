@@ -408,7 +408,7 @@ export class ApiStack extends cdk.Stack {
         logGroup: logGroup,
       }),
       environment: {
-        NODE_ENV: config.name === "prod" ? "production" : "development",
+        NODE_ENV: config.name.includes("prod") ? "production" : "development",
         PORT: config.ecs.containerPort.toString(),
         DATABASE_HOST: databaseCluster.clusterEndpoint.hostname,
         DATABASE_PORT: databaseCluster.clusterEndpoint.port.toString(),

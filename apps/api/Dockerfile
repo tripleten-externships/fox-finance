@@ -104,9 +104,6 @@ RUN npm install -g pnpm@10.17.1
 
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV=production
-
 # Copy workspace configuration
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
