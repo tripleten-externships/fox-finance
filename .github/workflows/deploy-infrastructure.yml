@@ -130,7 +130,7 @@ jobs:
     name: Deploy to Dev
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_call' && inputs.environment == 'dev') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     environment: dev
     steps:
@@ -220,7 +220,7 @@ jobs:
     name: Deploy to Prod
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_call' && inputs.environment == 'prod') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
     environment: prod
     steps:
