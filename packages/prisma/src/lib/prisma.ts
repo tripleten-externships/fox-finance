@@ -25,15 +25,9 @@ const POOL_TIMEOUT = process.env.DB_POOL_TIMEOUT
 
 // Build URL with connection pooling
 const getDatabaseUrl = () => {
-  const DATABASE_URL = `postgresql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}`;
   const baseUrl =
-    process.env.DATABASE_USERNAME &&
-    process.env.DATABASE_PASSWORD &&
-    process.env.DATABASE_HOST &&
-    process.env.DATABASE_PORT &&
-    process.env.DATABASE_NAME
-      ? DATABASE_URL
-      : "postgresql://postgres:postgres@localhost:5432/fox-finance";
+    process.env.DATABASE_URL ||
+    "postgresql://postgres:postgres@localhost:5432/fox-finance";
   const url = new URL(baseUrl);
 
   // Add pooling parameters
