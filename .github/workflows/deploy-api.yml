@@ -212,7 +212,6 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
-    needs: deploy-dev
     environment: prod
     outputs:
       image-uri: ${{ steps.image.outputs.uri }}
