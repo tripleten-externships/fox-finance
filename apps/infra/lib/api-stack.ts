@@ -120,7 +120,7 @@ export class ApiStack extends cdk.Stack {
 
     cdk.Tags.of(s3EncryptionKey).add(
       "Name",
-      `${config.name}-s3-encryption-key`
+      `${config.name}-s3-encryption-key`,
     );
 
     // ========================================
@@ -178,7 +178,7 @@ export class ApiStack extends cdk.Stack {
         domainName: config.apiDomain,
         validation:
           certificatemanager.CertificateValidation.fromDns(hostedZone),
-      }
+      },
     );
 
     // ========================================
@@ -224,7 +224,7 @@ export class ApiStack extends cdk.Stack {
           healthyHttpCodes: "200",
         },
         deregistrationDelay: cdk.Duration.seconds(30),
-      }
+      },
     );
 
     /**
@@ -261,7 +261,7 @@ export class ApiStack extends cdk.Stack {
       zone: hostedZone,
       recordName: config.apiDomain,
       target: route53.RecordTarget.fromAlias(
-        new route53Targets.LoadBalancerTarget(this.loadBalancer)
+        new route53Targets.LoadBalancerTarget(this.loadBalancer),
       ),
       comment: `API endpoint for ${config.name} environment`,
     });
@@ -316,7 +316,7 @@ export class ApiStack extends cdk.Stack {
       description: "ECS task execution role for API service",
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AmazonECSTaskExecutionRolePolicy"
+          "service-role/AmazonECSTaskExecutionRolePolicy",
         ),
       ],
     });
@@ -328,7 +328,7 @@ export class ApiStack extends cdk.Stack {
     const firebaseSecret = secretsmanager.Secret.fromSecretNameV2(
       this,
       "FirebaseSecret",
-      `/fox-finance/${config.name}/firebase`
+      `/fox-finance/${config.name}/firebase`,
     );
 
     // Grant permissions to read Firebase secret
@@ -342,7 +342,7 @@ export class ApiStack extends cdk.Stack {
         resources: [
           `arn:aws:ssm:${this.region}:${this.account}:parameter/fox-finance/${config.name}/*`,
         ],
-      })
+      }),
     );
 
     // ========================================
@@ -369,7 +369,7 @@ export class ApiStack extends cdk.Stack {
         resources: [
           `arn:aws:ssm:${this.region}:${this.account}:parameter/fox-finance/${config.name}/*`,
         ],
-      })
+      }),
     );
 
     // ========================================
@@ -393,7 +393,7 @@ export class ApiStack extends cdk.Stack {
           cpuArchitecture: ecs.CpuArchitecture.X86_64,
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         },
-      }
+      },
     );
 
     /**
@@ -420,24 +420,24 @@ export class ApiStack extends cdk.Stack {
         // Database credentials from Secrets Manager
         DATABASE_USERNAME: ecs.Secret.fromSecretsManager(
           databaseSecret,
-          "username"
+          "username",
         ),
         DATABASE_PASSWORD: ecs.Secret.fromSecretsManager(
           databaseSecret,
-          "password"
+          "password",
         ),
         // Firebase credentials from Secrets Manager
         FIREBASE_PROJECT_ID: ecs.Secret.fromSecretsManager(
           firebaseSecret,
-          "project_id"
+          "project_id",
         ),
         FIREBASE_CLIENT_EMAIL: ecs.Secret.fromSecretsManager(
           firebaseSecret,
-          "client_email"
+          "client_email",
         ),
         FIREBASE_PRIVATE_KEY: ecs.Secret.fromSecretsManager(
           firebaseSecret,
-          "private_key"
+          "private_key",
         ),
       },
       containerName: "api",

@@ -17,6 +17,11 @@ A modern upload management system for Fox Finance to receive documents from user
 - [Troubleshooting](#-troubleshooting)
 - [Additional Resources](#-additional-resources)
 
+## Mock-ups
+
+- [Admin Dashboard](https://v0-client-portal-dashboard-three.vercel.app/admin)
+- [Client Upload Portal](https://v0-user-upload-page-alpha.vercel.app/)
+
 ## 🏗️ Repository Structure
 
 This project is organized as a **monorepo** using [pnpm workspaces](https://pnpm.io/workspaces), allowing multiple applications and shared packages to coexist in a single repository.
@@ -206,8 +211,8 @@ postgres            "docker-entrypoint.s…"   postgres            running
 Apply the database schema using Prisma:
 
 ```bash
-# Navigate to the API app
-cd apps/api
+# Navigate to the Prisma package
+cd packages/prisma
 
 # Run migrations to create database tables
 pnpm prisma migrate dev
@@ -313,7 +318,6 @@ Whenever you need to modify the database schema, follow this workflow:
    ```
 
    This command will:
-
    - Generate a SQL migration file
    - Apply the migration to your local database
    - Regenerate the Prisma Client
