@@ -4,6 +4,7 @@ import clientsRouter from "./clients";
 import uploadLinksRouter from "./upload-links";
 import statsRouter from "./stats";
 import documentTypesRouter from "./document-types";
+import uploadsRouter from "./uploads";
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use("/clients", clientsRouter);
 router.use("/upload-links", uploadLinksRouter);
 router.use("/stats", statsRouter);
 router.use("/document-types", documentTypesRouter);
+router.use("/uploads", uploadsRouter);
 
 export default router;
