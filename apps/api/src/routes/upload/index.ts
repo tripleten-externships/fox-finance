@@ -11,7 +11,11 @@ import {
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
-import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import {
+  prisma,
+  degradeIfDatabaseUnavailable,
+  UploadProcessingStatus,
+} from "@fox-finance/prisma";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -38,6 +42,15 @@ interface BearerTokenPayload {
   clientId: string;
   type: "bearer";
 }
+
+const getNextRetryCount = (metadata: unknown): number => {
+  if (!metadata || typeof metadata !== "object") {
+    return 1;
+  }
+
+  const current = Number((metadata as Record<string, unknown>).retryCount || 0);
+  return Number.isFinite(current) ? current + 1 : 1;
+};
 
 /**
  * GET /api/upload/verify?token=xyz
@@ -215,7 +228,33 @@ router.post(
               expiresIn: PRESIGNED_URL_EXPIRY,
             });
 
+            // Create a placeholder upload record so UI can poll progress/status.
+            const upload = await degradeIfDatabaseUnavailable(() =>
+              prisma.upload.create({
+                data: {
+                  uploadLinkId,
+                  fileName: file.fileName,
+                  fileSize: file.contentLength,
+                  s3Key,
+                  s3Bucket: process.env.S3_UPLOADS_BUCKET || "",
+                  fileType: file.contentType,
+                  status: UploadProcessingStatus.UPLOADING,
+                  progress: 10,
+                  metadata: {
+                    mimeType: file.contentType,
+                    contentLength: file.contentLength,
+                    uploadedAt: new Date().toISOString(),
+                    source: "presigned-url",
+                  },
+                },
+                select: {
+                  id: true,
+                },
+              }),
+            );
+
             return {
+              uploadId: upload.id,
               fileName: file.fileName,
               s3Key,
               presignedUrl: url,
@@ -298,6 +337,20 @@ router.post(
         }
       } catch (error: any) {
         console.error("S3 HEAD object error:", error);
+        await degradeIfDatabaseUnavailable(() =>
+          prisma.upload.updateMany({
+            where: { s3Key, uploadLinkId: uploadLink.id },
+            data: {
+              status: UploadProcessingStatus.FAILED,
+              progress: 100,
+              errorMessage:
+                error?.name === "NotFound"
+                  ? "File not found in S3. Upload may not have completed successfully."
+                  : "Failed to verify uploaded file in S3.",
+            },
+          }),
+        );
+
         if (error.name === "NotFound") {
           return res.status(400).json({
             error:
@@ -318,38 +371,74 @@ router.post(
             where: { s3Key },
           });
 
-          if (existingUpload) {
-            return {
-              upload: existingUpload,
-              wasCreated: false,
-            };
-          }
+          let upload;
+          let wasCreated = false;
 
-          // Create new Upload record
-          const upload = await tx.upload.create({
-            data: {
-              uploadLinkId: uploadLink.id,
-              documentRequestId: documentRequestId ?? null,
-              fileName,
-              fileSize,
-              s3Key,
-              s3Bucket: bucketName,
-              metadata: {
-                mimeType: fileType,
-                fileType: fileType, // Store in metadata for compatibility
-                uploadedAt: new Date().toISOString(),
+          if (existingUpload) {
+            upload = await tx.upload.update({
+              where: { id: existingUpload.id },
+              data: {
+                documentRequestId: documentRequestId ?? null,
+                fileName,
+                fileSize,
+                s3Bucket: bucketName,
+                fileType,
+                status: UploadProcessingStatus.READY,
+                progress: 100,
+                errorMessage: null,
+                metadata: {
+                  mimeType: fileType,
+                  fileType,
+                  uploadedAt: new Date().toISOString(),
+                },
               },
-            },
-            select: {
-              id: true,
-              fileName: true,
-              fileSize: true,
-              s3Key: true,
-              s3Bucket: true,
-              uploadedAt: true,
-              metadata: true,
-            },
-          });
+              select: {
+                id: true,
+                fileName: true,
+                fileSize: true,
+                s3Key: true,
+                s3Bucket: true,
+                status: true,
+                progress: true,
+                errorMessage: true,
+                uploadedAt: true,
+                metadata: true,
+              },
+            });
+          } else {
+            // Create a completed Upload record for backward compatibility.
+            upload = await tx.upload.create({
+              data: {
+                uploadLinkId: uploadLink.id,
+                documentRequestId: documentRequestId ?? null,
+                fileName,
+                fileSize,
+                s3Key,
+                s3Bucket: bucketName,
+                fileType,
+                status: UploadProcessingStatus.READY,
+                progress: 100,
+                metadata: {
+                  mimeType: fileType,
+                  fileType: fileType, // Store in metadata for compatibility
+                  uploadedAt: new Date().toISOString(),
+                },
+              },
+              select: {
+                id: true,
+                fileName: true,
+                fileSize: true,
+                s3Key: true,
+                s3Bucket: true,
+                status: true,
+                progress: true,
+                errorMessage: true,
+                uploadedAt: true,
+                metadata: true,
+              },
+            });
+            wasCreated = true;
+          }
 
           // If this upload is part of a DocumentRequest, check if all uploads are complete
           if (documentRequestId) {
@@ -378,7 +467,7 @@ router.post(
 
           return {
             upload,
-            wasCreated: true,
+            wasCreated,
           };
         }),
       );
@@ -417,5 +506,174 @@ router.post(
     }
   },
 );
+
+/**
+ * GET /api/upload/status
+ *
+ * Poll upload statuses for the current upload link.
+ */
+router.get("/status", requireUploadToken, async (req: UploadAuthRequest, res, next) => {
+  try {
+    if (!req.uploadLink) {
+      return res.status(401).json({ error: "Upload link missing" });
+    }
+
+    const uploads = await degradeIfDatabaseUnavailable(() =>
+      prisma.upload.findMany({
+        where: {
+          uploadLinkId: req.uploadLink?.id,
+        },
+        orderBy: { uploadedAt: "desc" },
+        select: {
+          id: true,
+          fileName: true,
+          fileType: true,
+          fileSize: true,
+          status: true,
+          progress: true,
+          errorMessage: true,
+          uploadedAt: true,
+        },
+      }),
+    );
+
+    return res.json({ uploads });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /api/upload/status/:uploadId
+ *
+ * Update status (intended for scanner/processor hooks or client polling flow).
+ */
+router.patch(
+  "/status/:uploadId",
+  requireUploadToken,
+  async (req: UploadAuthRequest, res, next) => {
+    try {
+      if (!req.uploadLink) {
+        return res.status(401).json({ error: "Upload link missing" });
+      }
+
+      const { uploadId } = req.params;
+      const { status, progress, errorMessage } = req.body as {
+        status?: UploadProcessingStatus;
+        progress?: number;
+        errorMessage?: string | null;
+      };
+
+      if (!status) {
+        return res.status(400).json({ error: "status is required" });
+      }
+
+      if (!Object.values(UploadProcessingStatus).includes(status)) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
+
+      const nextProgress =
+        typeof progress === "number" ? Math.max(0, Math.min(100, progress)) : undefined;
+
+      const updated = await degradeIfDatabaseUnavailable(() =>
+        prisma.upload.updateMany({
+          where: {
+            id: uploadId,
+            uploadLinkId: req.uploadLink?.id,
+          },
+          data: {
+            status,
+            ...(nextProgress !== undefined ? { progress: nextProgress } : {}),
+            ...(errorMessage !== undefined ? { errorMessage } : {}),
+          },
+        }),
+      );
+
+      if (updated.count === 0) {
+        return res.status(404).json({ error: "Upload not found" });
+      }
+
+      return res.json({ message: "Status updated" });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /api/upload/:uploadId/retry
+ *
+ * Regenerates a pre-signed URL for a failed upload.
+ */
+router.post("/:uploadId/retry", requireUploadToken, async (req: UploadAuthRequest, res, next) => {
+  try {
+    if (!req.uploadLink) {
+      return res.status(401).json({ error: "Upload link missing" });
+    }
+
+    const { uploadId } = req.params;
+    const upload = await degradeIfDatabaseUnavailable(() =>
+      prisma.upload.findFirst({
+        where: {
+          id: uploadId,
+          uploadLinkId: req.uploadLink?.id,
+        },
+      }),
+    );
+
+    if (!upload) {
+      return res.status(404).json({ error: "Upload not found" });
+    }
+
+    if (upload.status !== UploadProcessingStatus.FAILED) {
+      return res.status(400).json({ error: "Only failed uploads can be retried" });
+    }
+
+    const nextS3Key = s3Service.generateKey({
+      uploadLinkId: req.uploadLink.id,
+      fileName: upload.fileName,
+      clientId: req.uploadLink.clientId,
+    });
+
+    const contentLength = Number(upload.fileSize);
+    if (!Number.isFinite(contentLength) || contentLength <= 0) {
+      return res.status(400).json({ error: "Invalid file size for retry" });
+    }
+
+    const { url } = await s3Service.generatePresignedUrl({
+      key: nextS3Key,
+      contentType: upload.fileType || "application/octet-stream",
+      contentLength,
+      expiresIn: PRESIGNED_URL_EXPIRY,
+    });
+
+    await degradeIfDatabaseUnavailable(() =>
+      prisma.upload.update({
+        where: { id: upload.id },
+        data: {
+          s3Key: nextS3Key,
+          status: UploadProcessingStatus.UPLOADING,
+          progress: 10,
+          errorMessage: null,
+          metadata: {
+            ...(upload.metadata as Record<string, unknown>),
+            retryCount: getNextRetryCount(upload.metadata),
+            lastRetryAt: new Date().toISOString(),
+          },
+        },
+      }),
+    );
+
+    return res.json({
+      uploadId: upload.id,
+      fileName: upload.fileName,
+      s3Key: nextS3Key,
+      presignedUrl: url,
+      expiresIn: PRESIGNED_URL_EXPIRY,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

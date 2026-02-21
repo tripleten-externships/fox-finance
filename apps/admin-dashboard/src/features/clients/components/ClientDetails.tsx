@@ -21,6 +21,8 @@ import {
   FaCopy,
   FaSpinner,
   FaTrash,
+  FaRedo,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import { apiClient } from "../../../lib/api";
 import { formatPhoneNumber } from "../../../lib/phoneUtils";
@@ -43,11 +45,14 @@ interface Client {
 interface Upload {
   id: string;
   fileName: string;
-  fileSize: number;
+  fileSize: number | string;
   s3Key: string;
   s3Bucket: string;
   fileType: string;
   uploadedAt: string;
+  status: "UPLOADING" | "SCANNING" | "PROCESSING" | "READY" | "FAILED";
+  progress: number;
+  errorMessage?: string | null;
 }
 
 interface UploadLink {
@@ -82,6 +87,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
 
   // Fetch upload links and uploads when accordion is expanded
   useEffect(() => {
@@ -121,11 +127,49 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   };
 
   // Helper function to format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const formatFileSize = (bytes: number | string): string => {
+    const size = typeof bytes === "number" ? bytes : Number(bytes);
+    if (!Number.isFinite(size) || size <= 0) return "0 B";
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  const getUploadStatusLabel = (status: Upload["status"]): string => {
+    switch (status) {
+      case "UPLOADING":
+        return "Uploading";
+      case "SCANNING":
+        return "Scanning";
+      case "PROCESSING":
+        return "Processing";
+      case "READY":
+        return "Ready";
+      case "FAILED":
+        return "Failed";
+      default:
+        return status;
+    }
+  };
+
+  const getUploadStatusBadgeClass = (status: Upload["status"]): string => {
+    switch (status) {
+      case "UPLOADING":
+        return "bg-blue-600 text-white hover:bg-blue-700";
+      case "SCANNING":
+      case "PROCESSING":
+        return "bg-yellow-500 text-black hover:bg-yellow-600";
+      case "READY":
+        return "bg-green-600 text-white hover:bg-green-700";
+      case "FAILED":
+        return "bg-red-600 text-white hover:bg-red-700";
+      default:
+        return "bg-secondary text-secondary-foreground";
+    }
+  };
+
+  const isUploadInProgress = (status: Upload["status"]): boolean =>
+    status === "UPLOADING" || status === "SCANNING" || status === "PROCESSING";
 
   // Helper function to format date
   const formatDate = (dateString: string): string => {
@@ -162,6 +206,45 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   const handleDownloadAll = () => {
     // TODO: Implement bulk download functionality
     console.log("Download all files");
+  };
+
+  const handleRetryUpload = async (uploadId: string) => {
+    setRetryingUploadId(uploadId);
+    try {
+      const response = await apiClient(
+        `/api/admin/upload-links/uploads/${uploadId}/retry`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to retry upload");
+      }
+
+      setUploadLinks((prevLinks) =>
+        prevLinks.map((link) => ({
+          ...link,
+          uploads: link.uploads.map((upload) =>
+            upload.id === uploadId
+              ? {
+                  ...upload,
+                  status: "UPLOADING",
+                  progress: 10,
+                  errorMessage: null,
+                }
+              : upload,
+          ),
+        })),
+      );
+
+      toast.success("Retry started. New upload URL generated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to retry upload");
+    } finally {
+      setRetryingUploadId(null);
+    }
   };
 
   // Handler for successful link creation
@@ -549,29 +632,87 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                     {allUploads.map((upload) => (
                       <div
                         key={upload.id}
-                        className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                        className="p-3 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FaFile className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {upload.fileName}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{formatFileSize(upload.fileSize)}</span>
-                              <span>•</span>
-                              <span>{formatDate(upload.uploadedAt)}</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <FaFile className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {upload.fileName}
+                                </p>
+                                <Badge
+                                  className={getUploadStatusBadgeClass(
+                                    upload.status,
+                                  )}
+                                >
+                                  {getUploadStatusLabel(upload.status)}
+                                </Badge>
+                                {upload.status === "FAILED" &&
+                                  upload.errorMessage && (
+                                    <span
+                                      className="text-red-600 dark:text-red-500"
+                                      title={upload.errorMessage}
+                                      aria-label={upload.errorMessage}
+                                    >
+                                      <FaExclamationCircle className="w-4 h-4" />
+                                    </span>
+                                  )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{formatFileSize(upload.fileSize)}</span>
+                                <span>•</span>
+                                <span>{formatDate(upload.uploadedAt)}</span>
+                                {typeof upload.progress === "number" && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{upload.progress}%</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {upload.status === "FAILED" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRetryUpload(upload.id)}
+                                disabled={retryingUploadId === upload.id}
+                                title="Retry failed upload"
+                              >
+                                {retryingUploadId === upload.id ? (
+                                  <FaSpinner className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <FaRedo className="w-3 h-3" />
+                                )}
+                                <span className="ml-1">Retry</span>
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Download file"
+                              onClick={() => handleDownload(upload)}
+                            >
+                              <FaDownload className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Download file"
-                          onClick={() => handleDownload(upload)}
-                        >
-                          <FaDownload className="w-4 h-4" />
-                        </Button>
+
+                        {isUploadInProgress(upload.status) && (
+                          <div className="mt-3">
+                            <div className="h-2 w-full rounded bg-muted overflow-hidden">
+                              <div
+                                className="h-full bg-blue-600 transition-all duration-300"
+                                style={{
+                                  width: `${Math.max(0, Math.min(100, upload.progress || 0))}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
