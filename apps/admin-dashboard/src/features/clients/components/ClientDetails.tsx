@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Badge,
   Button,
@@ -73,6 +73,8 @@ interface ClientDetailsProps {
   onClientDeleted?: () => void; // Callback when client is deleted
 }
 
+const POLL_INTERVAL_MS = 3000;
+
 export const ClientDetails: React.FC<ClientDetailsProps> = ({
   client,
   onClientUpdated,
@@ -88,16 +90,14 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
-
-  // Fetch upload links and uploads when accordion is expanded
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchData = async () => {
-      setIsLoading(true);
+  const fetchUploadLinks = useCallback(
+    async (showLoader: boolean = true) => {
+      if (showLoader) {
+        setIsLoading(true);
+      }
       setError(null);
+
       try {
-        // Fetch upload links for this client
         const response = await apiClient(
           `/api/admin/upload-links?clientId=${client.id}`,
         );
@@ -110,15 +110,43 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
         setError(err instanceof Error ? err.message : "An error occurred");
         console.error("Error fetching upload links:", err);
       } finally {
-        setIsLoading(false);
+        if (showLoader) {
+          setIsLoading(false);
+        }
       }
-    };
+    },
+    [client.id],
+  );
 
-    fetchData();
-  }, [isOpen, client.id]);
+  // Initial fetch when accordion is expanded.
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchUploadLinks(true);
+  }, [isOpen, fetchUploadLinks]);
 
   // Extract all uploads from upload links
   const allUploads = uploadLinks.flatMap((link) => link.uploads || []);
+  const hasInProgressUploads = useMemo(
+    () =>
+      allUploads.some(
+        (upload) =>
+          upload.status === "UPLOADING" ||
+          upload.status === "SCANNING" ||
+          upload.status === "PROCESSING",
+      ),
+    [allUploads],
+  );
+
+  // Poll while accordion is open and uploads are still processing.
+  useEffect(() => {
+    if (!isOpen || !hasInProgressUploads) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchUploadLinks(false);
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [isOpen, hasInProgressUploads, fetchUploadLinks]);
 
   const getStatusVariant = (
     status: Client["status"],
@@ -252,23 +280,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
     setIsDialogOpen(false);
     // Refresh upload links if the accordion is open
     if (isOpen) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await apiClient(
-          `/api/admin/upload-links?clientId=${client.id}`,
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch upload links");
-        }
-        const data = await response.json();
-        setUploadLinks(data.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching upload links:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      await fetchUploadLinks(true);
     }
   };
 
