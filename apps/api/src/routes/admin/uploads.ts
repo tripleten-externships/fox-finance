@@ -35,7 +35,8 @@ router.get('/:id/download', async (req, res, next) => {
         // Generate a pre-signed URL (valid for 1 hour)
         const downloadUrl = await s3Service.generatePresignedGetUrl(
             upload.s3Key,
-            3600
+            3600,
+            upload.s3Bucket
         );
 
         // Return data to the frontend

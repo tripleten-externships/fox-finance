@@ -33,15 +33,19 @@ export class S3Service {
     return { url, key };
   }
 
-  async generatePresignedGetUrl(key: string, expiresIn: number = 900) {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
+async generatePresignedGetUrl(
+  key: string,
+  expiresIn: number = 900,
+  bucket: string = BUCKET_NAME,
+) {
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn });
-    return url;
-  }
+  const url = await getSignedUrl(s3Client, command, { expiresIn });
+  return url;
+}
 
   generateKey(params: {
     uploadLinkId: string;

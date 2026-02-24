@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiClient } from '../../../lib/api';
 
 // Define the props for the DownloadButton component
 interface DownloadButtonProps {
@@ -17,20 +18,13 @@ export default function DownloadButton({ uploadId }: DownloadButtonProps) {
             setLoading(true);
             setError(null);
 
-
-            // Get the auth token from localStorage
-            const token = localStorage.getItem('authToken');
-            if (!token) {
-                throw new Error('Authentication token not found');
-            }
-
             // Fetch the download URL from the backend
-            const response = await fetch(`http://localhost:4000/api/admin/uploads/${uploadId}/download`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            const response = await apiClient(
+                `/api/admin/uploads/${uploadId}/download`,
+                {
+                    method: "GET",
+                }
+            );
 
 
             // Check if the response is OK
@@ -40,10 +34,10 @@ export default function DownloadButton({ uploadId }: DownloadButtonProps) {
 
             const data = await response.json();
 
-            // create invisible link and click it to trigger download
+            // Create invisible link and click it to trigger download
             const link = document.createElement('a');
             link.href = data.downloadUrl;
-            link.download = data.filename || ''; // Use the filename from the response or an empty string if not available
+            link.download = data.filename || ''; // Using the filename from the response or an empty string if not available
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
