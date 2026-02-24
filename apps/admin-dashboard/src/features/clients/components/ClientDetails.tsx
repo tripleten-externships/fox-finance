@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Badge,
   Button,
@@ -88,6 +88,13 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
+  const [selectedUploadIds, setSelectedUploadIds] = useState<string[]>([]);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+  const [bulkDownloadProgress, setBulkDownloadProgress] = useState(0);
+  const bulkDownloadAbortRef = useRef<AbortController | null>(null);
+
+  const MAX_BULK_DOWNLOAD_FILES = 50;
+  const MAX_BULK_DOWNLOAD_BYTES = 100 * 1024 * 1024;
 
   // Fetch upload links and uploads when accordion is expanded
   useEffect(() => {
@@ -119,6 +126,42 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
 
   // Extract all uploads from upload links
   const allUploads = uploadLinks.flatMap((link) => link.uploads || []);
+
+  const selectedUploads = useMemo(
+    () => allUploads.filter((upload) => selectedUploadIds.includes(upload.id)),
+    [allUploads, selectedUploadIds],
+  );
+
+  const selectedTotalBytes = useMemo(
+    () =>
+      selectedUploads.reduce((sum, upload) => {
+        const size =
+          typeof upload.fileSize === "number"
+            ? upload.fileSize
+            : Number(upload.fileSize);
+        return sum + (Number.isFinite(size) ? size : 0);
+      }, 0),
+    [selectedUploads],
+  );
+
+  const isOverBulkSizeLimit = selectedTotalBytes > MAX_BULK_DOWNLOAD_BYTES;
+  const areAllUploadsSelected =
+    allUploads.length > 0 && selectedUploadIds.length === allUploads.length;
+
+  useEffect(() => {
+    // Prune selections that no longer exist after list refresh.
+    setSelectedUploadIds((prev) => {
+      const next = prev.filter((selectedId) =>
+        allUploads.some((upload) => upload.id === selectedId),
+      );
+
+      if (next.length === prev.length && next.every((id, idx) => id === prev[idx])) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [allUploads]);
 
   const getStatusVariant = (
     status: Client["status"],
@@ -197,15 +240,127 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
 
   // Helper function to handle download
   const handleDownload = async (upload: Upload) => {
-    // TODO: Implement presigned URL generation via API
-    console.log("Download file:", upload.fileName);
-    // Placeholder: In production, this would call an API endpoint to get a presigned S3 URL
+    await handleDownloadSelected([upload.id]);
   };
 
-  // Helper function to download all files
-  const handleDownloadAll = () => {
-    // TODO: Implement bulk download functionality
-    console.log("Download all files");
+  const getDownloadFileName = (response: Response): string => {
+    const contentDisposition = response.headers.get("Content-Disposition");
+    const fileNameMatch = contentDisposition?.match(/filename="?([^"]+)"?/i);
+    return fileNameMatch?.[1] || "uploads.zip";
+  };
+
+  const saveBlobAsFile = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSelected = async (overrideIds?: string[]) => {
+    const uploadIds = overrideIds ?? selectedUploadIds;
+
+    if (uploadIds.length === 0) {
+      return;
+    }
+
+    if (uploadIds.length > MAX_BULK_DOWNLOAD_FILES) {
+      toast.error(`You can only download up to ${MAX_BULK_DOWNLOAD_FILES} files at once.`);
+      return;
+    }
+
+    const uploadMap = new Map(allUploads.map((upload) => [upload.id, upload]));
+    const totalBytes = uploadIds.reduce((sum, id) => {
+      const upload = uploadMap.get(id);
+      if (!upload) return sum;
+      const size =
+        typeof upload.fileSize === "number"
+          ? upload.fileSize
+          : Number(upload.fileSize);
+      return sum + (Number.isFinite(size) ? size : 0);
+    }, 0);
+
+    if (totalBytes > MAX_BULK_DOWNLOAD_BYTES) {
+      toast.error("Selected files exceed the 100MB limit.");
+      return;
+    }
+
+    const abortController = new AbortController();
+    bulkDownloadAbortRef.current = abortController;
+    setIsBulkDownloading(true);
+    setBulkDownloadProgress(5);
+
+    const interval = window.setInterval(() => {
+      setBulkDownloadProgress((prev) => (prev >= 90 ? prev : prev + 5));
+    }, 300);
+
+    try {
+      const response = await apiClient("/api/admin/uploads/bulk-download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uploadIds }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Failed to create ZIP archive");
+      }
+
+      const blob = await response.blob();
+      setBulkDownloadProgress(100);
+      saveBlobAsFile(blob, getDownloadFileName(response));
+      toast.success("Download started");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast("Download canceled");
+      } else {
+        toast.error(
+          err instanceof Error ? err.message : "Bulk download failed",
+        );
+      }
+    } finally {
+      window.clearInterval(interval);
+      setIsBulkDownloading(false);
+      setBulkDownloadProgress(0);
+      bulkDownloadAbortRef.current = null;
+    }
+  };
+
+  const cancelBulkDownload = () => {
+    bulkDownloadAbortRef.current?.abort();
+  };
+
+  const toggleUploadSelection = (uploadId: string, checked: boolean) => {
+    setSelectedUploadIds((prev) => {
+      if (checked) {
+        if (prev.length >= MAX_BULK_DOWNLOAD_FILES) {
+          toast.error(`Maximum ${MAX_BULK_DOWNLOAD_FILES} files per batch.`);
+          return prev;
+        }
+        if (prev.includes(uploadId)) {
+          return prev;
+        }
+        return [...prev, uploadId];
+      }
+      return prev.filter((id) => id !== uploadId);
+    });
+  };
+
+  const toggleSelectAllUploads = (checked: boolean) => {
+    if (!checked) {
+      setSelectedUploadIds([]);
+      return;
+    }
+    setSelectedUploadIds(allUploads.slice(0, MAX_BULK_DOWNLOAD_FILES).map((upload) => upload.id));
+    if (allUploads.length > MAX_BULK_DOWNLOAD_FILES) {
+      toast(`Only the first ${MAX_BULK_DOWNLOAD_FILES} files were selected.`);
+    }
   };
 
   const handleRetryUpload = async (uploadId: string) => {
@@ -611,17 +766,76 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                     </h3>
                   </div>
                   {allUploads.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownloadAll}
-                      className="flex items-center gap-2"
-                    >
-                      <FaDownload className="w-3 h-3" />
-                      Download All
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={areAllUploadsSelected}
+                          onChange={(e) => toggleSelectAllUploads(e.target.checked)}
+                          disabled={isBulkDownloading}
+                        />
+                        Select all
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadSelected()}
+                        className="flex items-center gap-2"
+                        disabled={
+                          selectedUploadIds.length === 0 ||
+                          isOverBulkSizeLimit ||
+                          isBulkDownloading
+                        }
+                      >
+                        {isBulkDownloading ? (
+                          <FaSpinner className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <FaDownload className="w-3 h-3" />
+                        )}
+                        Download selected
+                      </Button>
+                      {isBulkDownloading && (
+                        <Button
+                          variant="destructive-outline"
+                          size="sm"
+                          onClick={cancelBulkDownload}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
+
+                {selectedUploadIds.length > 0 && (
+                  <div className="mb-3 text-xs text-muted-foreground">
+                    <span>
+                      Selected {selectedUploadIds.length} file
+                      {selectedUploadIds.length === 1 ? "" : "s"} (
+                      {formatFileSize(selectedTotalBytes)})
+                    </span>
+                    {isOverBulkSizeLimit && (
+                      <p className="text-red-600 dark:text-red-500 mt-1">
+                        Warning: selected files exceed 100MB limit.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isBulkDownloading && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Creating ZIP archive...</span>
+                      <span>{bulkDownloadProgress}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 transition-all duration-300"
+                        style={{ width: `${bulkDownloadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {allUploads.length === 0 ? (
                   <div className="p-4 bg-card border border-border rounded-lg text-center text-muted-foreground text-sm">
@@ -636,6 +850,14 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedUploadIds.includes(upload.id)}
+                              onChange={(e) =>
+                                toggleUploadSelection(upload.id, e.target.checked)
+                              }
+                              disabled={isBulkDownloading}
+                            />
                             <FaFile className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
