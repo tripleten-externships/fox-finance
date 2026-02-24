@@ -24,8 +24,8 @@ interface Client {
 
 interface DocumentType {
   id: string;
-  name: string;
-  description: string;
+  name: string | null;
+  description: string | null;
 }
 
 interface RequestedDocument {
@@ -104,8 +104,8 @@ export default function CreateLinkForm({
     const search = documentInput.toLowerCase();
     return documentTypes.filter(
       (dt) =>
-        dt.name.toLowerCase().includes(search) ||
-        dt.description.toLowerCase().includes(search),
+        (dt.name ?? "").toLowerCase().includes(search) ||
+        (dt.description ?? "").toLowerCase().includes(search),
     );
   }, [documentInput, documentTypes]);
 
@@ -152,7 +152,7 @@ export default function CreateLinkForm({
 
   const handleSelectSuggestion = useCallback(
     (docType: DocumentType) => {
-      handleAddDocument(docType.name, docType.description);
+      handleAddDocument(docType.name ?? "", docType.description ?? undefined);
       setHighlightedIndex(0);
       inputRef.current?.focus();
     },
@@ -395,7 +395,9 @@ export default function CreateLinkForm({
                         handleSelectSuggestion(docType);
                       }}
                     >
-                      <div className="font-medium text-sm">{docType.name}</div>
+                      <div className="font-medium text-sm">
+                        {docType.name || "Unnamed document type"}
+                      </div>
                       {docType.description && (
                         <div className="text-xs text-muted-foreground">
                           {docType.description}
