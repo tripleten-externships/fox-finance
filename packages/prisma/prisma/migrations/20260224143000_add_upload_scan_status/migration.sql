@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "ScanStatus" AS ENUM ('PENDING', 'SCANNING', 'CLEAN', 'THREAT_DETECTED', 'FAILED');
+
+-- AlterTable
+ALTER TABLE "Upload"
+ADD COLUMN "scanResult" TEXT,
+ADD COLUMN "scanStatus" "ScanStatus" NOT NULL DEFAULT 'PENDING',
+ADD COLUMN "scannedAt" TIMESTAMP(3);
+
