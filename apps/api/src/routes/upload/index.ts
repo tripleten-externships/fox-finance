@@ -12,6 +12,7 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -334,6 +335,7 @@ router.post(
               fileSize,
               s3Key,
               s3Bucket: bucketName,
+              scanStatus: "SCANNING",
               metadata: {
                 mimeType: fileType,
                 fileType: fileType, // Store in metadata for compatibility
@@ -347,6 +349,8 @@ router.post(
               s3Key: true,
               s3Bucket: true,
               uploadedAt: true,
+              scanStatus: true,
+              scanResult: true,
               metadata: true,
             },
           });
@@ -383,11 +387,13 @@ router.post(
         }),
       );
 
-      // Generate a presigned download URL for the uploaded file
-      const downloadUrl = await s3Service.generatePresignedGetUrl(
-        s3Key,
-        3600, // 1 hour
-      );
+      const downloadUrl =
+        result.upload.scanStatus === "CLEAN"
+          ? await s3Service.generatePresignedGetUrl(
+              s3Key,
+              3600, // 1 hour
+            )
+          : null;
 
       // Extract fileType from metadata
       const metadata = result.upload.metadata as {
@@ -396,6 +402,10 @@ router.post(
       };
       const uploadFileType =
         metadata?.fileType || metadata?.mimeType || "unknown";
+
+      if (result.wasCreated) {
+        queueUploadScan(result.upload.id);
+      }
 
       return res.json({
         message: result.wasCreated
@@ -408,6 +418,8 @@ router.post(
           fileType: uploadFileType,
           s3Key: result.upload.s3Key,
           uploadedAt: result.upload.uploadedAt,
+          scanStatus: result.upload.scanStatus,
+          scanResult: result.upload.scanResult,
           downloadUrl,
         },
       });
