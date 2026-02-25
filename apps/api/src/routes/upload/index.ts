@@ -8,6 +8,10 @@ import {
   getPresignedUrlSchema,
   completeUploadSchema,
 } from "../../schemas/uploadLink.schema";
+import {
+  validateFileMetadata,
+  getAllowedFileTypesDescription,
+} from "../../utils/fileValidation";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
@@ -17,12 +21,26 @@ import jwt from "jsonwebtoken";
 const router = Router();
 
 // Configuration constants
-const ALLOWED_FILE_TYPES = [
+
+export const ALLOWED_MIME_TYPES = [
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  // Images
   "image/png",
   "image/jpeg",
   "image/jpg",
-  "application/pdf",
-];
+  "image/gif",
+  "image/webp",
+  "image/bmp",
+  // Archives
+  "application/zip",
+] as const;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const PRESIGNED_URL_EXPIRY = 900; // 15 minutes
 const BEARER_TOKEN_EXPIRY = 3600 * 24 * 7; // 7 days
@@ -176,10 +194,18 @@ router.post(
 
       // Validate file types and sizes
       for (const file of files) {
-        if (!ALLOWED_FILE_TYPES.includes(file.contentType)) {
+        // Validate file metadata (extension and MIME type)
+        const validation = validateFileMetadata(
+          file.fileName,
+          file.contentType,
+        );
+        if (!validation.isValid) {
           return res.status(400).json({
-            error: `Unsupported file type: ${file.contentType}. Allowed types: ${ALLOWED_FILE_TYPES.join(", ")}`,
+            error: validation.error,
             fileName: file.fileName,
+            contentType: file.contentType,
+            allowedTypes: getAllowedFileTypesDescription(),
+            details: "Please upload a supported file type",
           });
         }
 
@@ -188,6 +214,7 @@ router.post(
             error: `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
             fileName: file.fileName,
             fileSize: file.contentLength,
+            maxSize: MAX_FILE_SIZE,
           });
         }
       }
