@@ -32,6 +32,14 @@ router.get('/:id/download', async (req, res, next) => {
             return res.status(404).json({ error: 'Upload not found' });
         }
 
+        // Increment download count
+        await prisma.upload.update({
+            where: { id: upload.id },
+            data: {
+                downloadCount: { increment: 1 },
+            },
+        });
+
         // Generate a pre-signed URL (valid for 1 hour)
         const downloadUrl = await s3Service.generatePresignedGetUrl(
             upload.s3Key,
@@ -45,7 +53,7 @@ router.get('/:id/download', async (req, res, next) => {
             fileName: upload.fileName,
             fileSize: upload.fileSize,
             virusScanStatus: upload.virusScanStatus || 'pending',
-            downloadCount: upload.downloadCount,
+            downloadCount: upload.downloadCount + 1, // Include the incremented count
             downloadUrl,
         });
     } catch (error) {
