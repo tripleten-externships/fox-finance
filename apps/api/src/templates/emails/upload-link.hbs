@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Document Upload Link</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Roboto, sans-serif;">
+    <!--Email body container-->
+ <div style="max-width: 600px; margin: 0 auto; padding: 32px; background-color: #FDFDFD; font-family: Roboto, sans-serif;">
+    <!-- HEADER — Fox Finance wordmark on teal background waiting for logo-->
+    <div style="background-color:#4A7C7E; padding: 32px;">
+        <h1 style="color: white; font-family: Georgia, serif; font-size: 24px; font-weight: normal; margin: 0">Fox Finance</h1>
+    </div>
+    <!--Message -->
+    <div>
+         <!-- Personalized greeting using client's first name from database -->
+        <p style="margin-bottom: 16px;">Hello {{firstName}},</p> 
+            <p>You have been requested to submit documents to Fox Finance as part of your application review. Please use the secure link below to upload your files.</p>
+            <!--CTA button container-->
+            <div style="text-align: center; margin: 24px 0;">
+        <a href="{{uploadLink}}"
+        style="background-color: #3B9EFF; color: #FFFFFF; padding: 14px 32px; 
+                  text-decoration: none; border-radius: 22px; font-size: 16px; 
+                  font-weight: bold; display: inline-block;">Upload your documents here</a>
+                  </div>
+                  <!-- Expiry date warning message-->
+        <p style="text-align: center; font-weight: bold; color: #525252">This link will expire on {{expiresAt}}</p>
+    </div>
+     <!-- FOOTER — Company info, support contact, unsubscribe -->
+    <div style="background-color: #f4f4f4; border: 1px solid #E8E8F0; padding: 24px 32px; font-size: 12px">
+<p style="color: #000000; font-size: 16px; margin: 4px 0; font-family: Georgia, serif;">Fox Finance</p>
+<!--Company info-->
+<p style="margin: 8px 0;">loans@foxfinance.net</p>
+<p style="margin: 0;">400 North 4th Street, Ste 230
+Saint Louis, MO 63102</p>
+<p style="margin: 0;">(314) 436-5600</p>
+<p style="margin: 16px 0 0 0; color: #525252;">© 2026 Fox Finance. All rights reserved.</p>
+<!--Unsubscribe button-->
+<div style="text-align: center; font-size: 12px;">
+<a href="{{unsubscribeLink}}"
+style="color: #525252; text-decoration: underline;">Unsubscribe</a>
+</div>
+    </div>
+ </div>
+</body>
+</html>
