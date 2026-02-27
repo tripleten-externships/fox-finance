@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../../middleware/auth';
 import { prisma } from '@fox-finance/prisma';
-import { s3Service } from 'src/services/s3.service';
+import { s3Service } from '../../services/s3.service';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from '../../lib/s3';
 
 const router = Router();
 
@@ -40,12 +42,8 @@ router.get('/:id/download', async (req, res, next) => {
             },
         });
 
-        // Generate a pre-signed URL (valid for 1 hour)
-        const downloadUrl = await s3Service.generatePresignedGetUrl(
-            upload.s3Key,
-            3600,
-            upload.s3Bucket
-        );
+        // Generate a pre-signed URL for the file in S3
+        const downloadUrl = `/api/admin/uploads/${upload.id}/download/file`;
 
         // Return data to the frontend
         res.json({
@@ -61,5 +59,57 @@ router.get('/:id/download', async (req, res, next) => {
         next(error);
     }
 });
+
+// GET /api/admin/uploads/:id/download/file - Stream the file directly (for testing or internal use)
+router.get('/:id/download/file', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Find the upload record to get the S3 key
+        const upload = await prisma.upload.findUnique({
+            where: { id },
+            select: {
+                fileName: true,
+                s3Key: true,
+                s3Bucket: true,
+            },
+        });
+
+        if (!upload) {
+            return res.status(404).json({ error: 'Upload not found' });
+        }
+
+        // Get the file from S3
+        const command = new GetObjectCommand({
+            Bucket: upload.s3Bucket,
+            Key: upload.s3Key,
+        });
+
+        const s3Response = await s3Client.send(command);
+
+        // Set headers so browser treats it as a file download
+        res.setHeader('Content-Disposition', `attachment; filename="${upload.fileName}"`);
+
+        if (s3Response.ContentType) {
+            res.setHeader('Content-Type', s3Response.ContentType);
+        }
+
+        if (s3Response.ContentLength) {
+            res.setHeader('Content-Length', s3Response.ContentLength);
+        }
+
+         // Stream body to response
+        const body = s3Response.Body;
+
+        if (!body) {
+            return res.status(500).json({ error: 'Empty S3 response body' });
+        }
+
+        // Body is a Readable stream, so we can pipe it directly to the response
+        (body as NodeJS.ReadableStream).pipe(res);
+    } catch (error) {
+        console.error('Error streaming file from S3:', error);
+        next(error);
+    }});
 
 export default router;
