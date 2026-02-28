@@ -134,6 +134,8 @@ model Upload {
   s3Key             String
   s3Bucket          String
   fileType          String           @default("unknown")
+  downloadCount     Int              @default(0)
+  virusScanStatus   String           @default("pending")
 
   uploadedAt    DateTime     @updatedAt
   metadata      Json

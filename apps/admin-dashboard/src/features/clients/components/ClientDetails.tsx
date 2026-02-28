@@ -26,6 +26,7 @@ import { apiClient } from "../../../lib/api";
 import { formatPhoneNumber } from "../../../lib/phoneUtils";
 import CreateLinkForm from "../../upload-links/components/CreateLinkForm";
 import CreateClientForm from "./CreateClientForm";
+import DownloadButton from "../../documents/components/DownloadButton";
 
 // Type definitions based on Prisma schema
 interface Client {
@@ -149,13 +150,6 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
     } catch (err) {
       console.error("Failed to copy link:", err);
     }
-  };
-
-  // Helper function to handle download
-  const handleDownload = async (upload: Upload) => {
-    // TODO: Implement presigned URL generation via API
-    console.log("Download file:", upload.fileName);
-    // Placeholder: In production, this would call an API endpoint to get a presigned S3 URL
   };
 
   // Helper function to download all files
@@ -564,14 +558,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Download file"
-                          onClick={() => handleDownload(upload)}
-                        >
-                          <FaDownload className="w-4 h-4" />
-                        </Button>
+                       <DownloadButton uploadId={upload.id} />
                       </div>
                     ))}
                   </div>
