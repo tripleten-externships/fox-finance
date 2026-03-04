@@ -11,6 +11,8 @@ async function start() {
   const app = express();
   const httpServer = http.createServer(app);
 
+  app.set("trust proxy", parseInt(process.env.TRUST_PROXY_HOPS || "1", 10));
+
   // Health check endpoints
   app.use("/health", healthRoutes);
 

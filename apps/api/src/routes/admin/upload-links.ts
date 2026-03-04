@@ -3,6 +3,7 @@ import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
+import { adminUploadLinkCreationRateLimit } from "../../middleware/rateLimit";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
@@ -124,7 +125,11 @@ router.get("/:id", async (req, res, next) => {
 });
 
 // POST /api/admin/upload-links - Create a new upload link
-router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
+router.post(
+  "/",
+  adminUploadLinkCreationRateLimit,
+  validate(createUploadLinkSchema),
+  async (req, res, next) => {
   try {
     const { clientId, expiresAt, requestedDocuments, instructions } = req.body;
 

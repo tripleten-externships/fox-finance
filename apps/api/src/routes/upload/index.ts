@@ -14,6 +14,10 @@ import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
+import {
+  uploadCompletionRateLimit,
+  uploadPresignedUrlRateLimit,
+} from "../../middleware/rateLimit";
 
 const router = Router();
 
@@ -165,6 +169,7 @@ router.get("/verify", async (req, res, next) => {
 router.post(
   "/presigned-url",
   requireUploadToken,
+  uploadPresignedUrlRateLimit,
   validate(getPresignedUrlSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
@@ -259,6 +264,7 @@ router.post(
 router.post(
   "/complete",
   requireUploadToken,
+  uploadCompletionRateLimit,
   validate(completeUploadSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
