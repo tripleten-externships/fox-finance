@@ -27,7 +27,7 @@ const POOL_TIMEOUT = process.env.DB_POOL_TIMEOUT
 const getDatabaseUrl = () => {
   const baseUrl =
     process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/fox-finance";
+    "postgresql://postgres:postgres@localhost:1234/fox-finance";
   const url = new URL(baseUrl);
 
   // Add pooling parameters
