@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import  { Routes, Route } from "react-router-dom";
 import {
   Button,
   Badge,
@@ -190,7 +191,14 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-md">Active Links</CardTitle>
+                  <div className="flex gap-4 items-center">
+                    <CardTitle className="text-md">Active Links</CardTitle>
+                    <Routes>
+                    <Route path="/linkAnalytics">
+                      <Button variant="secondary" size="sm" className="h-4 text-xs">View Details</Button>
+                    </Route>
+                    </Routes>
+                  </div>
                   <FaLink className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
