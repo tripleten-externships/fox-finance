@@ -1,22 +1,20 @@
 // Import graphs, charts, etc. from recharts; Look at Charts.tsx in dashboard
-import React, { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import {
   Button,
-  Badge,
   //Card,
   //CardHeader,
   //CardTitle,
   //CardContent,
 } from "@fox-finance/ui";
-import { FaRegBell, FaRegMoon, FaSun} from "react-icons/fa";
-import { FaRegFileLines } from "react-icons/fa6";
+import { FaRegMoon, FaSun} from "react-icons/fa";
 import { useColorMode } from "@fox-finance/theme";
 import useAuth from "../../../hooks/useAuth";
-import { apiClient } from "../../../lib/api";
+// import { apiClient } from "../../../lib/api";
 
 import Charts from "../../dashboard/Charts.tsx";
 
-interface StatsData {
+/*interface StatsData {
   totalClients: number;
   activeClients: number;
   uploadMetrics: {
@@ -25,9 +23,9 @@ interface StatsData {
     completedUploadLinks: number;
     pendingFileUploads: number;
   };
-}
+}*/
 
-interface StatsResponse {
+/*interface StatsResponse {
   data: StatsData;
   meta: {
     performance: {
@@ -36,15 +34,13 @@ interface StatsResponse {
     };
     generatedAt: string;
   };
-}
+}*/
 
-const LinkAnalytics: React.FC<{ children?: React.ReactNode }> = ({
-  children,
-}) => {
+const LinkAnalytics: React.FC = () => {
   const { logout } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
 
-  const [stats, setStats] = useState<StatsData | null>(null);
+  /*const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +64,7 @@ const LinkAnalytics: React.FC<{ children?: React.ReactNode }> = ({
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, []);*/
 
   const handleSignOut = async () => {
     try {
@@ -77,18 +73,21 @@ const LinkAnalytics: React.FC<{ children?: React.ReactNode }> = ({
       console.error("Error signing out:", error);
     }
   };
+
  return (
  <div className="flex h-screen bg-background text-foreground">
    <div className="flex flex-col flex-1">
-      <header className="border-b bg-card shadow-sm">
+      <header className="bg-secondary shadow-sm">
                 <div className="flex items-center justify-between px-6 py-4">
                   {/* Left side: Title and Subtitle */}
+                  <NavLink to="/dashboard">
                   <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold">Link Analytics</h1>
+                    <h1 className="text-2xl font-bold">Analytics</h1>
                     <p className="text-sm text-muted-foreground">
-                      Document Management Dashboard
+                      Link Analytics and Usage Statistics
                     </p>
                   </div>
+                  </NavLink>
       
                   {/* Right side: Icon Buttons */}
                   <div className="flex items-center gap-2">
@@ -106,23 +105,8 @@ const LinkAnalytics: React.FC<{ children?: React.ReactNode }> = ({
                       )}
                     </Button>
       
-                    {/* Notifications icon button with badge */}
-                    <div className="relative">
-                      <Button variant="ghost" size="icon">
-                        <FaRegBell className="h-5 w-5" />
-                      </Button>
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                        3
-                      </Badge>
-                    </div>
-      
-                    {/* Document/file icon button */}
-                    <Button variant="ghost" size="icon">
-                      <FaRegFileLines className="h-5 w-5" />
-                    </Button>
-      
                     {/* Sign Out button */}
-                    <Button variant="outline" onClick={handleSignOut}>
+                    <Button variant="ghost" onClick={handleSignOut} className="bg-secondary">
                       Sign Out
                     </Button>
                   </div>
