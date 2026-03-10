@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Upload Completed &mdash; {{clientName}}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Roboto, sans-serif;">
+
+  <!-- Email body container -->
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px; background-color: #FDFDFD; font-family: Roboto, sans-serif;">
+
+    <!-- HEADER — Fox Finance wordmark on teal background -->
+    <div style="background-color:#4A7C7E; padding: 32px;">
+      <h1 style="color: white; font-family: Georgia, serif; font-size: 24px; font-weight: normal; margin: 0;">Fox Finance</h1>
+    </div>
+
+    <!-- MESSAGE — Notification to admin that a client completed their upload -->
+    <div style="padding: 24px 0;">
+      <!-- Personalized greeting using admin's name -->
+      <p style="margin-bottom: 16px;">Hello {{adminName}},</p>
+      <p>This is a notification that <strong>{{clientName}}</strong> has completed their document upload. Please review the submitted documents at your earliest convenience.</p>
+
+      <!-- CLIENT DETAILS — Summary of who uploaded and when -->
+      <div style="background-color: #f4f4f4; border: 1px solid #E8E8F0; border-radius: 8px; padding: 16px 24px; margin: 24px 0;">
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Client:</strong> {{clientName}}</p>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Email:</strong> {{clientEmail}}</p>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Uploaded at:</strong> {{uploadedAt}}</p>
+      </div>
+    </div>
+
+    <!-- FOOTER — Company info only, no unsubscribe needed for internal email -->
+    <div style="background-color: #f4f4f4; border: 1px solid #E8E8F0; padding: 24px 32px; font-size: 12px;">
+      <p style="color: #000000; font-size: 16px; margin: 4px 0; font-family: Georgia, serif;">Fox Finance</p>
+      <p style="margin: 8px 0;">loans@foxfinance.net</p>
+      <p style="margin: 0;">400 North 4th Street, Ste 230<br>Saint Louis, MO 63102</p>
+      <p style="margin: 0;">(314) 436-5600</p>
+      <p style="margin: 16px 0 0 0; color: #525252;">© 2026 Fox Finance. All rights reserved.</p>
+    </div>
+
+  </div>
+</body>
+</html>
