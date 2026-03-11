@@ -39,7 +39,32 @@ export class UploadNotificationService {
 
             // log that upload notification context was loaded, include uploadId, clientId, clientName, fileName, and fileSize in the log
             console.log(`Upload notification context loaded for uploadId ${uploadId}: clientId=${clientId}, clientName=${clientName}, fileName=${fileName}, fileSize=${fileSize}`);
-         }
-    }
+
+            // Create a variable date representing the start of the rate limit window. We want a timestamp for 1 minute ago
+            const oneMinuteAgo = new Date();
+            oneMinuteAgo.setMinutes(oneMinuteAgo.getMinutes() - 1);
+
+            // Query the uploadNotificationLog for a recent notification for this client. We want to find the most recent notification where clientId matches this client and sentAt is within the last minute.
+            const recentNotification = await prisma.uploadNotificationLog.findFirst({
+                where: {
+                    clientId: clientId,
+                    sentAt: {
+                        gte: oneMinuteAgo
+                    }
+                },
+                orderBy: {
+                    sentAt: 'desc'
+                }
+            });
+
+            // If we find a recent notification, log that notification was skipped due to rate limiting, and return
+            if (recentNotification) {
+                console.log(`Upload notification for clientId ${clientId} skipped due to rate limiting. Most recent notification sent at ${recentNotification.sentAt}`);
+                return;
+            } else {
+        }      // If we do not find a recent notification, log that notification will be sent
+            console.log(`No recent notification found for clientId ${clientId} - notification will be sent.`);
+        }
+}
 
 export const uploadNotificationService = new UploadNotificationService();
