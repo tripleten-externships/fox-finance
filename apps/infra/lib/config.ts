@@ -23,6 +23,11 @@ export interface EnvironmentConfig {
   privateSubnetCidrs: string[];
   maxAzs: number;
 
+  upload:{
+    maxFileSize: number;
+    maxTotalSize: number;
+  }
+
   // Database Configuration (Aurora Serverless v2)
   database: {
     minCapacity: number; // ACUs
@@ -82,6 +87,11 @@ export const devConfig: EnvironmentConfig = {
   publicSubnetCidrs: ["10.0.1.0/24", "10.0.2.0/24"],
   privateSubnetCidrs: ["10.0.10.0/24", "10.0.11.0/24"],
   maxAzs: 2,
+
+   upload:{
+    maxFileSize:52428800, //50MB
+    maxTotalSize:5242880000, //500MB
+  },
 
   // Database - Cost-optimized for dev
   database: {
@@ -147,6 +157,11 @@ export const prodConfig: EnvironmentConfig = {
   publicSubnetCidrs: ["10.0.1.0/24", "10.0.2.0/24"],
   privateSubnetCidrs: ["10.0.10.0/24", "10.0.11.0/24"],
   maxAzs: 2,
+
+    upload:{
+    maxFileSize:52428800, //50MB
+    maxTotalSize:5242880000, //500MB
+  },
 
   // Database - Production-ready configuration
   database: {

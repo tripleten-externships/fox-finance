@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import { degradeIfDatabaseUnavailable, prisma } from "@fox-finance/prisma";
+import { degradeIfDatabaseUnavailable, prisma, Prisma } from "@fox-finance/prisma";
 import jwt from "jsonwebtoken";
 
 export interface UploadAuthRequest extends Request {
   uploadLink?: {
+    maxFileSize: Prisma.Decimal;
+    maxTotalSize:  Prisma.Decimal;
     id: string;
     clientId: string;
     token: string;
@@ -94,6 +96,8 @@ export async function requireUploadToken(
           expiresAt: true,
           isActive: true,
           client: true,
+          maxFileSize: true,
+          maxTotalSize:true,
         },
       }),
     );

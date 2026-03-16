@@ -85,6 +85,8 @@ model UploadLink {
   updatedBy        User?             @relation("UpdatedLinks", fields: [updatedById], references: [id])
   updatedById      String?
   updatedAt        DateTime          @updatedAt
+  maxFileSize      Decimal           @default(52428800)
+  maxTotalSize     Decimal           @default(5242880000)
   documentRequests DocumentRequest[]
   uploads          Upload[]
   UploadBatch      UploadBatch[]
