@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "UploadLink" ALTER COLUMN "maxTotalSize" SET DEFAULT 524288000;

@@ -86,7 +86,7 @@ model UploadLink {
   updatedById      String?
   updatedAt        DateTime          @updatedAt
   maxFileSize      Decimal           @default(52428800)
-  maxTotalSize     Decimal           @default(5242880000)
+  maxTotalSize     Decimal           @default(524288000)
   documentRequests DocumentRequest[]
   uploads          Upload[]
   UploadBatch      UploadBatch[]

@@ -90,7 +90,7 @@ export const devConfig: EnvironmentConfig = {
 
    upload:{
     maxFileSize:52428800, //50MB
-    maxTotalSize:5242880000, //500MB
+    maxTotalSize:524288000, //500MB
   },
 
   // Database - Cost-optimized for dev
@@ -160,7 +160,7 @@ export const prodConfig: EnvironmentConfig = {
 
     upload:{
     maxFileSize:52428800, //50MB
-    maxTotalSize:5242880000, //500MB
+    maxTotalSize:524288000, //500MB
   },
 
   // Database - Production-ready configuration
