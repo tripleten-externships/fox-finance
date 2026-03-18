@@ -1,4 +1,5 @@
 import { prisma } from "@fox-finance/prisma";
+import upload from "src/routes/upload";
 
 // Define the shape of the data we expect when the upload is called.
 type HandleUploadCompletedInput = {
@@ -64,7 +65,23 @@ export class UploadNotificationService {
             } else {
         }      // If we do not find a recent notification, log that notification will be sent
             console.log(`No recent notification found for clientId ${clientId} - notification will be sent.`);
-        }
+
+            // read uploadLinkId from upload.uploadLink.id
+        const uploadLinkId = upload.uploadLinkId;
+
+        // find all uploads where uploadLinkId matches this upload and updatedAt is within the last minute. order by uploadedAt ascending. Store result in recentUploads
+        const recentUploads = await prisma.upload.findMany({
+            where: {
+                uploadLinkId: uploadLinkId,
+                uploadedAt: {
+                    gte: oneMinuteAgo
+                }
+            },
+            orderBy: {
+                uploadedAt: 'asc'
+            }
+        });
+    }
 }
 
 export const uploadNotificationService = new UploadNotificationService();
