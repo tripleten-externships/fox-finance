@@ -81,6 +81,17 @@ export class UploadNotificationService {
                 uploadedAt: 'asc'
             }
         });
+
+        // fileCount = number of uploads in recentUploads
+        const fileCount = recentUploads.length;
+
+        // totalSize = sum of fileSize for all uploads in recentUploads. 
+        // Start with total = 0, and for each upload in recentUploads, add upload.fileSize to total, then return total.
+        // Convert fileSize to a number before adding
+        const totalSize = recentUploads.reduce((total, upload) => total + Number(upload.fileSize), 0);
+
+        // Log: Number of uploads found, filecount, totalSize, and clientId or clientName
+        console.log(`Found ${fileCount} uploads in the last minute for clientId ${clientId} (${clientName}). Total size: ${totalSize} bytes.`);
     }
 }
 
