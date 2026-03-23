@@ -1,5 +1,4 @@
 import { prisma } from "@fox-finance/prisma";
-import upload from "src/routes/upload";
 
 // Define the shape of the data we expect when the upload is called.
 type HandleUploadCompletedInput = {
@@ -62,8 +61,9 @@ export class UploadNotificationService {
             if (recentNotification) {
                 console.log(`Upload notification for clientId ${clientId} skipped due to rate limiting. Most recent notification sent at ${recentNotification.sentAt}`);
                 return;
-            } else {
-        }      // If we do not find a recent notification, log that notification will be sent
+            }      
+            
+            // If we do not find a recent notification, log that notification will be sent
             console.log(`No recent notification found for clientId ${clientId} - notification will be sent.`);
 
             // read uploadLinkId from upload.uploadLink.id
@@ -92,6 +92,14 @@ export class UploadNotificationService {
 
         // Log: Number of uploads found, filecount, totalSize, and clientId or clientName
         console.log(`Found ${fileCount} uploads in the last minute for clientId ${clientId} (${clientName}). Total size: ${totalSize} bytes.`);
+
+        // Query User table to find all users where role = admin and uploadNotificationEnabled = true. Store result in admins
+        const admins = await prisma.user.findMany({
+            where: {
+                role: 'ADMIN',
+                uploadNotificationEnabled: true
+            }
+        });
     }
 }
 

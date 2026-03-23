@@ -14,6 +14,7 @@ model User {
   name               String?
   photoUrl           String?
   role               Role         @default(USER)
+   uploadNotificationEnabled   Boolean      @default(true)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   createdUploadLinks UploadLink[] @relation("CreatedLinks")
