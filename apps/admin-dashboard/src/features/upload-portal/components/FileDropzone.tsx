@@ -9,8 +9,17 @@ const onDrop = (acceptedFiles: File[]) => {
   setFiles((prev) => [...prev, ...acceptedFiles]);
 };
 
-const { getRootProps, getInputProps, isDragActive } = useDropzone({
+const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
   onDrop,
+  accept: {
+    "image/*": [],
+    "application/pdf": [".pdf"],
+    "application/msword": [".doc"],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+    "application/vnd.ms-excel": [".xls"],
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+  },
+  maxSize: 40 * 1024 * 1024,
 });
 
 const getFileIcon = (file: File) => {
@@ -25,7 +34,9 @@ const getFileIcon = (file: File) => {
   return <File className="h-20 w-20" />;
 };
 
-const deleteButton = (name: string) => {
+const deleteButton = (evt: React.MouseEvent<HTMLButtonElement>, name: string) => {
+  evt.preventDefault();
+  evt.stopPropagation();
   setFiles((prev) => prev.filter((file) => file.name !== name));
 };
 
@@ -49,7 +60,7 @@ const deleteButton = (name: string) => {
           {files.map((file, index) => (
             <li className="relative" key={index}>
               {getFileIcon(file)}
-              <button onClick={() => deleteButton(file.name)} className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs cursor-pointer bg-red-600">X</button>
+              <button onClick={(evt) => deleteButton(evt, file.name)} className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs cursor-pointer bg-red-600">X</button>
               <p className="text-[10px]">{file.name}</p>
             </li>
           ))}
@@ -57,6 +68,14 @@ const deleteButton = (name: string) => {
       )}
       <p>{files.length > 0 ? "" : isDragActive ? "Drag and drop your file here" : "Drag files, or click to upload."}</p>
     </div>
+    {fileRejections.map((rejects) => {
+      if(rejects.errors[0].code === "file-too-large") {
+        return <p key={rejects.file.name}>{rejects.file.name} must be less than 40MB</p>
+      }
+      if(rejects.errors[0].code  === "file-invalid-type") {
+        return <p key={rejects.file.name}>{rejects.file.name} is an unsupported file type</p>
+      }
+    })}
 </div>
     </>
   )
