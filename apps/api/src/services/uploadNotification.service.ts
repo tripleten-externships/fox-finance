@@ -110,6 +110,27 @@ export class UploadNotificationService {
         // Create a new array called adminEmails. For each admin in admins: take admin.email and add it to adminEmails
         const adminEmails = admins.map(admin => admin.email);
 
+        // For each upload in recentUploads, create a object with: fileName, fileSize (converted to number), and store result in fileList.
+        const fileList = recentUploads.map(upload => ({
+            fileName: upload.fileName,
+            fileSize: Number(upload.fileSize)
+        }));
+
+        // read Frontend_URL from environment. Build a URL string: Frontend_URL + '/admin/upload-links/' + uploadLinkId. Store it in a variable like: viewUploadsUrl
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const viewUploadsUrl = `${frontendUrl}/admin/upload-links/${uploadLinkId}`;
+
+        // Create object emailPayload: clientName, fileList, fileCount, totalSize, and viewUploadsUrl
+        const emailPayload = {
+            clientName,
+            fileList,
+            fileCount,
+            totalSize,
+            viewUploadsUrl
+        };
+
+        // Log the email payload
+        console.log('Prepared upload notification email payload:', emailPayload)
     }
 }
 
