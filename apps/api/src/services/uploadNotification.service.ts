@@ -100,6 +100,16 @@ export class UploadNotificationService {
                 uploadNotificationEnabled: true
             }
         });
+
+        // If admins is empty, log that no admins are available for notifications and return
+        if (admins.length === 0) {
+            console.log(`No admins with upload notifications enabled found. Skipping notification sending.`);
+            return;
+        }  
+
+        // Create a new array called adminEmails. For each admin in admins: take admin.email and add it to adminEmails
+        const adminEmails = admins.map(admin => admin.email);
+
     }
 }
 
