@@ -155,6 +155,8 @@ model UploadNotificationLog {
   clientId  String   @db.Uuid
   sentAt    DateTime @default(now())
   uploadIds Json
+  fileCount Int
+  totalSize Decimal
   createdAt DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)

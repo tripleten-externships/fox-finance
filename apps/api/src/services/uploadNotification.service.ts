@@ -131,6 +131,33 @@ export class UploadNotificationService {
 
         // Log the email payload
         console.log('Prepared upload notification email payload:', emailPayload)
+
+        // TODO: Replace with emailService.sendUploadNotificationEmail once email service is implemented
+        // Log a temporary message that we would send the email here once the email system is implemented. Then log stimulated success and a catch error
+        console.log('Upload notification email would be sent to the following admins:', adminEmails);
+        console.log('Email payload:', emailPayload);
+        console.log('Simulating email sending...');
+        try {
+            // Simulate a delay for sending email
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('Upload notification email sent successfully (simulated).');
+        } catch (error) {
+            console.error('Error sending upload notification email (simulated):', error);
+        }
+
+        // Create a new uploadNotificationLog record with: clientId: client.id, uploadLinkId: upload.uploadLinkId, uploadsId: recentUploads.map(u => u.id), filecount, totalSize, sendAt: current timestamp
+        await prisma.uploadNotificationLog.create({
+            data: {
+                clientId: clientId,
+                uploadIds: recentUploads.map(u => u.id),
+                fileCount,
+                totalSize,
+                sentAt: new Date()
+            }
+        });
+
+        // After creating the uploadNotificationLog record
+        console.log(`Upload notification logged successfully for clientId ${clientId}. Files: ${fileCount}, Total size: ${totalSize} bytes. UploadLinkId: ${uploadLinkId}`);
     }
 }
 
