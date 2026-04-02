@@ -11,7 +11,7 @@ import {
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
-import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import { prisma, degradeIfDatabaseUnavailable, Prisma } from "@fox-finance/prisma";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -183,13 +183,31 @@ router.post(
           });
         }
 
-        if (file.contentLength > MAX_FILE_SIZE) {
-          return res.status(400).json({
-            error: `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        if (new Prisma.Decimal(file.contentLength).greaterThan(req.uploadLink.maxFileSize)){
+          return res.status(413).json({
+            error: `File size exceeds maximum of ${req.uploadLink.maxFileSize.dividedBy(1024).dividedBy(1024)}MB`,
             fileName: file.fileName,
             fileSize: file.contentLength,
-          });
+          })
         }
+      }
+
+      const existingUploads = await prisma.upload.aggregate({
+        where:{uploadLinkId},
+        _sum: {fileSize:true},
+      });
+
+      const alreadyUsed = existingUploads._sum.fileSize ?? new Prisma.Decimal(0);
+
+      const incomingTotal = files.reduce(
+        (sum : Prisma.Decimal, file : {contentLength:number}) => 
+          sum.plus(new Prisma.Decimal(file.contentLength)),
+        new Prisma.Decimal(0)
+      );
+
+      if(alreadyUsed.plus(incomingTotal).greaterThan(req.uploadLink.maxTotalSize)) {
+        return res.status(413).json(
+      {error: `Total upload size would exceed the limit of ${req.uploadLink.maxTotalSize.dividedBy(1024).dividedBy(1024)}MB`});
       }
 
       // Generate presigned URLs for each file
