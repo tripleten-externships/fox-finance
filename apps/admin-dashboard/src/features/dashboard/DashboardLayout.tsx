@@ -9,7 +9,7 @@ import {
   CardContent,
 } from "@fox-finance/ui";
 import { FaRegBell, FaLink, FaRegMoon, FaSun, FaUsers } from "react-icons/fa";
-import { FaRegFileLines } from "react-icons/fa6";
+import { FaRegFileLines, FaChartSimple } from "react-icons/fa6";
 import { useColorMode } from "@fox-finance/theme";
 import useAuth from "../../hooks/useAuth";
 import Content from "./Content";
@@ -123,6 +123,13 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
                 <FaRegFileLines className="h-5 w-5" />
               </Button>
 
+              {/* Analytics page nav button */}
+              <Button variant="ghost" size="icon">
+                <NavLink to="/dashboard/analytics">
+                  <FaChartSimple className="h-5 w-5"></FaChartSimple>
+                </NavLink>
+              </Button>
+
               {/* Sign Out button */}
               <Button variant="outline" onClick={handleSignOut}>
                 Sign Out
@@ -191,15 +198,8 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CardTitle className="text-md">Active Links</CardTitle>
-                    <NavLink to="/dashboard/analytics">
-                      
-                    </NavLink>
-                  </div>
-                  <NavLink to="/dashboard/analytics">
-                    <Button variant="outline" size="icon" className="h-6 w-6" title="View Details"><FaLink className="h-4 w-4 text-muted-foreground"/></Button>
-                  </NavLink>
+                    <CardTitle className="text-md">Active Links</CardTitle>  
+                    <FaLink className="h-4 w-4 text-muted-foreground"/>
                 </div>
               </CardHeader>
               <CardContent>

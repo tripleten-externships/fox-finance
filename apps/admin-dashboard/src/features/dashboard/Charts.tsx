@@ -43,6 +43,7 @@ const Charts: React.FC = () => {
   const [range, setRange] = useState(
     localStorage.getItem("chartRange") || "30d",
   );
+  const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,6 +67,20 @@ const Charts: React.FC = () => {
     setRange(newRange);
     localStorage.setItem("chartRange", newRange);
   };
+
+  useEffect(() => {
+    const fetchVisitCount = async () => {
+      try {
+        const res = await apiClient("/api/admin/upload-links/visits");
+        const data = await res.json();
+        setCount(data.count);
+      } catch(error) {
+        console.error("Failed to fetch visit count:", error);
+      }
+    }
+
+    fetchVisitCount();
+  }, [])
 
   const exportCSV = () => {
     if (!data) return;
@@ -114,7 +129,7 @@ const Charts: React.FC = () => {
     <div className="space-y-6 min-w-0">
       {/* Range buttons and CSV export */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="flex pt-6 items-center justify-between">
           <div className="flex flex-wrap gap-2">
             {["7d", "30d", "90d", "1y"].map((r) => (
               <Button
@@ -128,6 +143,10 @@ const Charts: React.FC = () => {
             <Button onClick={exportCSV} variant="outline">
               Export CSV
             </Button>
+          </div>
+          {/* Total Upload Page View Count */}
+          <div className="text-lg font-semibold">
+            Total Upload Document Page Views: <span id="uploadViews" className="text-blue-500">{count}</span>
           </div>
         </CardContent>
       </Card>

@@ -123,6 +123,31 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
+// GET /api/admin/upload-links/:id/analytics ??? DO WE NEED THIS? HOW DOES IT CONNECT WITH EVERYTHING ELSE?
+
+// POST /api/admin/upload-links/visits/increment - Track successful document upload page visit
+router.post("/visits/increment", async (req, res, next) => {
+  try {
+    await prisma.pageVisit.upsert({
+      where: { page: "document-upload"},
+      update: { count: { increment: 1 }},
+      create: { page: "document-upload", count: 1 },
+  })
+  res.json({ success: true })
+} catch (error) {
+  next(error)
+};
+})
+
+// GET /api/admin/upload-links/visits - Call total document upload page visits
+router.get("/visits", async (req, res, next) => {
+  const visit = await prisma.pageVisit.findUnique({
+    where: { page: "document-upload"}
+  }
+  );
+  res.json({ count: visit?.count ?? 0 });
+});
+
 // POST /api/admin/upload-links - Create a new upload link
 router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
   try {

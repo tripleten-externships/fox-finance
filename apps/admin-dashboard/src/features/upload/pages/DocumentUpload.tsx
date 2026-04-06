@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
+import { trackVisit } from "../lib/visitTracker";
 import { Card } from "@fox-finance/ui";
 
 type VerificationState = "loading" | "success" | "error";
@@ -11,12 +12,16 @@ export function DocumentUpload() {
   const [state, setState] = useState<VerificationState>("loading");
   const [error, setError] = useState<string>("");
 
+  {/* Verify User Token */}
   useEffect(() => {
     const verifyToken = async () => {
       // Check if we already have a valid token in storage
       const existingAuth = getUploadAuth();
       if (existingAuth) {
         setState("success");
+
+        // Track client visiting page on success
+        trackVisit();
         return;
       }
 
@@ -42,6 +47,9 @@ export function DocumentUpload() {
         });
 
         setState("success");
+        
+        // Track client visiting page on success
+        trackVisit();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Token verification failed";

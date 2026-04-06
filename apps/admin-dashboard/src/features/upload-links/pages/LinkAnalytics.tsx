@@ -2,12 +2,12 @@
 import { NavLink } from "react-router-dom";
 import {
   Button,
-  //Card,
-  //CardHeader,
-  //CardTitle,
-  //CardContent,
+  Card,
+  CardHeader,
+  CardTitle,
 } from "@fox-finance/ui";
 import { FaRegMoon, FaSun} from "react-icons/fa";
+import { FaBoxArchive } from "react-icons/fa6";
 import { useColorMode } from "@fox-finance/theme";
 import useAuth from "../../../hooks/useAuth";
 // import { apiClient } from "../../../lib/api";
@@ -80,14 +80,12 @@ const LinkAnalytics: React.FC = () => {
       <header className="bg-secondary shadow-sm">
                 <div className="flex items-center justify-between px-6 py-4">
                   {/* Left side: Title and Subtitle */}
-                  <NavLink to="/dashboard">
                   <div className="flex flex-col">
                     <h1 className="text-2xl font-bold">Analytics</h1>
                     <p className="text-sm text-muted-foreground">
                       Link Analytics and Usage Statistics
                     </p>
                   </div>
-                  </NavLink>
       
                   {/* Right side: Icon Buttons */}
                   <div className="flex items-center gap-2">
@@ -103,6 +101,13 @@ const LinkAnalytics: React.FC = () => {
                       ) : (
                         <FaRegMoon className="h-5 w-5" />
                       )}
+                    </Button>
+
+                      {/* Portal Admin nav button */}
+                    <Button variant="ghost" size="icon">
+                      <NavLink to="/dashboard/">
+                        <FaBoxArchive className="h-5 w-5"></FaBoxArchive>
+                      </NavLink>
                     </Button>
       
                     {/* Sign Out button */}
