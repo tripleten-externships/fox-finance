@@ -1,10 +1,15 @@
 import { Router } from "express";
-import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import {
+  prisma,
+  degradeIfDatabaseUnavailable,
+  UploadProcessingStatus,
+} from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { s3Service } from "../../services/s3.service";
 
 // Secret for JWT tokens - use environment variable or default for development
 const UPLOAD_TOKEN_SECRET =
@@ -12,6 +17,7 @@ const UPLOAD_TOKEN_SECRET =
   "your-secret-key-here-change-in-production";
 
 const router = Router();
+const PRESIGNED_URL_EXPIRY = 900; // 15 minutes
 
 const generateToken = (uploadLinkId: string, clientId: string) => {
   return jwt.sign(
@@ -309,6 +315,92 @@ router.delete("/:id", async (req, res, next) => {
   try {
     // TODO: Implement endpoint
     res.status(501).json({ error: "Not implemented" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/upload-links/uploads/:uploadId/retry - Retry a failed upload by regenerating a presigned URL
+router.post("/uploads/:uploadId/retry", async (req, res, next) => {
+  try {
+    const { uploadId } = req.params;
+
+    const upload = await degradeIfDatabaseUnavailable(() =>
+      prisma.upload.findUnique({
+        where: { id: uploadId },
+        include: {
+          uploadLink: {
+            select: {
+              id: true,
+              clientId: true,
+              isActive: true,
+              expiresAt: true,
+            },
+          },
+        },
+      }),
+    );
+
+    if (!upload) {
+      return res.status(404).json({ error: "Upload not found" });
+    }
+
+    if (upload.status !== UploadProcessingStatus.FAILED) {
+      return res.status(400).json({ error: "Only failed uploads can be retried" });
+    }
+
+    if (!upload.uploadLink.isActive || new Date() > upload.uploadLink.expiresAt) {
+      return res.status(400).json({ error: "Upload link is not active" });
+    }
+
+    const nextS3Key = s3Service.generateKey({
+      uploadLinkId: upload.uploadLink.id,
+      fileName: upload.fileName,
+      clientId: upload.uploadLink.clientId,
+    });
+
+    const contentLength = Number(upload.fileSize);
+    if (!Number.isFinite(contentLength) || contentLength <= 0) {
+      return res.status(400).json({ error: "Invalid file size for retry" });
+    }
+
+    const { url } = await s3Service.generatePresignedUrl({
+      key: nextS3Key,
+      contentType: upload.fileType || "application/octet-stream",
+      contentLength,
+      expiresIn: PRESIGNED_URL_EXPIRY,
+    });
+
+    const updated = await degradeIfDatabaseUnavailable(() =>
+      prisma.upload.update({
+        where: { id: upload.id },
+        data: {
+          s3Key: nextS3Key,
+          status: UploadProcessingStatus.UPLOADING,
+          progress: 10,
+          errorMessage: null,
+          metadata: {
+            ...(upload.metadata as Record<string, unknown>),
+            retriedBy: (req as unknown as AuthenticatedRequest).user.uid,
+            lastRetryAt: new Date().toISOString(),
+          },
+        },
+        select: {
+          id: true,
+          fileName: true,
+          status: true,
+          progress: true,
+          s3Key: true,
+        },
+      }),
+    );
+
+    return res.json({
+      message: "Retry URL generated",
+      upload: updated,
+      presignedUrl: url,
+      expiresIn: PRESIGNED_URL_EXPIRY,
+    });
   } catch (error) {
     next(error);
   }
