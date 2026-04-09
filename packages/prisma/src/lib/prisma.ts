@@ -3,6 +3,7 @@ import {
   PrismaClient,
   Role,
   Status,
+  UploadProcessingStatus,
   UploadStatus,
 } from "@prisma/client";
 import { getLogger } from "@fox-finance/config";
@@ -73,4 +74,4 @@ prisma.$on("warn" as never, (e: Prisma.LogEvent) => {
   });
 });
 
-export { Prisma, Role, Status, UploadStatus };
+export { Prisma, Role, Status, UploadStatus, UploadProcessingStatus };
