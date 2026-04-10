@@ -104,6 +104,29 @@ router.get("/verify", async (req, res, next) => {
           clientId: true,
           expiresAt: true,
           isActive: true,
+          client: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              company: true,
+            },
+          },
+          documentRequests: {
+            select: {
+              id: true,
+              instructions: true,
+              requestedDocuments: {
+                select: {
+                  id: true,
+                  description: true,
+                  documentType: {
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
     );
@@ -138,11 +161,27 @@ router.get("/verify", async (req, res, next) => {
       expiresIn: BEARER_TOKEN_EXPIRY,
     });
 
+    const primaryRequest = uploadLink.documentRequests[0];
+    const requestedDocuments =
+      primaryRequest?.requestedDocuments.map((doc) => ({
+        id: doc.id,
+        name: doc.documentType.name,
+        description: doc.description,
+      })) || [];
+
     return res.json({
       token: bearerToken,
       expiresIn: BEARER_TOKEN_EXPIRY,
       uploadLinkId: uploadLink.id,
       clientId: uploadLink.clientId,
+      client: {
+        id: uploadLink.client.id,
+        firstName: uploadLink.client.firstName,
+        lastName: uploadLink.client.lastName,
+        company: uploadLink.client.company,
+      },
+      instructions: primaryRequest?.instructions || "",
+      requestedDocuments,
     });
   } catch (error) {
     console.error("Error verifying auth token:", error);

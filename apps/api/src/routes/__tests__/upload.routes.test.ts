@@ -36,6 +36,13 @@ describe("upload flow routes", () => {
       clientId: "client-1",
       expiresAt: new Date(Date.now() + 60_000),
       isActive: true,
+      client: {
+        id: "client-1",
+        firstName: "Jamie",
+        lastName: "Lee",
+        company: "Acme Co",
+      },
+      documentRequests: [],
     });
 
     mockPrisma.uploadLink.findFirst.mockResolvedValue({

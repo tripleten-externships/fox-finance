@@ -25,6 +25,18 @@ export interface VerifyTokenResponse {
   expiresIn: number;
   uploadLinkId: string;
   clientId: string;
+  client: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    company?: string | null;
+  };
+  instructions: string;
+  requestedDocuments: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+  }>;
 }
 
 /**
