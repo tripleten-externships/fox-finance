@@ -59,6 +59,22 @@ model User {
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
 
+model EmailLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  uploadLinkId String     @db.Uuid
+  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+
+  recipientEmail String
+  subject        String?
+
+  status       EmailStatus @default(SENT)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Client {
   //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
   // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
