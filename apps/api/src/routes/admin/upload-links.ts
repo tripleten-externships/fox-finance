@@ -238,6 +238,7 @@ router.post(
       clientName: `${result.client!.firstName} ${result.client!.lastName}`,
       uploadLinkUrl: uploadUrl,
       expiresAt: result.expiresAt,
+      uploadLinkId: result.id,
     });
     } catch (error) {
       console.error("Failed to send upload link email:", error);
