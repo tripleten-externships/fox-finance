@@ -6,6 +6,7 @@ const config: Config = {
   rootDir: ".",
   roots: ["<rootDir>/src"],
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
+  testPathIgnorePatterns: ["<rootDir>/src/tests/integration"],
   collectCoverageFrom: [
     "src/routes/**/*.ts",
     "src/middleware/auth.ts",

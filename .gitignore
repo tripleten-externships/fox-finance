@@ -37,6 +37,7 @@ Thumbs.db
 
 # Env files
 .env
+.env.test
 .env.*.local
 .env.local
 .env.development.local
