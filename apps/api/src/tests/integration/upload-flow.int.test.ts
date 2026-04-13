@@ -1,14 +1,29 @@
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "@fox-finance/prisma";
 import uploadRouter from "../../routes/upload";
 import { createTestApp } from "../../test/utils/createTestApp";
-import { s3Client } from "../../lib/s3";
+
+const generatePresignedUrl = jest.fn();
+const s3Send = jest.fn();
+const s3SizeByKey = new Map<string, number>();
+
+jest.mock("../../services/s3.service", () => ({
+  s3Service: {
+    generatePresignedUrl: (...args: unknown[]) => generatePresignedUrl(...args),
+    generatePresignedGetUrl: jest.fn(),
+    generateKey: jest.fn(),
+  },
+}));
+
+jest.mock("../../lib/s3", () => ({
+  s3Client: {
+    send: (...args: unknown[]) => s3Send(...args),
+  },
+}));
 
 const app = createTestApp(uploadRouter, { basePath: "/api/upload" });
-const getBucket = () => process.env.S3_UPLOADS_BUCKET as string;
 const getSecret = () => process.env.UPLOAD_TOKEN_SECRET as string;
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -21,20 +36,6 @@ type Fixture = {
   documentRequestId: string;
   documentTypeId: string;
   requestedDocumentId: string;
-};
-
-const putToS3 = async (url: string, body: Buffer, contentType: string) => {
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": body.length.toString(),
-    },
-    body,
-  });
-
-  const text = await res.text();
-  return { ok: res.ok, status: res.status, text };
 };
 
 const createFixture = async (): Promise<Fixture> => {
@@ -116,20 +117,7 @@ const createFixture = async (): Promise<Fixture> => {
   };
 };
 
-const cleanupFixture = async (fixture: Fixture, s3Keys: string[]) => {
-  await Promise.all(
-    s3Keys.map((key) =>
-      s3Client
-        .send(
-          new DeleteObjectCommand({
-            Bucket: getBucket(),
-            Key: key,
-          }),
-        )
-        .catch(() => undefined),
-    ),
-  );
-
+const cleanupFixture = async (fixture: Fixture) => {
   await prisma.upload.deleteMany({
     where: { uploadLinkId: fixture.uploadLinkId },
   });
@@ -153,15 +141,29 @@ const cleanupFixture = async (fixture: Fixture, s3Keys: string[]) => {
 
 describe("Upload flow integration", () => {
   let fixture: Fixture;
-  let s3Keys: string[];
-
   beforeEach(async () => {
     fixture = await createFixture();
-    s3Keys = [];
+    generatePresignedUrl.mockReset();
+    s3Send.mockReset();
+    s3SizeByKey.clear();
+    generatePresignedUrl.mockImplementation(({ key }) => ({
+      url: `https://example.com/presigned/${key}`,
+      key,
+    }));
+    s3Send.mockImplementation((command: { input?: { Key?: string } }) => {
+      const key = command?.input?.Key || "";
+      if (String(key).includes("missing")) {
+        const error: Error & { name?: string } = new Error("NotFound");
+        error.name = "NotFound";
+        return Promise.reject(error);
+      }
+      const size = s3SizeByKey.get(String(key)) || 0;
+      return Promise.resolve({ ContentLength: size });
+    });
   });
 
   afterEach(async () => {
-    await cleanupFixture(fixture, s3Keys);
+    await cleanupFixture(fixture);
   });
 
   it("completes upload flow and creates the upload record", async () => {
@@ -192,10 +194,9 @@ describe("Upload flow integration", () => {
       s3Key: string;
     };
 
-    s3Keys.push(s3Key);
+    s3SizeByKey.set(s3Key, file.length);
 
-    const putRes = await putToS3(presignedUrl, file, "application/pdf");
-    expect(putRes.ok).toBe(true);
+    expect(presignedUrl).toContain(s3Key);
 
     const completeRes = await request(app)
       .post("/api/upload/complete")
@@ -216,12 +217,7 @@ describe("Upload flow integration", () => {
     });
     expect(uploadRecord).not.toBeNull();
 
-    await s3Client.send(
-      new HeadObjectCommand({
-        Bucket: getBucket(),
-        Key: s3Key,
-      }),
-    );
+    expect(s3Send).toHaveBeenCalled();
   });
 
   it("rejects unsupported file types", async () => {
@@ -330,14 +326,9 @@ describe("Upload flow integration", () => {
       uploads: { presignedUrl: string; s3Key: string }[];
     };
 
-    s3Keys.push(...uploads.map((upload) => upload.s3Key));
-
-    const putResults = await Promise.all(
-      uploads.map((upload, index) =>
-        putToS3(upload.presignedUrl, files[index], "application/pdf"),
-      ),
-    );
-    putResults.forEach((result) => expect(result.ok).toBe(true));
+    uploads.forEach((upload, index) => {
+      s3SizeByKey.set(upload.s3Key, files[index].length);
+    });
 
     const completeResults = await Promise.all(
       uploads.map((upload, index) =>

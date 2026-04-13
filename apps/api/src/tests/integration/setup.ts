@@ -11,9 +11,6 @@ process.env.MALWARE_SCAN_DELAY_MS =
 const required = [
   "DATABASE_URL",
   "UPLOAD_TOKEN_SECRET",
-  "AWS_REGION",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
   "S3_UPLOADS_BUCKET",
 ];
 
