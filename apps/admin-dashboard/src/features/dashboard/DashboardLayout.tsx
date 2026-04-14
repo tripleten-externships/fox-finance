@@ -6,6 +6,10 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@fox-finance/ui";
 import { FaRegBell, FaLink, FaRegMoon, FaSun, FaUsers } from "react-icons/fa";
 import { FaRegFileLines } from "react-icons/fa6";
@@ -36,6 +40,22 @@ interface StatsResponse {
   };
 }
 
+interface ThreatItem {
+  id: string;
+  fileName: string;
+  scanStatus: "THREAT_DETECTED";
+  scanResult: string | null;
+  scannedAt: string | null;
+  uploadLink: {
+    client: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+  } | null;
+}
+
 const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
@@ -45,6 +65,8 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [threats, setThreats] = useState<ThreatItem[]>([]);
+  const [isThreatDialogOpen, setIsThreatDialogOpen] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -66,6 +88,25 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
 
   useEffect(() => {
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchThreats = async () => {
+      try {
+        const response = await apiClient("/api/admin/uploads/threats?limit=20");
+        if (!response.ok) {
+          return;
+        }
+        const payload: { items: ThreatItem[] } = await response.json();
+        setThreats(payload.items || []);
+      } catch (threatError) {
+        console.error("Error fetching threats:", threatError);
+      }
+    };
+
+    fetchThreats();
+    const intervalId = window.setInterval(fetchThreats, 10000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const handleSignOut = async () => {
@@ -109,12 +150,21 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
 
               {/* Notifications icon button with badge */}
               <div className="relative">
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsThreatDialogOpen(true)}
+                >
                   <FaRegBell className="h-5 w-5" />
                 </Button>
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  3
-                </Badge>
+                {threats.length > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 min-w-5 px-1 flex items-center justify-center p-0 text-xs"
+                  >
+                    {threats.length}
+                  </Badge>
+                )}
               </div>
 
               {/* Document/file icon button */}
@@ -219,6 +269,37 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({
           {children}
         </main>
       </div>
+
+      <Dialog open={isThreatDialogOpen} onOpenChange={setIsThreatDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Threat Notifications ({threats.length})</DialogTitle>
+          </DialogHeader>
+          {threats.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No threats detected.</p>
+          ) : (
+            <div className="space-y-2">
+              {threats.map((threat) => (
+                <div key={threat.id} className="rounded border border-destructive/30 bg-destructive/5 p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="destructive">Threat Detected</Badge>
+                    <span className="text-sm font-medium">{threat.fileName}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Client:{" "}
+                    {threat.uploadLink?.client
+                      ? `${threat.uploadLink.client.firstName} ${threat.uploadLink.client.lastName} (${threat.uploadLink.client.email})`
+                      : "Unknown"}
+                  </p>
+                  {threat.scanResult && (
+                    <p className="text-xs text-destructive mt-1">{threat.scanResult}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

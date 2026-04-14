@@ -10,7 +10,7 @@ function getApiBaseUrl(): string {
     return "http://localhost:4000";
   }
 
-  if (hostname.includes(".dev.")) {
+  if (hostname.includes("dev.")) {
     return "https://api.dev.fox-finance.net";
   }
 

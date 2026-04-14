@@ -13,7 +13,7 @@ function getApiBaseUrl(): string {
     return "http://localhost:4000";
   }
 
-  if (hostname.includes(".dev.")) {
+  if (hostname.includes("dev.")) {
     return "https://api.dev.fox-finance.net";
   }
 
@@ -25,6 +25,18 @@ export interface VerifyTokenResponse {
   expiresIn: number;
   uploadLinkId: string;
   clientId: string;
+  client: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    company?: string | null;
+  };
+  instructions: string;
+  requestedDocuments: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+  }>;
 }
 
 /**

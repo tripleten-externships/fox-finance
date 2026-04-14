@@ -30,6 +30,14 @@ enum UploadStatus {
   INCOMPLETE
 }
 
+enum ScanStatus {
+  PENDING
+  SCANNING
+  CLEAN
+  THREAT_DETECTED
+  FAILED
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -136,6 +144,9 @@ model Upload {
   fileType          String           @default("unknown")
   downloadCount     Int              @default(0)
   virusScanStatus   String           @default("pending")
+  scanStatus        ScanStatus       @default(PENDING)
+  scanResult        String?
+  scannedAt         DateTime?
 
   uploadedAt    DateTime     @updatedAt
   metadata      Json
