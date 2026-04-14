@@ -27,7 +27,7 @@ router.get("/trends", async (req, res, next) => {
     const uploadsOverTime = await prisma.$queryRaw<
       { day: string; count: number }[]
     >`
-      SELECT DATE("uploadedAt") as day, COUNT(*) as count
+      SELECT DATE("uploadedAt") as day, COUNT(*)::int as count
       FROM "Upload"
       WHERE "uploadedAt" >= ${startDate}
       GROUP BY day
@@ -36,13 +36,21 @@ router.get("/trends", async (req, res, next) => {
 
     // 3️⃣ Uploads by client (bar chart) using join with UploadLink
     const uploadsByClient = await prisma.$queryRaw<
-      { clientId: string; count: number }[]
+      { clientId: string; clientName: string, count: number }[]
     >`
-      SELECT ul."clientId", COUNT(*) as count
+      SELECT 
+        ul."clientId",
+        COALESCE(
+          NULLIF(TRIM(CONCAT(c."firstName", ' ', c."lastName")), ''),
+          NULLIF(TRIM(c."company"), ''),
+          ul."clientId"::text
+  ) as "clientName",
+        COUNT(*)::int as count
       FROM "Upload" u
       JOIN "UploadLink" ul ON u."uploadLinkId" = ul."id"
+      LEFT JOIN "Client" c ON ul."clientId" = c."id"
       WHERE u."uploadedAt" >= ${startDate}
-      GROUP BY ul."clientId"
+      GROUP BY ul."clientId", c."company", c."firstName", c."lastName"
       ORDER BY count DESC;
     `;
 
@@ -50,7 +58,7 @@ router.get("/trends", async (req, res, next) => {
     const fileTypes = await prisma.$queryRaw<
       { fileType: string; count: number }[]
     >`
-      SELECT metadata->>'fileType' as "fileType", COUNT(*) as count
+      SELECT metadata->>'fileType' as "fileType", COUNT(*)::int as count
       FROM "Upload"
       WHERE "uploadedAt" >= ${startDate}
       GROUP BY metadata->>'fileType'

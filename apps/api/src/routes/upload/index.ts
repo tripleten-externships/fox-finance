@@ -145,6 +145,35 @@ router.get("/verify", async (req, res, next) => {
   }
 });
 
+// NOTE TO SELF - Set a timer for the upload so that, after the page has been visited and the counter incremented,
+// it cannot be incremented again for another 24 hours
+
+// PATCH /api/upload/analytics/:metric - Track successful document upload page visit
+router.patch(
+  "/analytics/:metric",
+  //requireUploadToken,
+  async (req, res, next) => {
+  try {
+    const { metric } = req.params;
+
+    if (metric !== "page-views") {
+      return res.status(400).json({ error: `Unsupported metric: ${metric}`});
+    };
+
+    if (metric === "page-views") {
+      await prisma.pageVisitCounter.upsert({
+      where: { page: "document-upload" },
+      update: { count: { increment: 1 }},
+      create: { page: "document-upload", count: 1 },
+    })
+  };
+
+  res.json({ success: true })
+} catch (error) {
+  next(error)
+};
+})
+
 /**
  * POST /api/upload/presigned-url
  *

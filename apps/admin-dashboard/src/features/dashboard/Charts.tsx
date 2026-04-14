@@ -34,7 +34,7 @@ const COLORS = [
 const Charts: React.FC = () => {
   const [data, setData] = useState<{
     uploadsOverTime: { day: string; count: number }[];
-    uploadsByClient: { clientId: string; count: number }[];
+    uploadsByClient: { clientId: string; clientName: string; count: number }[];
     fileTypes: { fileType: string; count: number }[];
   } | null>(null);
 
@@ -69,9 +69,9 @@ const Charts: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchVisitCount = async () => {
+    const fetchViewCount = async () => {
       try {
-        const res = await apiClient("/api/admin/upload-links/visits");
+        const res = await apiClient("/api/admin/upload-links/analytics/page-views");
         const data = await res.json();
         setCount(data.count);
       } catch(error) {
@@ -79,7 +79,7 @@ const Charts: React.FC = () => {
       }
     }
 
-    fetchVisitCount();
+    fetchViewCount();
   }, [])
 
   const exportCSV = () => {
@@ -88,7 +88,7 @@ const Charts: React.FC = () => {
       ["Type", "Label", "Count"],
       ...[
         ...data.uploadsOverTime.map((u) => ["Upload", u.day, u.count]),
-        ...data.uploadsByClient.map((c) => ["Client", c.clientId, c.count]),
+        ...data.uploadsByClient.map((c) => ["Client", c.clientName, c.count]),
         ...data.fileTypes.map((f) => ["FileType", f.fileType, f.count]),
       ],
     ];
@@ -125,6 +125,17 @@ const Charts: React.FC = () => {
     );
   }
 
+  const formatPieLabel = ({
+    name, percent
+  }: {
+    name?: string;
+    percent?: number;
+  }) => {
+    const labelName = String(name ?? "Unknown");
+    const pct = ((percent ?? 0) * 100).toFixed(0);
+    return `${labelName} (${pct})`;
+  };
+  
   return (
     <div className="space-y-6 min-w-0">
       {/* Range buttons and CSV export */}
@@ -201,7 +212,7 @@ const Charts: React.FC = () => {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data.uploadsByClient}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="clientId" className="text-muted-foreground" />
+                <XAxis dataKey="clientName" className="text-muted-foreground" />
                 <YAxis className="text-muted-foreground" />
                 <ReTooltip
                   contentStyle={{
@@ -238,7 +249,7 @@ const Charts: React.FC = () => {
                   dataKey="count"
                   nameKey="fileType"
                   outerRadius={100}
-                  label
+                  label={formatPieLabel}
                 >
                   {data.fileTypes.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />

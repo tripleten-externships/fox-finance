@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
-import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
-import { trackVisit } from "../lib/visitTracker";
+import { setUploadAuth, getUploadAuth, getUploadToken } from "../lib/tokenStorage";
+import { pageView } from "../lib/pageView";
 import { Card } from "@fox-finance/ui";
 
 type VerificationState = "loading" | "success" | "error";
@@ -11,6 +11,7 @@ export function DocumentUpload() {
   const { token } = useParams();
   const [state, setState] = useState<VerificationState>("loading");
   const [error, setError] = useState<string>("");
+  const visitTrackedRef = useRef(false);
 
   {/* Verify User Token */}
   useEffect(() => {
@@ -19,9 +20,6 @@ export function DocumentUpload() {
       const existingAuth = getUploadAuth();
       if (existingAuth) {
         setState("success");
-
-        // Track client visiting page on success
-        trackVisit();
         return;
       }
 
@@ -47,9 +45,6 @@ export function DocumentUpload() {
         });
 
         setState("success");
-        
-        // Track client visiting page on success
-        trackVisit();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Token verification failed";
@@ -60,6 +55,17 @@ export function DocumentUpload() {
 
     verifyToken();
   }, [token]);
+
+  {/* Track client's page visit on success */}
+  useEffect(() => {
+    // Check if the token validation succeeded or ref is true
+    if (state !== "success" || visitTrackedRef.current) {
+      return;
+    }
+
+    visitTrackedRef.current = true;
+    pageView();
+  }, [ state ]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
