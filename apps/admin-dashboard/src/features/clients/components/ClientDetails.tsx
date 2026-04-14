@@ -26,6 +26,7 @@ import { apiClient } from "../../../lib/api";
 import { formatPhoneNumber } from "../../../lib/phoneUtils";
 import CreateLinkForm from "../../upload-links/components/CreateLinkForm";
 import CreateClientForm from "./CreateClientForm";
+import DownloadButton from "../../documents/components/DownloadButton";
 
 // Type definitions based on Prisma schema
 interface Client {
@@ -195,26 +196,6 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
       console.log("Link copied to clipboard");
     } catch (err) {
       console.error("Failed to copy link:", err);
-    }
-  };
-
-  // Helper function to handle download
-  const handleDownload = async (upload: Upload) => {
-    try {
-      const response = await apiClient(`/api/admin/uploads/${upload.id}/download-url`);
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to get download URL");
-      }
-
-      window.open(payload.downloadUrl, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Download blocked until malware scan completes",
-      );
     }
   };
 
@@ -618,15 +599,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Download file"
-                          onClick={() => handleDownload(upload)}
-                          disabled={upload.scanStatus !== "CLEAN"}
-                        >
-                          <FaDownload className="w-4 h-4" />
-                        </Button>
+                       <DownloadButton uploadId={upload.id} />
                       </div>
                     ))}
                   </div>
