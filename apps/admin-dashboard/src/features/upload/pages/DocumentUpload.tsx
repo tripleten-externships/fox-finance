@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
 import { Card } from "@fox-finance/ui";
+import FileDropzone from "../../upload-portal/components/FileDropzone";
 
 type VerificationState = "loading" | "success" | "error";
 
@@ -90,7 +91,6 @@ export function DocumentUpload() {
             </p>
           </div>
         )}
-
         {state === "success" && (
           <div className="text-center">
             <div className="mb-6">

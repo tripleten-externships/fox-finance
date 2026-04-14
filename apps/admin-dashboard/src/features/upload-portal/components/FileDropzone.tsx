@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { File, FileText, Image, Hourglass, ThumbsUp, ThumbsDown } from "lucide-react";
 
-function FileDropzone() {
+type FileDropzoneProps = { maxFiles?: number };
+
+function FileDropzone({ maxFiles = 1 }: FileDropzoneProps) {
  type UploadFile = {
   file: File;
   progress: number;
@@ -16,6 +18,7 @@ const [lastBatchSize, setLastBatchSize] = useState(0);
 const [showTimeRemaining, setShowTimeRemaining] = useState(true);
 const [showSpeed, setShowSpeed] = useState(true);
 const [showBatchProgress, setShowBatchProgress] = useState(true);
+
 
  const handleUpload = (fileObj: UploadFile,
  index: number
@@ -79,7 +82,6 @@ const [showBatchProgress, setShowBatchProgress] = useState(true);
 
 const onDrop = (acceptedFiles: File[]) => {
   setFiles((prev) => {
-    const maxFiles = 3 // modify this number for requests that the stakeholders say more than 1 file is needed
     const remainingSlots = maxFiles - prev.length;
 
     if (remainingSlots <= 0) return prev;
@@ -125,7 +127,7 @@ const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzon
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
   },
   maxSize: 40 * 1024 * 1024,
-  maxFiles: 3, // modify this number for requests that the stakeholders say more than 1 file is needed
+  maxFiles: maxFiles,
 });
 
 const getFileIcon = (file: File) => {
