@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Badge,
   Button,
@@ -26,6 +26,7 @@ import { apiClient } from "../../../lib/api";
 import { formatPhoneNumber } from "../../../lib/phoneUtils";
 import CreateLinkForm from "../../upload-links/components/CreateLinkForm";
 import CreateClientForm from "./CreateClientForm";
+import DownloadButton from "../../documents/components/DownloadButton";
 
 // Type definitions based on Prisma schema
 interface Client {
@@ -48,6 +49,8 @@ interface Upload {
   s3Bucket: string;
   fileType: string;
   uploadedAt: string;
+  scanStatus: "PENDING" | "SCANNING" | "CLEAN" | "THREAT_DETECTED" | "FAILED";
+  scanResult?: string | null;
 }
 
 interface UploadLink {
@@ -83,15 +86,13 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch upload links and uploads when accordion is expanded
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchData = async () => {
-      setIsLoading(true);
+  const fetchData = useCallback(
+    async (showLoader: boolean = true) => {
+      if (showLoader) {
+        setIsLoading(true);
+      }
       setError(null);
       try {
-        // Fetch upload links for this client
         const response = await apiClient(
           `/api/admin/upload-links?clientId=${client.id}`,
         );
@@ -104,15 +105,39 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
         setError(err instanceof Error ? err.message : "An error occurred");
         console.error("Error fetching upload links:", err);
       } finally {
-        setIsLoading(false);
+        if (showLoader) {
+          setIsLoading(false);
+        }
       }
-    };
+    },
+    [client.id],
+  );
 
-    fetchData();
-  }, [isOpen, client.id]);
+  // Fetch upload links and uploads when accordion is expanded
+  useEffect(() => {
+    if (!isOpen) return;
+    void fetchData(true);
+  }, [isOpen, fetchData]);
 
   // Extract all uploads from upload links
   const allUploads = uploadLinks.flatMap((link) => link.uploads || []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const hasInFlightScans = allUploads.some(
+      (upload) =>
+        upload.scanStatus === "PENDING" || upload.scanStatus === "SCANNING",
+    );
+
+    if (!hasInFlightScans) return;
+
+    const intervalId = window.setInterval(() => {
+      void fetchData(false);
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isOpen, allUploads, fetchData]);
 
   const getStatusVariant = (
     status: Client["status"],
@@ -139,6 +164,29 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
     });
   };
 
+  const getScanBadge = (status: Upload["scanStatus"]) => {
+    switch (status) {
+      case "CLEAN":
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+            Clean
+          </Badge>
+        );
+      case "SCANNING":
+        return (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+            Scanning
+          </Badge>
+        );
+      case "THREAT_DETECTED":
+        return <Badge variant="destructive">Threat Detected</Badge>;
+      case "FAILED":
+        return <Badge variant="destructive">Scan Failed</Badge>;
+      default:
+        return <Badge variant="secondary">Pending Scan</Badge>;
+    }
+  };
+
   // Helper function to copy link to clipboard
   const copyToClipboard = async (token: string) => {
     const uploadUrl = `${window.location.origin}/upload/${token}`;
@@ -149,13 +197,6 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
     } catch (err) {
       console.error("Failed to copy link:", err);
     }
-  };
-
-  // Helper function to handle download
-  const handleDownload = async (upload: Upload) => {
-    // TODO: Implement presigned URL generation via API
-    console.log("Download file:", upload.fileName);
-    // Placeholder: In production, this would call an API endpoint to get a presigned S3 URL
   };
 
   // Helper function to download all files
@@ -169,23 +210,7 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
     setIsDialogOpen(false);
     // Refresh upload links if the accordion is open
     if (isOpen) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await apiClient(
-          `/api/admin/upload-links?clientId=${client.id}`,
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch upload links");
-        }
-        const data = await response.json();
-        setUploadLinks(data.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching upload links:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      void fetchData(true);
     }
   };
 
@@ -562,16 +587,19 @@ export const ClientDetails: React.FC<ClientDetailsProps> = ({
                               <span>•</span>
                               <span>{formatDate(upload.uploadedAt)}</span>
                             </div>
+                            <div className="mt-1 flex items-center gap-2">
+                              {getScanBadge(upload.scanStatus)}
+                              {upload.scanResult &&
+                                upload.scanStatus !== "CLEAN" &&
+                                upload.scanStatus !== "SCANNING" && (
+                                  <span className="text-xs text-destructive">
+                                    {upload.scanResult}
+                                  </span>
+                                )}
+                            </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Download file"
-                          onClick={() => handleDownload(upload)}
-                        >
-                          <FaDownload className="w-4 h-4" />
-                        </Button>
+                       <DownloadButton uploadId={upload.id} />
                       </div>
                     ))}
                   </div>

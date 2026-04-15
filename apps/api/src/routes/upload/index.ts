@@ -12,7 +12,12 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
+import {
+  uploadCompletionRateLimit,
+  uploadPresignedUrlRateLimit,
+} from "../../middleware/rateLimit";
 
 const router = Router();
 
@@ -99,6 +104,29 @@ router.get("/verify", async (req, res, next) => {
           clientId: true,
           expiresAt: true,
           isActive: true,
+          client: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              company: true,
+            },
+          },
+          documentRequests: {
+            select: {
+              id: true,
+              instructions: true,
+              requestedDocuments: {
+                select: {
+                  id: true,
+                  description: true,
+                  documentType: {
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
     );
@@ -133,11 +161,27 @@ router.get("/verify", async (req, res, next) => {
       expiresIn: BEARER_TOKEN_EXPIRY,
     });
 
+    const primaryRequest = uploadLink.documentRequests[0];
+    const requestedDocuments =
+      primaryRequest?.requestedDocuments.map((doc) => ({
+        id: doc.id,
+        name: doc.documentType.name,
+        description: doc.description,
+      })) || [];
+
     return res.json({
       token: bearerToken,
       expiresIn: BEARER_TOKEN_EXPIRY,
       uploadLinkId: uploadLink.id,
       clientId: uploadLink.clientId,
+      client: {
+        id: uploadLink.client.id,
+        firstName: uploadLink.client.firstName,
+        lastName: uploadLink.client.lastName,
+        company: uploadLink.client.company,
+      },
+      instructions: primaryRequest?.instructions || "",
+      requestedDocuments,
     });
   } catch (error) {
     console.error("Error verifying auth token:", error);
@@ -164,6 +208,7 @@ router.get("/verify", async (req, res, next) => {
 router.post(
   "/presigned-url",
   requireUploadToken,
+  uploadPresignedUrlRateLimit,
   validate(getPresignedUrlSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
@@ -258,6 +303,7 @@ router.post(
 router.post(
   "/complete",
   requireUploadToken,
+  uploadCompletionRateLimit,
   validate(completeUploadSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
@@ -334,6 +380,7 @@ router.post(
               fileSize,
               s3Key,
               s3Bucket: bucketName,
+              scanStatus: "SCANNING",
               metadata: {
                 mimeType: fileType,
                 fileType: fileType, // Store in metadata for compatibility
@@ -347,6 +394,8 @@ router.post(
               s3Key: true,
               s3Bucket: true,
               uploadedAt: true,
+              scanStatus: true,
+              scanResult: true,
               metadata: true,
             },
           });
@@ -383,11 +432,13 @@ router.post(
         }),
       );
 
-      // Generate a presigned download URL for the uploaded file
-      const downloadUrl = await s3Service.generatePresignedGetUrl(
-        s3Key,
-        3600, // 1 hour
-      );
+      const downloadUrl =
+        result.upload.scanStatus === "CLEAN"
+          ? await s3Service.generatePresignedGetUrl(
+              s3Key,
+              3600, // 1 hour
+            )
+          : null;
 
       // Extract fileType from metadata
       const metadata = result.upload.metadata as {
@@ -396,6 +447,10 @@ router.post(
       };
       const uploadFileType =
         metadata?.fileType || metadata?.mimeType || "unknown";
+
+      if (result.wasCreated) {
+        queueUploadScan(result.upload.id);
+      }
 
       return res.json({
         message: result.wasCreated
@@ -408,6 +463,8 @@ router.post(
           fileType: uploadFileType,
           s3Key: result.upload.s3Key,
           uploadedAt: result.upload.uploadedAt,
+          scanStatus: result.upload.scanStatus,
+          scanResult: result.upload.scanResult,
           downloadUrl,
         },
       });

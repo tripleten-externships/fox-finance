@@ -2,6 +2,7 @@ import {
   Prisma,
   PrismaClient,
   Role,
+  ScanStatus,
   Status,
   UploadStatus,
 } from "@prisma/client";
@@ -73,4 +74,4 @@ prisma.$on("warn" as never, (e: Prisma.LogEvent) => {
   });
 });
 
-export { Prisma, Role, Status, UploadStatus };
+export { Prisma, Role, ScanStatus, Status, UploadStatus };
