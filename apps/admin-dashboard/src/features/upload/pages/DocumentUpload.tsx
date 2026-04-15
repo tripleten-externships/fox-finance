@@ -90,7 +90,6 @@ export function DocumentUpload() {
             </p>
           </div>
         )}
-
         {state === "success" && (
           <div className="text-center">
             <div className="mb-6">
