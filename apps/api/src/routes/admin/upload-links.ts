@@ -6,11 +6,7 @@ import { AuthenticatedRequest } from "../../middleware/auth";
 import { adminUploadLinkCreationRateLimit } from "../../middleware/rateLimit";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-
-// Secret for JWT tokens - use environment variable or default for development
-const UPLOAD_TOKEN_SECRET =
-  process.env.UPLOAD_TOKEN_SECRET ||
-  "your-secret-key-here-change-in-production";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
 
 const router = Router();
 

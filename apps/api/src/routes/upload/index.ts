@@ -14,6 +14,7 @@ import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
 import {
   uploadCompletionRateLimit,
   uploadPresignedUrlRateLimit,
@@ -44,145 +45,137 @@ interface BearerTokenPayload {
   type: "bearer";
 }
 
-/**
- * GET /api/upload/verify?token=xyz
- *
- * Verifies an auth token from the upload link URL and returns a temporary bearer token.
- * This endpoint is called first when a client accesses an upload link.
- *
- * Flow:
- * 1. Client receives upload link with auth token in URL parameter
- * 2. Client calls this endpoint with the auth token
- * 3. Endpoint validates the JWT auth token and checks if upload link is valid
- * 4. If valid, generates a new bearer token (JWT) with 7-day expiration
- * 5. Client uses the bearer token for subsequent upload requests
- */
-router.get("/verify", async (req, res, next) => {
+async function handlePublicUploadVerify(token: string | undefined) {
+  if (!token) {
+    return { status: 400 as const, body: { error: "Token is required" } };
+  }
+
+  let decoded: AuthTokenPayload;
   try {
-    const token = req.query.token as string;
-
-    if (!token) {
-      return res
-        .status(400)
-        .json({ error: "Token query parameter is required" });
+    decoded = jwt.verify(token, UPLOAD_TOKEN_SECRET) as AuthTokenPayload;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return {
+        status: 401 as const,
+        body: { error: "Auth token has expired" },
+      };
     }
-
-    // Get the secret from environment
-    const secret = process.env.UPLOAD_TOKEN_SECRET;
-    if (!secret) {
-      console.error("UPLOAD_TOKEN_SECRET environment variable not set");
-      return res.status(500).json({ error: "Server configuration error" });
+    if (error instanceof jwt.JsonWebTokenError) {
+      return { status: 401 as const, body: { error: "Invalid auth token" } };
     }
+    throw error;
+  }
 
-    // Verify the JWT auth token
-    let decoded: AuthTokenPayload;
-    try {
-      decoded = jwt.verify(token, secret) as AuthTokenPayload;
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ error: "Auth token has expired" });
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({ error: "Invalid auth token" });
-      }
-      throw error;
-    }
+  if (decoded.type !== "auth") {
+    return {
+      status: 401 as const,
+      body: { error: "Invalid token type. Expected auth token." },
+    };
+  }
 
-    // Validate token type
-    if (decoded.type !== "auth") {
-      return res
-        .status(401)
-        .json({ error: "Invalid token type. Expected auth token." });
-    }
-
-    // Query database to validate upload link
-    const uploadLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.findUnique({
-        where: { id: decoded.uploadLinkId },
-        select: {
-          id: true,
-          clientId: true,
-          expiresAt: true,
-          isActive: true,
-          client: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              company: true,
-            },
+  const uploadLink = await degradeIfDatabaseUnavailable(() =>
+    prisma.uploadLink.findUnique({
+      where: { id: decoded.uploadLinkId },
+      include: {
+        client: {
+          select: {
+            firstName: true,
+            lastName: true,
+            company: true,
           },
-          documentRequests: {
-            select: {
-              id: true,
-              instructions: true,
-              requestedDocuments: {
-                select: {
-                  id: true,
-                  description: true,
-                  documentType: {
-                    select: { name: true },
-                  },
+        },
+        documentRequests: {
+          include: {
+            requestedDocuments: {
+              include: {
+                documentType: {
+                  select: { name: true, description: true },
                 },
               },
             },
           },
         },
-      }),
-    );
+      },
+    }),
+  );
 
-    if (!uploadLink) {
-      return res.status(404).json({ error: "Upload link not found" });
-    }
+  if (!uploadLink) {
+    return { status: 404 as const, body: { error: "Upload link not found" } };
+  }
 
-    // Verify the clientId matches
-    if (uploadLink.clientId !== decoded.clientId) {
-      return res.status(401).json({ error: "Token client mismatch" });
-    }
+  if (uploadLink.clientId !== decoded.clientId) {
+    return { status: 401 as const, body: { error: "Token client mismatch" } };
+  }
 
-    if (!uploadLink.isActive) {
-      return res
-        .status(403)
-        .json({ error: "Upload link has been deactivated" });
-    }
-
-    if (new Date() > uploadLink.expiresAt) {
-      return res.status(410).json({ error: "Upload link has expired" });
-    }
-
-    // Generate a new temporary bearer token
-    const bearerTokenPayload: BearerTokenPayload = {
-      uploadLinkId: decoded.uploadLinkId,
-      clientId: decoded.clientId,
-      type: "bearer",
+  if (!uploadLink.isActive) {
+    return {
+      status: 403 as const,
+      body: { error: "Upload link has been deactivated" },
     };
+  }
 
-    const bearerToken = jwt.sign(bearerTokenPayload, secret, {
-      expiresIn: BEARER_TOKEN_EXPIRY,
-    });
+  if (new Date() > uploadLink.expiresAt) {
+    return { status: 410 as const, body: { error: "Upload link has expired" } };
+  }
 
-    const primaryRequest = uploadLink.documentRequests[0];
-    const requestedDocuments =
-      primaryRequest?.requestedDocuments.map((doc) => ({
-        id: doc.id,
-        name: doc.documentType.name,
-        description: doc.description,
-      })) || [];
+  const bearerTokenPayload: BearerTokenPayload = {
+    uploadLinkId: decoded.uploadLinkId,
+    clientId: decoded.clientId,
+    type: "bearer",
+  };
 
-    return res.json({
+  const bearerToken = jwt.sign(bearerTokenPayload, UPLOAD_TOKEN_SECRET, {
+    expiresIn: BEARER_TOKEN_EXPIRY,
+  });
+
+  const clientName =
+    `${uploadLink.client.firstName} ${uploadLink.client.lastName}`.trim();
+
+  const requestedDocuments = uploadLink.documentRequests.flatMap((dr) =>
+    dr.requestedDocuments.map((rd) => ({
+      id: rd.id,
+      documentRequestId: dr.id,
+      title: rd.documentType?.name ?? "Requested document",
+      helper: rd.description || rd.documentType?.description || "",
+    })),
+  );
+
+  return {
+    status: 200 as const,
+    body: {
       token: bearerToken,
       expiresIn: BEARER_TOKEN_EXPIRY,
       uploadLinkId: uploadLink.id,
       clientId: uploadLink.clientId,
-      client: {
-        id: uploadLink.client.id,
-        firstName: uploadLink.client.firstName,
-        lastName: uploadLink.client.lastName,
-        company: uploadLink.client.company,
-      },
-      instructions: primaryRequest?.instructions || "",
+      clientName,
       requestedDocuments,
-    });
+      branding: {
+        companyName: uploadLink.client.company ?? null,
+      },
+    },
+  };
+}
+
+router.get("/verify/:token", async (req, res, next) => {
+  try {
+    const result = await handlePublicUploadVerify(req.params.token);
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    console.error("Error verifying auth token:", error);
+    next(error);
+  }
+});
+
+router.get("/verify", async (req, res, next) => {
+  try {
+    const token = req.query.token as string | undefined;
+    if (!token) {
+      return res
+        .status(400)
+        .json({ error: "Token query parameter is required" });
+    }
+    const result = await handlePublicUploadVerify(token);
+    return res.status(result.status).json(result.body);
   } catch (error) {
     console.error("Error verifying auth token:", error);
     next(error);
