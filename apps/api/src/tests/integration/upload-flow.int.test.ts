@@ -6,6 +6,7 @@ import uploadRouter from "../../routes/upload";
 import { createTestApp } from "../../test/utils/createTestApp";
 
 const generatePresignedUrl = jest.fn();
+const generateKey = jest.fn();
 const s3Send = jest.fn();
 const s3SizeByKey = new Map<string, number>();
 
@@ -13,7 +14,7 @@ jest.mock("../../services/s3.service", () => ({
   s3Service: {
     generatePresignedUrl: (...args: unknown[]) => generatePresignedUrl(...args),
     generatePresignedGetUrl: jest.fn(),
-    generateKey: jest.fn(),
+    generateKey: (...args: unknown[]) => generateKey(...args),
   },
 }));
 
@@ -21,6 +22,10 @@ jest.mock("../../lib/s3", () => ({
   s3Client: {
     send: (...args: unknown[]) => s3Send(...args),
   },
+}));
+
+jest.mock("../../services/malwareScan.service", () => ({
+  queueUploadScan: jest.fn(),
 }));
 
 const app = createTestApp(uploadRouter, { basePath: "/api/upload" });
@@ -117,7 +122,11 @@ const createFixture = async (): Promise<Fixture> => {
   };
 };
 
-const cleanupFixture = async (fixture: Fixture) => {
+const cleanupFixture = async (fixture?: Fixture) => {
+  if (!fixture) {
+    return;
+  }
+
   await prisma.upload.deleteMany({
     where: { uploadLinkId: fixture.uploadLinkId },
   });
@@ -140,16 +149,37 @@ const cleanupFixture = async (fixture: Fixture) => {
 };
 
 describe("Upload flow integration", () => {
-  let fixture: Fixture;
+  let fixture: Fixture | undefined;
+  const getFixture = (): Fixture => {
+    if (!fixture) {
+      throw new Error("Test fixture was not initialized");
+    }
+
+    return fixture;
+  };
+
   beforeEach(async () => {
     fixture = await createFixture();
     generatePresignedUrl.mockReset();
+    generateKey.mockReset();
     s3Send.mockReset();
     s3SizeByKey.clear();
     generatePresignedUrl.mockImplementation(({ key }) => ({
       url: `https://example.com/presigned/${key}`,
       key,
     }));
+    generateKey.mockImplementation(
+      ({
+        uploadLinkId,
+        clientId,
+        fileName,
+      }: {
+        uploadLinkId: string;
+        clientId: string;
+        fileName: string;
+      }) =>
+        `uploads/${clientId}/${uploadLinkId}/${crypto.randomUUID()}-${fileName}`,
+    );
     s3Send.mockImplementation((command: { input?: { Key?: string } }) => {
       const key = command?.input?.Key || "";
       if (String(key).includes("missing")) {
@@ -164,12 +194,14 @@ describe("Upload flow integration", () => {
 
   afterEach(async () => {
     await cleanupFixture(fixture);
+    fixture = undefined;
   });
 
   it("completes upload flow and creates the upload record", async () => {
+    const activeFixture = getFixture();
     const verifyRes = await request(app)
       .get("/api/upload/verify")
-      .query({ token: fixture.authToken });
+      .query({ token: activeFixture.authToken });
 
     expect(verifyRes.status).toBe(200);
     const bearer = verifyRes.body.token as string;
@@ -206,7 +238,7 @@ describe("Upload flow integration", () => {
         fileName: "clean.pdf",
         fileSize: file.length,
         fileType: "application/pdf",
-        documentRequestId: fixture.documentRequestId,
+        documentRequestId: activeFixture.documentRequestId,
       });
 
     expect(completeRes.status).toBe(200);
@@ -221,9 +253,10 @@ describe("Upload flow integration", () => {
   });
 
   it("rejects unsupported file types", async () => {
+    const activeFixture = getFixture();
     const verifyRes = await request(app)
       .get("/api/upload/verify")
-      .query({ token: fixture.authToken });
+      .query({ token: activeFixture.authToken });
     const bearer = verifyRes.body.token as string;
 
     const presignedRes = await request(app)
@@ -243,9 +276,10 @@ describe("Upload flow integration", () => {
   });
 
   it("rejects files that exceed size limits", async () => {
+    const activeFixture = getFixture();
     const verifyRes = await request(app)
       .get("/api/upload/verify")
-      .query({ token: fixture.authToken });
+      .query({ token: activeFixture.authToken });
     const bearer = verifyRes.body.token as string;
 
     const presignedRes = await request(app)
@@ -273,29 +307,31 @@ describe("Upload flow integration", () => {
   });
 
   it("returns 400 when the S3 object is missing", async () => {
+    const activeFixture = getFixture();
     const verifyRes = await request(app)
       .get("/api/upload/verify")
-      .query({ token: fixture.authToken });
+      .query({ token: activeFixture.authToken });
     const bearer = verifyRes.body.token as string;
 
     const completeRes = await request(app)
       .post("/api/upload/complete")
       .set("Authorization", `Bearer ${bearer}`)
       .send({
-        s3Key: `uploads/${fixture.clientId}/${fixture.uploadLinkId}/missing.pdf`,
+        s3Key: `uploads/${activeFixture.clientId}/${activeFixture.uploadLinkId}/missing.pdf`,
         fileName: "missing.pdf",
         fileSize: 10,
         fileType: "application/pdf",
-        documentRequestId: fixture.documentRequestId,
+        documentRequestId: activeFixture.documentRequestId,
       });
 
     expect(completeRes.status).toBe(400);
   });
 
   it("supports concurrent uploads", async () => {
+    const activeFixture = getFixture();
     const verifyRes = await request(app)
       .get("/api/upload/verify")
-      .query({ token: fixture.authToken });
+      .query({ token: activeFixture.authToken });
     const bearer = verifyRes.body.token as string;
 
     const files = [
@@ -340,7 +376,7 @@ describe("Upload flow integration", () => {
             fileName: index === 0 ? "file-one.pdf" : "file-two.pdf",
             fileSize: files[index].length,
             fileType: "application/pdf",
-            documentRequestId: fixture.documentRequestId,
+            documentRequestId: activeFixture.documentRequestId,
           }),
       ),
     );
@@ -348,7 +384,7 @@ describe("Upload flow integration", () => {
     completeResults.forEach((result) => expect(result.status).toBe(200));
 
     const uploadsInDb = await prisma.upload.findMany({
-      where: { uploadLinkId: fixture.uploadLinkId },
+      where: { uploadLinkId: activeFixture.uploadLinkId },
     });
     expect(uploadsInDb.length).toBeGreaterThanOrEqual(2);
   });
