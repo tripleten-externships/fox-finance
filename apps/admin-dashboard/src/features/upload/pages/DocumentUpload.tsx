@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
 import { Card } from "@fox-finance/ui";
-import FileDropzone from "../../upload-portal/components/FileDropzone";
 
 type VerificationState = "loading" | "success" | "error";
 
