@@ -12,8 +12,8 @@ type UploadPortalData = {
   instructions: string;
   requestedDocuments: Array<{
     id: string;
-    name: string;
-    description?: string | null;
+    title: string;
+    helper?: string | null;
   }>;
 };
 
@@ -47,14 +47,10 @@ export function UploadPortal() {
           clientId: response.clientId,
         });
 
-        const clientName = `${response.client.firstName} ${response.client.lastName}`.trim();
-
         setData({
-          clientName,
-          companyName: response.client.company || "",
-          instructions:
-            response.instructions?.trim() ||
-            "Please upload the requested documents below.",
+          clientName: response.clientName,
+          companyName: response.branding.companyName || "",
+          instructions: "Please upload the requested documents below.",
           requestedDocuments: response.requestedDocuments || [],
         });
         setState("success");
@@ -160,11 +156,11 @@ export function UploadPortal() {
                       className="rounded-lg border border-slate-200 bg-white p-3"
                     >
                       <div className="text-sm font-medium text-slate-900">
-                        {doc.name}
+                        {doc.title}
                       </div>
-                      {doc.description && (
+                      {doc.helper && (
                         <p className="mt-1 text-xs text-slate-500">
-                          {doc.description}
+                          {doc.helper}
                         </p>
                       )}
                     </li>
