@@ -68,6 +68,7 @@ const Charts: React.FC = () => {
     localStorage.setItem("chartRange", newRange);
   };
 
+  {/* Fetches page view count for Document Upload page */}
   useEffect(() => {
     const fetchViewCount = async () => {
       try {
@@ -124,17 +125,6 @@ const Charts: React.FC = () => {
       </div>
     );
   }
-
-  const formatPieLabel = ({
-    name, percent
-  }: {
-    name?: string;
-    percent?: number;
-  }) => {
-    const labelName = String(name ?? "Unknown");
-    const pct = ((percent ?? 0) * 100).toFixed(0);
-    return `${labelName} (${pct})`;
-  };
   
   return (
     <div className="space-y-6 min-w-0">
@@ -249,7 +239,7 @@ const Charts: React.FC = () => {
                   dataKey="count"
                   nameKey="fileType"
                   outerRadius={100}
-                  label={formatPieLabel}
+                  label
                 >
                   {data.fileTypes.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />

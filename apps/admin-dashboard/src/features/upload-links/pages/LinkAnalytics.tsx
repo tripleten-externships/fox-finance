@@ -1,10 +1,7 @@
 // Import graphs, charts, etc. from recharts; Look at Charts.tsx in dashboard
 import { NavLink } from "react-router-dom";
 import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
+  Button
 } from "@fox-finance/ui";
 import { FaRegMoon, FaSun} from "react-icons/fa";
 import { FaBoxArchive } from "react-icons/fa6";
@@ -14,57 +11,9 @@ import useAuth from "../../../hooks/useAuth";
 
 import Charts from "../../dashboard/Charts.tsx";
 
-/*interface StatsData {
-  totalClients: number;
-  activeClients: number;
-  uploadMetrics: {
-    totalUploadLinks: number;
-    activeUploadLinks: number;
-    completedUploadLinks: number;
-    pendingFileUploads: number;
-  };
-}*/
-
-/*interface StatsResponse {
-  data: StatsData;
-  meta: {
-    performance: {
-      responseTimeMs: number;
-      under200ms: boolean;
-    };
-    generatedAt: string;
-  };
-}*/
-
 const LinkAnalytics: React.FC = () => {
   const { logout } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
-
-  /*const [stats, setStats] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStats = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiClient("/api/admin/clients/stats");
-      if (!response.ok) {
-        throw new Error("Failed to fetch stats");
-      }
-      const data: StatsResponse = await response.json();
-      setStats(data.data);
-    } catch (err: any) {
-      setError(err.message || "An error occurred while fetching stats");
-      console.error("Error fetching stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);*/
 
   const handleSignOut = async () => {
     try {

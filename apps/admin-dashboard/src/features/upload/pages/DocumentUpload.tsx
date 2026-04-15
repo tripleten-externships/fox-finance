@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
-import { setUploadAuth, getUploadAuth, getUploadToken } from "../lib/tokenStorage";
+import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
 import { pageView } from "../lib/pageView";
 import { Card } from "@fox-finance/ui";
 
@@ -62,7 +62,7 @@ export function DocumentUpload() {
     if (state !== "success" || visitTrackedRef.current) {
       return;
     }
-
+    // If state === "success", ref switches to true and guards against page view counter incrementing twice
     visitTrackedRef.current = true;
     pageView();
   }, [ state ]);

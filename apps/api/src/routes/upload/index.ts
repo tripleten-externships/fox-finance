@@ -145,13 +145,28 @@ router.get("/verify", async (req, res, next) => {
   }
 });
 
-// NOTE TO SELF - Set a timer for the upload so that, after the page has been visited and the counter incremented,
-// it cannot be incremented again for another 24 hours
 
-// PATCH /api/upload/analytics/:metric - Track successful document upload page visit
+/**
+ * PATCH /api/upload/analytics/:metric
+ *
+ * Tracks successful document upload page vew from client and
+ * increments page view counter by 1
+ * for the "document-upload" page, file
+ * apps/admin-dashboard/src/features/upload/pages/DocumentUpload.tsx
+ * Request made using a page view helper, found in
+ * apps/admin-dashboard/src/features/upload/lib/pageView.ts,
+ * using the metric "page-views".
+ *
+ * Flow:
+ * 1. Checks upload token
+ * 2. Checks if metric strictly equals "page-views" per endpoint
+ * 3. Increments page view count for "document-upload" page
+ * 4. Stores incremented data in DB via Prisma model PageVisitCounter
+ */
 router.patch(
   "/analytics/:metric",
-  //requireUploadToken,
+  // To test route, comment out method requireUploadToken
+  requireUploadToken,
   async (req, res, next) => {
   try {
     const { metric } = req.params;

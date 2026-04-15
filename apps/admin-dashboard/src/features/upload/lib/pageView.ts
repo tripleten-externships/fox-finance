@@ -22,16 +22,14 @@ function getApiBaseUrl(): string {
 }
 
 /**
- * 
+ * Sends PATCH request to api for tracking page views
  */
-
-
 export function pageView() {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/upload/analytics/page-views`;
     const token = getUploadToken();
 
-    const incrementVisit = async () => {
+    const incrementCount = async () => {
         if (!token) {
           console.error("No upload bearer token available; not incrementing page view");
           return;
@@ -56,5 +54,5 @@ export function pageView() {
         }
     }
 
-    incrementVisit();
+    incrementCount();
 }
