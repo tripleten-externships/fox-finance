@@ -13,7 +13,9 @@
     "type-check": "tsc --noEmit",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --config jest.integration.config.ts --runInBand",
+    "test:integration:watch": "jest --config jest.integration.config.ts --watch"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
