@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth } from "../lib/tokenStorage";
-import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
 import { pageView } from "../lib/pageView";
 import { Card } from "@fox-finance/ui";
 import { Upload } from "./Upload.tsx";
@@ -21,7 +20,6 @@ export function DocumentUpload() {
   const [brandingCompanyName, setBrandingCompanyName] = useState<string | null>(
     null,
   );
-  const [error, setError] = useState<string>("");
   const visitTrackedRef = useRef(false);
 
   {/* Verify User Token */}
