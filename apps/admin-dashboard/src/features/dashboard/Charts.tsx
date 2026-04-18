@@ -34,7 +34,7 @@ const COLORS = [
 const Charts: React.FC = () => {
   const [data, setData] = useState<{
     uploadsOverTime: { day: string; count: number }[];
-    uploadsByClient: { clientId: string; count: number }[];
+    uploadsByClient: { clientId: string; clientName: string; count: number }[];
     fileTypes: { fileType: string; count: number }[];
   } | null>(null);
 
@@ -43,6 +43,7 @@ const Charts: React.FC = () => {
   const [range, setRange] = useState(
     localStorage.getItem("chartRange") || "30d",
   );
+  const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,13 +68,28 @@ const Charts: React.FC = () => {
     localStorage.setItem("chartRange", newRange);
   };
 
+  {/* Fetches page view count for Document Upload page */}
+  useEffect(() => {
+    const fetchViewCount = async () => {
+      try {
+        const res = await apiClient("/api/admin/upload-links/analytics/page-views");
+        const data = await res.json();
+        setCount(data.count);
+      } catch(error) {
+        console.error("Failed to fetch visit count:", error);
+      }
+    }
+
+    fetchViewCount();
+  }, [])
+
   const exportCSV = () => {
     if (!data) return;
     const csvRows = [
       ["Type", "Label", "Count"],
       ...[
         ...data.uploadsOverTime.map((u) => ["Upload", u.day, u.count]),
-        ...data.uploadsByClient.map((c) => ["Client", c.clientId, c.count]),
+        ...data.uploadsByClient.map((c) => ["Client", c.clientName, c.count]),
         ...data.fileTypes.map((f) => ["FileType", f.fileType, f.count]),
       ],
     ];
@@ -109,12 +125,12 @@ const Charts: React.FC = () => {
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6 min-w-0">
       {/* Range buttons and CSV export */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="flex pt-6 items-center justify-between">
           <div className="flex flex-wrap gap-2">
             {["7d", "30d", "90d", "1y"].map((r) => (
               <Button
@@ -128,6 +144,10 @@ const Charts: React.FC = () => {
             <Button onClick={exportCSV} variant="outline">
               Export CSV
             </Button>
+          </div>
+          {/* Total Upload Page View Count */}
+          <div className="text-lg font-semibold">
+            Total Upload Document Page Views: <span id="uploadViews" className="text-blue-500">{count}</span>
           </div>
         </CardContent>
       </Card>
@@ -182,7 +202,7 @@ const Charts: React.FC = () => {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data.uploadsByClient}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="clientId" className="text-muted-foreground" />
+                <XAxis dataKey="clientName" className="text-muted-foreground" />
                 <YAxis className="text-muted-foreground" />
                 <ReTooltip
                   contentStyle={{

@@ -171,3 +171,12 @@ model UploadBatch {
 
   uploads Upload[]
 }
+
+model PageVisitCounter {
+  id        String   @id @default(uuid()) @db.Uuid
+  page      String   @unique
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@index([page])
+}

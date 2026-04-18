@@ -182,6 +182,50 @@ router.get("/verify", async (req, res, next) => {
   }
 });
 
+
+/**
+ * PATCH /api/upload/analytics/:metric
+ *
+ * Tracks successful document upload page vew from client and
+ * increments page view counter by 1
+ * for the "document-upload" page, file
+ * apps/admin-dashboard/src/features/upload/pages/DocumentUpload.tsx
+ * Request made using a page view helper, found in
+ * apps/admin-dashboard/src/features/upload/lib/pageView.ts,
+ * using the metric "page-views".
+ *
+ * Flow:
+ * 1. Checks upload token
+ * 2. Checks if metric strictly equals "page-views" per endpoint
+ * 3. Increments page view count for "document-upload" page
+ * 4. Stores incremented data in DB via Prisma model PageVisitCounter
+ */
+router.patch(
+  "/analytics/:metric",
+  // To test route, comment out method requireUploadToken
+  requireUploadToken,
+  async (req, res, next) => {
+  try {
+    const { metric } = req.params;
+
+    if (metric !== "page-views") {
+      return res.status(400).json({ error: `Unsupported metric: ${metric}`});
+    };
+
+    if (metric === "page-views") {
+      await prisma.pageVisitCounter.upsert({
+      where: { page: "document-upload" },
+      update: { count: { increment: 1 }},
+      create: { page: "document-upload", count: 1 },
+    })
+  };
+
+  res.json({ success: true })
+} catch (error) {
+  next(error)
+};
+})
+
 /**
  * POST /api/upload/presigned-url
  *

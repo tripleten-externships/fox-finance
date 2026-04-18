@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth } from "../lib/tokenStorage";
+import { pageView } from "../lib/pageView";
 import { Card } from "@fox-finance/ui";
 import { Upload } from "./Upload.tsx";
 
@@ -19,7 +20,9 @@ export function DocumentUpload() {
   const [brandingCompanyName, setBrandingCompanyName] = useState<string | null>(
     null,
   );
+  const visitTrackedRef = useRef(false);
 
+  {/* Verify User Token */}
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -71,6 +74,17 @@ export function DocumentUpload() {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [token]);
+
+  {/* Track client's page visit on success */}
+  useEffect(() => {
+    // Check if the token validation succeeded or ref is true
+    if (state !== "success" || visitTrackedRef.current) {
+      return;
+    }
+    // If state === "success", ref switches to true and guards against page view counter incrementing twice
+    visitTrackedRef.current = true;
+    pageView();
+  }, [ state ]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

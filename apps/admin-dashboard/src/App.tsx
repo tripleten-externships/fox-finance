@@ -4,6 +4,7 @@ import { UploadPortal } from "./features/upload-portal/pages/Upload";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import DashboardLayout from "./features/dashboard/DashboardLayout";
+import LinkAnalytics from "./features/upload-links/pages/LinkAnalytics";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
                     path="/"
                     element={<Navigate to="/dashboard" replace />}
                   />
+                  <Route path="/dashboard/analytics" element={<LinkAnalytics />}/>
                 </Routes>
               </ProtectedRoutes>
             }

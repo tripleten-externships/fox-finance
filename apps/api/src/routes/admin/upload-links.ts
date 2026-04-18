@@ -87,6 +87,25 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+// NOTE TO SELF: This GET request must retrieve visits for the page "document-upload"
+
+// GET /api/admin/upload-links/analytics/:metrics with param "page-views" and page: "document-upload" - Call total document upload page visits
+router.get("/analytics/:metric", async (req, res, next) => {
+  try {
+    const { metric } = req.params;
+
+    if (metric === "page-views") {
+      const record = await prisma.pageVisitCounter.findUnique({
+      where: { page: "document-upload"}
+    });
+
+    res.json({ count: record?.count ?? 0 });
+  } 
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/admin/upload-links/:id - Get a specific upload link with all details
 router.get("/:id", async (req, res, next) => {
   try {
@@ -119,6 +138,14 @@ router.get("/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+// GET /api/admin/upload-links/:id/analytics ??? DO WE EVEN NEED THIS? WHAT IS OUR DEFINITION OF /ANALYTICS?
+// /:id/analytics?=page-views
+// Pass the id not of the upload-link but of the id given to the Model in Prisma? Is that possible
+//
+//
+//
+//
 
 // POST /api/admin/upload-links - Create a new upload link
 router.post(
