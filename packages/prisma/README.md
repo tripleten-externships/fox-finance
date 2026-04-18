@@ -1,6 +1,6 @@
-# @trayecto/prisma
+# @fox-finance/prisma
 
-Shared Prisma client and database migration utilities for Trayecto apps.
+Shared Prisma client and database migration utilities for fox-finance apps.
 
 ## Installation
 
@@ -11,7 +11,7 @@ This is an internal workspace package. It's automatically available to other pac
 ### Prisma Client
 
 ```typescript
-import { prisma } from "@trayecto/prisma";
+import { prisma } from "@fox-finance/prisma";
 
 const users = await prisma.user.findMany();
 ```
@@ -19,7 +19,7 @@ const users = await prisma.user.findMany();
 ### ETL Migration
 
 ```typescript
-import { migrate } from "@trayecto/prisma/migrate";
+import { migrate } from "@fox-finance/prisma/migrate";
 
 await migrate();
 ```

@@ -1,28 +1,34 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { verifyUploadToken } from "../lib/verifyToken";
+import { setUploadAuth } from "../lib/tokenStorage";
 import { setUploadAuth, getUploadAuth } from "../lib/tokenStorage";
 import { pageView } from "../lib/pageView";
 import { Card } from "@fox-finance/ui";
+import { Upload } from "./Upload.tsx";
 
 type VerificationState = "loading" | "success" | "error";
 
 export function DocumentUpload() {
   const { token } = useParams();
+  const [error, setError] = useState<string>("");
   const [state, setState] = useState<VerificationState>("loading");
+  const [showUploadPage, setShowUploadPage] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [requestedDocuments, setRequestedDocuments] = useState<
+    { id: string; title: string; helper: string }[]
+  >([]);
+  const [brandingCompanyName, setBrandingCompanyName] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string>("");
   const visitTrackedRef = useRef(false);
 
   {/* Verify User Token */}
   useEffect(() => {
-    const verifyToken = async () => {
-      // Check if we already have a valid token in storage
-      const existingAuth = getUploadAuth();
-      if (existingAuth) {
-        setState("success");
-        return;
-      }
+    let timeoutId: ReturnType<typeof setTimeout>;
 
+    const verifyToken = async () => {
       if (!token) {
         setError("No token provided in URL");
         setState("error");
@@ -30,13 +36,10 @@ export function DocumentUpload() {
       }
 
       try {
-        // Verify the JWT token and get bearer token
         const response = await verifyUploadToken(token);
 
-        // Calculate expiration timestamp
         const expiresAt = Date.now() + response.expiresIn * 1000;
 
-        // Store the authentication data
         setUploadAuth({
           bearerToken: response.token,
           expiresAt,
@@ -44,7 +47,21 @@ export function DocumentUpload() {
           clientId: response.clientId,
         });
 
+        setClientName(response.clientName ?? "");
+        setRequestedDocuments(
+          (response.requestedDocuments ?? []).map((d) => ({
+            id: d.id,
+            title: d.title,
+            helper: d.helper,
+          })),
+        );
+        setBrandingCompanyName(response.branding?.companyName ?? null);
+
         setState("success");
+
+        timeoutId = setTimeout(() => {
+          setShowUploadPage(true);
+        }, 2500);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Token verification failed";
@@ -54,6 +71,10 @@ export function DocumentUpload() {
     };
 
     verifyToken();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [token]);
 
   {/* Track client's page visit on success */}
@@ -69,7 +90,13 @@ export function DocumentUpload() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl p-8">
+      <Card
+        className={`w-full max-w-2xl p-8 ${
+          state === "success" && showUploadPage
+            ? "border-0 shadow-none bg-transparent p-0"
+            : ""
+        }`}
+      >
         {state === "loading" && (
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
@@ -105,7 +132,7 @@ export function DocumentUpload() {
           </div>
         )}
 
-        {state === "success" && (
+        {state === "success" && !showUploadPage && (
           <div className="text-center">
             <div className="mb-6">
               <svg
@@ -129,6 +156,14 @@ export function DocumentUpload() {
               Your access has been verified successfully.
             </p>
           </div>
+        )}
+
+        {state === "success" && showUploadPage && (
+          <Upload
+            clientName={clientName}
+            brandingCompanyName={brandingCompanyName}
+            requiredDocs={requestedDocuments}
+          />
         )}
       </Card>
     </div>

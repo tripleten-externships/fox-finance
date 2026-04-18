@@ -3,13 +3,10 @@ import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
+import { adminUploadLinkCreationRateLimit } from "../../middleware/rateLimit";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-
-// Secret for JWT tokens - use environment variable or default for development
-const UPLOAD_TOKEN_SECRET =
-  process.env.UPLOAD_TOKEN_SECRET ||
-  "your-secret-key-here-change-in-production";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
 
 const router = Router();
 
@@ -151,7 +148,11 @@ router.get("/:id", async (req, res, next) => {
 //
 
 // POST /api/admin/upload-links - Create a new upload link
-router.post("/", validate(createUploadLinkSchema), async (req, res, next) => {
+router.post(
+  "/",
+  adminUploadLinkCreationRateLimit,
+  validate(createUploadLinkSchema),
+  async (req, res, next) => {
   try {
     const { clientId, expiresAt, requestedDocuments, instructions } = req.body;
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { degradeIfDatabaseUnavailable, prisma } from "@fox-finance/prisma";
 import jwt from "jsonwebtoken";
+import { UPLOAD_TOKEN_SECRET } from "../lib/uploadTokenSecret";
 
 export interface UploadAuthRequest extends Request {
   uploadLink?: {
@@ -54,17 +55,10 @@ export async function requireUploadToken(
       });
     }
 
-    // Get the secret from environment
-    const secret = process.env.UPLOAD_TOKEN_SECRET;
-    if (!secret) {
-      console.error("UPLOAD_TOKEN_SECRET environment variable not set");
-      return res.status(500).json({ error: "Server configuration error" });
-    }
-
     // Verify the JWT bearer token
     let decoded: BearerTokenPayload;
     try {
-      decoded = jwt.verify(token, secret) as BearerTokenPayload;
+      decoded = jwt.verify(token, UPLOAD_TOKEN_SECRET) as BearerTokenPayload;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         return res.status(401).json({
