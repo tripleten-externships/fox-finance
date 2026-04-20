@@ -38,6 +38,11 @@ enum ScanStatus {
   FAILED
 }
 
+enum EmailStatus {
+  SENT
+  FAILED
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -111,6 +116,7 @@ model UploadLink {
   updatedAt        DateTime          @updatedAt
   documentRequests DocumentRequest[]
   uploads          Upload[]
+  emailLogs        EmailLog[]
   UploadBatch      UploadBatch[]
 
   @@index([clientId])

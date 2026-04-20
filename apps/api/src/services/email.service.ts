@@ -70,6 +70,8 @@ export class EmailService {
         <p>Best regards,<br/>Fox Finance Team</p>
         </div>
         `;
+
+        console.log("HTML Preview:", html);
         
 
         // try: stimulate sending email (console logs)
@@ -104,6 +106,51 @@ export class EmailService {
             },
         });
     }
+
+    async sendUploadNotificationEmail(input: {
+            recipientEmails: string[];
+            clientName: string;
+            fileList: { fileName: string; fileSize: number }[];
+            fileCount: number;
+            totalSize: number;
+            viewUploadsUrl: string;
+            }): Promise<void> {
+        const { recipientEmails, clientName, fileList, fileCount, totalSize, viewUploadsUrl } = input;
+
+        const subject = `New Uploads from ${clientName}`;
+
+        const fileItems = fileList
+            .map(f => `<li>${f.fileName} (${f.fileSize} bytes)</li>`)
+            .join("");
+
+        const html = `
+            <div style="font-family: Arial, sans-serif;">
+            <h2>New Upload Completed</h2>
+
+            <p><strong>${clientName}</strong> has uploaded files.</p>
+
+            <p>Total files: ${fileCount}</p>
+            <p>Total size: ${totalSize} bytes</p>
+
+            <ul>${fileItems}</ul>
+
+            <p>
+                <a href="${viewUploadsUrl}"
+                style="padding: 10px 16px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px;">
+                View Uploads
+                </a>
+            </p>
+            </div>
+        `;
+        console.log("HTML Preview:", html);
+
+        console.log("📧 MOCK ADMIN EMAIL");
+        console.log("To:", recipientEmails);
+        console.log("Subject:", subject);
+        console.log("Payload:", { clientName, fileCount, totalSize });
+
+        // no failure simulation for demo stability
+        }
 }
 
 export const emailService = new EmailService();
