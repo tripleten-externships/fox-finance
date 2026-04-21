@@ -104,10 +104,12 @@ model Upload {
   uploadBatchId     String?          @db.Uuid
   fileType          String           @default("unknown")
   downloadCount     Int              @default(0)
-  virusScanStatus   String           @default("pending")
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
   UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
   uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  scanStatus   ScanStatus @default(PENDING)
+  scanResult   String?
+  scannedAt    DateTime?
 
   @@index([uploadLinkId])
   @@index([fileName])
