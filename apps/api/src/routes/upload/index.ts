@@ -13,8 +13,7 @@ import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { queueUploadScan } from "../../services/malwareScan.service";
-import jwt from "jsonwebtoken";
-import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
+import * as jwt from "jsonwebtoken";
 import {
   uploadCompletionRateLimit,
   uploadPresignedUrlRateLimit,
