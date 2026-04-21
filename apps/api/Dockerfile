@@ -68,9 +68,12 @@ COPY packages/api-types ./packages/api-types
 # Copy config package source if needed
 COPY packages/config ./packages/config
 
-# Build config package
-WORKDIR /app/packages/config
-RUN pnpm build
+# Ensure workspace binaries (e.g. typescript/tsc) are available in builder stage.
+RUN pnpm install --frozen-lockfile
+
+# Build config package from workspace root (ensures workspace toolchain resolution)
+WORKDIR /app
+RUN pnpm --filter @fox-finance/config build
 
 # Set Prisma binary targets for Linux (debian/glibc)
 ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
