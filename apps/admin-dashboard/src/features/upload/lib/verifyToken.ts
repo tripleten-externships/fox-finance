@@ -23,26 +23,13 @@ export interface VerifyTokenResponse {
   token: string;
   expiresIn: number;
   uploadLinkId: string;
+
   clientId: string;
-
-  // Keeping Full Client object (Existing code may rely on it)
-  client: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    company?: string | null;
-  };
-
-  // Keeping simplified name for UI (FF-61)
 
   clientName: string;
 
-  instructions: string;
-
-  // Using the richer typed version from FF-61
   requestedDocuments: RequestedDocumentItem[];
 
-  // Keeping branding (FF-61 feature)
   branding: {
     companyName: string | null;
   };

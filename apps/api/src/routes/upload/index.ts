@@ -14,6 +14,7 @@ import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
 import {
   uploadCompletionRateLimit,
   uploadPresignedUrlRateLimit,
@@ -55,7 +56,10 @@ async function handlePublicUploadVerify(token: string | undefined) {
     decoded = jwt.verify(token, UPLOAD_TOKEN_SECRET) as AuthTokenPayload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return { status: 401 as const, body: { error: "Auth token has expired" } };
+      return {
+        status: 401 as const,
+        body: { error: "Auth token has expired" },
+      };
     }
     if (error instanceof jwt.JsonWebTokenError) {
       return { status: 401 as const, body: { error: "Invalid auth token" } };

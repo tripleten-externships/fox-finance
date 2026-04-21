@@ -7,7 +7,6 @@ import { adminUploadLinkCreationRateLimit } from "../../middleware/rateLimit";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
-import { emailService } from "src/services/email.service";
 
 const router = Router();
 
