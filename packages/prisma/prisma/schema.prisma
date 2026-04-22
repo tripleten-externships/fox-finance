@@ -45,16 +45,16 @@ enum EmailStatus {
 // ============================================================================
 
 model User {
-  id                 String       @id
-  email              String       @unique
-  name               String?
-  photoUrl           String?
-  role               Role         @default(USER)
-   uploadNotificationEnabled   Boolean      @default(true)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  createdUploadLinks UploadLink[] @relation("CreatedLinks")
-  updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
+  id                        String       @id
+  email                     String       @unique
+  name                      String?
+  photoUrl                  String?
+  role                      Role         @default(USER)
+  uploadNotificationEnabled Boolean      @default(true)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  createdUploadLinks        UploadLink[] @relation("CreatedLinks")
+  updatedUploadLinks        UploadLink[] @relation("UpdatedLinks")
 }
 
 // ============================================================================
@@ -165,9 +165,9 @@ model Upload {
   documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
   UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
   uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
-  scanStatus   ScanStatus @default(PENDING)
-  scanResult   String?
-  scannedAt    DateTime?
+  scanStatus        ScanStatus       @default(PENDING)
+  scanResult        String?
+  scannedAt         DateTime?
 
   @@index([uploadLinkId])
   @@index([fileName])
@@ -184,33 +184,6 @@ model UploadBatch {
   uploads       Upload[]
   uploadLink    UploadLink @relation(fields: [uploadLinkId], references: [id])
 }
-
-enum Role {
-  ADMIN
-  USER
-}
-
-enum Status {
-  ACTIVE
-  INACTIVE
-}
-
-enum UploadStatus {
-  COMPLETE
-  INCOMPLETE
-}
-
-enum ScanStatus {
-  PENDING
-  SCANNING
-  CLEAN
-  THREAT_DETECTED
-  FAILED
-}
-
-// ============================================================================
-// MODELS
-// ============================================================================
 
 enum NotificationFrequency {
   IMMEDIATE
