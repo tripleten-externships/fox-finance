@@ -13,12 +13,12 @@ import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
 import { queueUploadScan } from "../../services/malwareScan.service";
-import jwt from "jsonwebtoken";
-import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
+import * as jwt from "jsonwebtoken";
 import {
   uploadCompletionRateLimit,
   uploadPresignedUrlRateLimit,
 } from "../../middleware/rateLimit";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
 
 const router = Router();
 
@@ -169,13 +169,16 @@ router.get("/verify/:token", async (req, res, next) => {
 router.get("/verify", async (req, res, next) => {
   try {
     const token = req.query.token as string | undefined;
+
     if (!token) {
       return res
         .status(400)
         .json({ error: "Token query parameter is required" });
     }
+
     const result = await handlePublicUploadVerify(token);
     return res.status(result.status).json(result.body);
+
   } catch (error) {
     console.error("Error verifying auth token:", error);
     next(error);

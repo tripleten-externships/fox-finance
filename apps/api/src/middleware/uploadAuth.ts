@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { degradeIfDatabaseUnavailable, prisma } from "@fox-finance/prisma";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import { UPLOAD_TOKEN_SECRET } from "../lib/uploadTokenSecret";
 
 export interface UploadAuthRequest extends Request {
