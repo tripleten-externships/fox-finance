@@ -4,9 +4,10 @@ import { validate } from "../../middleware/validation";
 import { createUploadLinkSchema } from "../../schemas/uploadLink.schema";
 import { AuthenticatedRequest } from "../../middleware/auth";
 import { adminUploadLinkCreationRateLimit } from "../../middleware/rateLimit";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
+import * as jwt from "jsonwebtoken";
+import * as crypto from "crypto";
 import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
+import { emailService } from "../../services/email.service";
 
 const router = Router();
 
@@ -224,8 +225,26 @@ router.post(
       }),
     );
 
+    if (!result) {
+    throw new Error("Upload link creation failed: result is null");
+    }
+
     // Return the full upload URL
     const uploadUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/upload/${token}`;
+
+    try {
+      await emailService.sendUploadLinkEmail({
+      recipientEmail: result.client!.email,
+      clientName: `${result.client!.firstName} ${result.client!.lastName}`,
+      uploadLinkUrl: uploadUrl,
+      expiresAt: result.expiresAt,
+      uploadLinkId: result.id,
+    });
+    } catch (error) {
+      console.error("Failed to send upload link email:", error);
+    }
+    
+    //implement logic here zach
     res.status(201).json({ url: uploadUrl, uploadLink: result });
   } catch (error) {
     console.error("Error creating upload link:", error);

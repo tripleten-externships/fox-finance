@@ -8,6 +8,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum UploadStatus {
+  COMPLETE
+  INCOMPLETE
+}
+
+enum ScanStatus {
+  PENDING
+  SCANNING
+  CLEAN
+  THREAT_DETECTED
+  FAILED
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
 model User {
   id                 String       @id
   email              String       @unique
@@ -19,6 +55,27 @@ model User {
   updatedAt          DateTime     @updatedAt
   createdUploadLinks UploadLink[] @relation("CreatedLinks")
   updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
+}
+
+// ============================================================================
+// TODO: Add your models here
+// Students should define: Client, UploadLink, DocumentRequest, Upload models
+// ============================================================================
+
+model EmailLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  uploadLinkId String     @db.Uuid
+  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+
+  recipientEmail String
+  subject        String?
+
+  status       EmailStatus @default(SENT)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Client {
@@ -52,6 +109,7 @@ model UploadLink {
   updatedById      String?
   documentRequests DocumentRequest[]
   uploads          Upload[]
+  emailLogs        EmailLog[]
   UploadBatch      UploadBatch[]
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy        User              @relation("CreatedLinks", fields: [createdById], references: [id])
