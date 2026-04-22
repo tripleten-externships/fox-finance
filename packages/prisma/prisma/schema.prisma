@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -11,9 +8,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// ENUMS
-// ============================================================================
+model User {
+  id                 String       @id
+  email              String       @unique
+  name               String?
+  photoUrl           String?
+  role               Role         @default(USER)
+   uploadNotificationEnabled   Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  createdUploadLinks UploadLink[] @relation("CreatedLinks")
+  updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
+}
+
+model Client {
+  email                  String                  @unique
+  firstName              String
+  lastName               String
+  company                String?
+  phone                  String
+  status                 Status                  @default(ACTIVE)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  id                     String                  @id @default(uuid()) @db.Uuid
+  uploadLinks            UploadLink[]
+  uploadNotificationLogs UploadNotificationLog[]
+
+  @@index([phone])
+  @@index([company])
+  @@index([firstName])
+  @@index([lastName])
+}
+
+model UploadLink {
+  token            String            @unique
+  expiresAt        DateTime
+  isActive         Boolean           @default(false)
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  id               String            @id @default(uuid()) @db.Uuid
+  clientId         String            @db.Uuid
+  updatedById      String?
+  documentRequests DocumentRequest[]
+  uploads          Upload[]
+  UploadBatch      UploadBatch[]
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy        User              @relation("CreatedLinks", fields: [createdById], references: [id])
+  updatedBy        User?             @relation("UpdatedLinks", fields: [updatedById], references: [id])
+
+  @@index([clientId])
+  @@index([isActive, expiresAt])
+}
+
+model DocumentRequest {
+  instructions       String?
+  status             UploadStatus        @default(INCOMPLETE)
+  id                 String              @id @default(uuid()) @db.Uuid
+  uploadLinkId       String              @db.Uuid
+  uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
+  requestedDocuments RequestedDocument[]
+  uploads            Upload[]
+}
+
+model RequestedDocument {
+  description       String
+  id                String           @id @default(uuid()) @db.Uuid
+  documentRequestId String?          @db.Uuid
+  documentTypeId    String
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  documentType      DocumentType     @relation(fields: [documentTypeId], references: [id])
+
+  @@index([documentTypeId])
+}
+
+model DocumentType {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  description        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  requestedDocuments RequestedDocument[]
+}
+
+model Upload {
+  fileName          String
+  fileSize          Decimal
+  s3Key             String
+  s3Bucket          String
+  uploadedAt        DateTime         @updatedAt
+  metadata          Json
+  id                String           @id @default(uuid()) @db.Uuid
+  uploadLinkId      String           @db.Uuid
+  documentRequestId String?          @db.Uuid
+  uploadBatchId     String?          @db.Uuid
+  fileType          String           @default("unknown")
+  downloadCount     Int              @default(0)
+  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
+  UploadBatch       UploadBatch?     @relation(fields: [uploadBatchId], references: [id])
+  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
+  scanStatus   ScanStatus @default(PENDING)
+  scanResult   String?
+  scannedAt    DateTime?
+
+  @@index([uploadLinkId])
+  @@index([fileName])
+}
+
+model UploadBatch {
+  id            String     @id @default(uuid()) @db.Uuid
+  uploadLinkId  String     @db.Uuid
+  status        String
+  totalFiles    Int
+  uploadedFiles Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  uploads       Upload[]
+  uploadLink    UploadLink @relation(fields: [uploadLinkId], references: [id])
+}
 
 enum Role {
   ADMIN
@@ -42,132 +154,27 @@ enum ScanStatus {
 // MODELS
 // ============================================================================
 
-model User {
-  id                 String       @id // Firebase UID — this is your canonical user identifier
-  email              String       @unique
-  name               String?
-  photoUrl           String?
-  role               Role         @default(USER)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  createdUploadLinks UploadLink[] @relation("CreatedLinks")
-  updatedUploadLinks UploadLink[] @relation("UpdatedLinks")
+enum NotificationFrequency {
+  IMMEDIATE
+  HOURLY
+  DAILY
+}
+
+model UploadNotificationLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @db.Uuid
+  sentAt    DateTime @default(now())
+  uploadIds Json
+  fileCount Int
+  totalSize Decimal
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, sentAt])
 }
 
 // ============================================================================
 // TODO: Add your models here
 // Students should define: Client, UploadLink, DocumentRequest, Upload models
 // ============================================================================
-
-model Client {
-  //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
-  // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
-
-  id          String       @id @default(uuid()) @db.Uuid
-  email       String       @unique
-  firstName   String
-  lastName    String
-  company     String?
-  phone       String
-  status      Status       @default(ACTIVE)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  uploadLinks UploadLink[]
-
-  @@index([phone])
-  @@index([company])
-  @@index([firstName])
-  @@index([lastName])
-}
-
-model UploadLink {
-  id               String            @id @default(uuid()) @db.Uuid
-  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId         String            @db.Uuid
-  token            String            @unique
-  expiresAt        DateTime
-  isActive         Boolean           @default(false)
-  createdBy        User              @relation("CreatedLinks", fields: [createdById], references: [id])
-  createdById      String
-  createdAt        DateTime          @default(now())
-  updatedBy        User?             @relation("UpdatedLinks", fields: [updatedById], references: [id])
-  updatedById      String?
-  updatedAt        DateTime          @updatedAt
-  documentRequests DocumentRequest[]
-  uploads          Upload[]
-  UploadBatch      UploadBatch[]
-
-  @@index([clientId])
-  @@index([isActive, expiresAt])
-}
-
-model DocumentRequest {
-  id                 String              @id @default(uuid()) @db.Uuid
-  uploadLink         UploadLink          @relation(fields: [uploadLinkId], references: [id], onDelete: Cascade)
-  uploadLinkId       String              @db.Uuid
-  requestedDocuments RequestedDocument[] //Array of documents
-  instructions       String?
-  status             UploadStatus        @default(INCOMPLETE) // Assumption: Upload status differs from the other status. An upload is either incomplete or complete.
-  uploads            Upload[]
-}
-
-model RequestedDocument {
-  id                String           @id @default(uuid()) @db.Uuid
-  documentType      DocumentType     @relation(fields: [documentTypeId], references: [id])
-  documentTypeId    String
-  description       String
-  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String?          @db.Uuid
-
-  @@index([documentTypeId])
-}
-
-model DocumentType {
-  id                 String              @id @default(cuid())
-  name               String              @unique
-  description        String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  requestedDocuments RequestedDocument[]
-}
-
-model Upload {
-  id                String           @id @default(uuid()) @db.Uuid
-  uploadLink        UploadLink       @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId      String           @db.Uuid
-  documentRequest   DocumentRequest? @relation(fields: [documentRequestId], references: [id])
-  documentRequestId String?          @db.Uuid
-  fileName          String
-  fileSize          Decimal
-  s3Key             String
-  s3Bucket          String
-  fileType          String           @default("unknown")
-  downloadCount     Int              @default(0)
-  virusScanStatus   String           @default("pending")
-  scanStatus        ScanStatus       @default(PENDING)
-  scanResult        String?
-  scannedAt         DateTime?
-
-  uploadedAt    DateTime     @updatedAt
-  metadata      Json
-  UploadBatch   UploadBatch? @relation(fields: [uploadBatchId], references: [id])
-  uploadBatchId String?      @db.Uuid
-
-  @@index([uploadLinkId])
-  @@index([fileName])
-}
-
-model UploadBatch {
-  id           String     @id @default(uuid()) @db.Uuid
-  uploadLink   UploadLink @relation(fields: [uploadLinkId], references: [id])
-  uploadLinkId String     @db.Uuid
-
-  status        String
-  totalFiles    Int
-  uploadedFiles Int    @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  uploads Upload[]
-}
