@@ -12,7 +12,13 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../../lib/s3";
 import { s3Service } from "../../services/s3.service";
 import { prisma, degradeIfDatabaseUnavailable } from "@fox-finance/prisma";
+import { queueUploadScan } from "../../services/malwareScan.service";
 import jwt from "jsonwebtoken";
+import { UPLOAD_TOKEN_SECRET } from "../../lib/uploadTokenSecret";
+import {
+  uploadCompletionRateLimit,
+  uploadPresignedUrlRateLimit,
+} from "../../middleware/rateLimit";
 
 const router = Router();
 
@@ -39,106 +45,137 @@ interface BearerTokenPayload {
   type: "bearer";
 }
 
-/**
- * GET /api/upload/verify?token=xyz
- *
- * Verifies an auth token from the upload link URL and returns a temporary bearer token.
- * This endpoint is called first when a client accesses an upload link.
- *
- * Flow:
- * 1. Client receives upload link with auth token in URL parameter
- * 2. Client calls this endpoint with the auth token
- * 3. Endpoint validates the JWT auth token and checks if upload link is valid
- * 4. If valid, generates a new bearer token (JWT) with 7-day expiration
- * 5. Client uses the bearer token for subsequent upload requests
- */
+async function handlePublicUploadVerify(token: string | undefined) {
+  if (!token) {
+    return { status: 400 as const, body: { error: "Token is required" } };
+  }
+
+  let decoded: AuthTokenPayload;
+  try {
+    decoded = jwt.verify(token, UPLOAD_TOKEN_SECRET) as AuthTokenPayload;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return {
+        status: 401 as const,
+        body: { error: "Auth token has expired" },
+      };
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      return { status: 401 as const, body: { error: "Invalid auth token" } };
+    }
+    throw error;
+  }
+
+  if (decoded.type !== "auth") {
+    return {
+      status: 401 as const,
+      body: { error: "Invalid token type. Expected auth token." },
+    };
+  }
+
+  const uploadLink = await degradeIfDatabaseUnavailable(() =>
+    prisma.uploadLink.findUnique({
+      where: { id: decoded.uploadLinkId },
+      include: {
+        client: {
+          select: {
+            firstName: true,
+            lastName: true,
+            company: true,
+          },
+        },
+        documentRequests: {
+          include: {
+            requestedDocuments: {
+              include: {
+                documentType: {
+                  select: { name: true, description: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  if (!uploadLink) {
+    return { status: 404 as const, body: { error: "Upload link not found" } };
+  }
+
+  if (uploadLink.clientId !== decoded.clientId) {
+    return { status: 401 as const, body: { error: "Token client mismatch" } };
+  }
+
+  if (!uploadLink.isActive) {
+    return {
+      status: 403 as const,
+      body: { error: "Upload link has been deactivated" },
+    };
+  }
+
+  if (new Date() > uploadLink.expiresAt) {
+    return { status: 410 as const, body: { error: "Upload link has expired" } };
+  }
+
+  const bearerTokenPayload: BearerTokenPayload = {
+    uploadLinkId: decoded.uploadLinkId,
+    clientId: decoded.clientId,
+    type: "bearer",
+  };
+
+  const bearerToken = jwt.sign(bearerTokenPayload, UPLOAD_TOKEN_SECRET, {
+    expiresIn: BEARER_TOKEN_EXPIRY,
+  });
+
+  const clientName =
+    `${uploadLink.client.firstName} ${uploadLink.client.lastName}`.trim();
+
+  const requestedDocuments = uploadLink.documentRequests.flatMap((dr) =>
+    dr.requestedDocuments.map((rd) => ({
+      id: rd.id,
+      documentRequestId: dr.id,
+      title: rd.documentType?.name ?? "Requested document",
+      helper: rd.description || rd.documentType?.description || "",
+    })),
+  );
+
+  return {
+    status: 200 as const,
+    body: {
+      token: bearerToken,
+      expiresIn: BEARER_TOKEN_EXPIRY,
+      uploadLinkId: uploadLink.id,
+      clientId: uploadLink.clientId,
+      clientName,
+      requestedDocuments,
+      branding: {
+        companyName: uploadLink.client.company ?? null,
+      },
+    },
+  };
+}
+
+router.get("/verify/:token", async (req, res, next) => {
+  try {
+    const result = await handlePublicUploadVerify(req.params.token);
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    console.error("Error verifying auth token:", error);
+    next(error);
+  }
+});
+
 router.get("/verify", async (req, res, next) => {
   try {
-    const token = req.query.token as string;
-
+    const token = req.query.token as string | undefined;
     if (!token) {
       return res
         .status(400)
         .json({ error: "Token query parameter is required" });
     }
-
-    // Get the secret from environment
-    const secret = process.env.UPLOAD_TOKEN_SECRET;
-    if (!secret) {
-      console.error("UPLOAD_TOKEN_SECRET environment variable not set");
-      return res.status(500).json({ error: "Server configuration error" });
-    }
-
-    // Verify the JWT auth token
-    let decoded: AuthTokenPayload;
-    try {
-      decoded = jwt.verify(token, secret) as AuthTokenPayload;
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ error: "Auth token has expired" });
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({ error: "Invalid auth token" });
-      }
-      throw error;
-    }
-
-    // Validate token type
-    if (decoded.type !== "auth") {
-      return res
-        .status(401)
-        .json({ error: "Invalid token type. Expected auth token." });
-    }
-
-    // Query database to validate upload link
-    const uploadLink = await degradeIfDatabaseUnavailable(() =>
-      prisma.uploadLink.findUnique({
-        where: { id: decoded.uploadLinkId },
-        select: {
-          id: true,
-          clientId: true,
-          expiresAt: true,
-          isActive: true,
-        },
-      }),
-    );
-
-    if (!uploadLink) {
-      return res.status(404).json({ error: "Upload link not found" });
-    }
-
-    // Verify the clientId matches
-    if (uploadLink.clientId !== decoded.clientId) {
-      return res.status(401).json({ error: "Token client mismatch" });
-    }
-
-    if (!uploadLink.isActive) {
-      return res
-        .status(403)
-        .json({ error: "Upload link has been deactivated" });
-    }
-
-    if (new Date() > uploadLink.expiresAt) {
-      return res.status(410).json({ error: "Upload link has expired" });
-    }
-
-    // Generate a new temporary bearer token
-    const bearerTokenPayload: BearerTokenPayload = {
-      uploadLinkId: decoded.uploadLinkId,
-      clientId: decoded.clientId,
-      type: "bearer",
-    };
-
-    const bearerToken = jwt.sign(bearerTokenPayload, secret, {
-      expiresIn: BEARER_TOKEN_EXPIRY,
-    });
-
-    return res.json({
-      token: bearerToken,
-      expiresIn: BEARER_TOKEN_EXPIRY,
-      uploadLinkId: uploadLink.id,
-      clientId: uploadLink.clientId,
-    });
+    const result = await handlePublicUploadVerify(token);
+    return res.status(result.status).json(result.body);
   } catch (error) {
     console.error("Error verifying auth token:", error);
     next(error);
@@ -164,6 +201,7 @@ router.get("/verify", async (req, res, next) => {
 router.post(
   "/presigned-url",
   requireUploadToken,
+  uploadPresignedUrlRateLimit,
   validate(getPresignedUrlSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
@@ -258,6 +296,7 @@ router.post(
 router.post(
   "/complete",
   requireUploadToken,
+  uploadCompletionRateLimit,
   validate(completeUploadSchema),
   async (req: UploadAuthRequest, res, next) => {
     try {
@@ -334,6 +373,7 @@ router.post(
               fileSize,
               s3Key,
               s3Bucket: bucketName,
+              scanStatus: "SCANNING",
               metadata: {
                 mimeType: fileType,
                 fileType: fileType, // Store in metadata for compatibility
@@ -347,6 +387,8 @@ router.post(
               s3Key: true,
               s3Bucket: true,
               uploadedAt: true,
+              scanStatus: true,
+              scanResult: true,
               metadata: true,
             },
           });
@@ -383,11 +425,13 @@ router.post(
         }),
       );
 
-      // Generate a presigned download URL for the uploaded file
-      const downloadUrl = await s3Service.generatePresignedGetUrl(
-        s3Key,
-        3600, // 1 hour
-      );
+      const downloadUrl =
+        result.upload.scanStatus === "CLEAN"
+          ? await s3Service.generatePresignedGetUrl(
+              s3Key,
+              3600, // 1 hour
+            )
+          : null;
 
       // Extract fileType from metadata
       const metadata = result.upload.metadata as {
@@ -396,6 +440,10 @@ router.post(
       };
       const uploadFileType =
         metadata?.fileType || metadata?.mimeType || "unknown";
+
+      if (result.wasCreated) {
+        queueUploadScan(result.upload.id);
+      }
 
       return res.json({
         message: result.wasCreated
@@ -408,6 +456,8 @@ router.post(
           fileType: uploadFileType,
           s3Key: result.upload.s3Key,
           uploadedAt: result.upload.uploadedAt,
+          scanStatus: result.upload.scanStatus,
+          scanResult: result.upload.scanResult,
           downloadUrl,
         },
       });

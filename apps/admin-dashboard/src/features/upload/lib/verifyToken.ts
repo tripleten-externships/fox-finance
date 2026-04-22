@@ -1,11 +1,3 @@
-/**
- * API helper for upload token verification
- * This does NOT use the admin API client with Firebase auth
- */
-
-/**
- * Determines the API base URL based on the current hostname
- */
 function getApiBaseUrl(): string {
   const hostname = window.location.hostname;
 
@@ -20,24 +12,30 @@ function getApiBaseUrl(): string {
   return "https://api.fox-finance.net";
 }
 
+export interface RequestedDocumentItem {
+  id: string;
+  documentRequestId: string;
+  title: string;
+  helper: string;
+}
+
 export interface VerifyTokenResponse {
   token: string;
   expiresIn: number;
   uploadLinkId: string;
   clientId: string;
+  clientName: string;
+  requestedDocuments: RequestedDocumentItem[];
+  branding: {
+    companyName: string | null;
+  };
 }
 
-/**
- * Verify an upload JWT token and get a bearer token
- * @param jwtToken The JWT token from the URL parameter
- * @returns Bearer token and related data
- * @throws Error if verification fails
- */
 export async function verifyUploadToken(
   jwtToken: string,
 ): Promise<VerifyTokenResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/api/upload/verify?token=${encodeURIComponent(jwtToken)}`;
+  const url = `${baseUrl}/api/upload/verify/${encodeURIComponent(jwtToken)}`;
 
   const response = await fetch(url, {
     method: "GET",

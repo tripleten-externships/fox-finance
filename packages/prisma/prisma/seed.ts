@@ -65,7 +65,11 @@ async function main() {
     },
     {
       name: "Tax Documentation",
-      description: "Tax-related documents and forms",
+      description: "Tax-related documents and forms such as W-2, 1099, 1098, or other tax forms and supporting schedules (not a full filed return)",
+    },
+    {
+      name: "Tax Return",
+      description: "Complete federal and state tax returns filed for the requested year(s)",
     },
     {
       name: "Bank Statement",
@@ -80,8 +84,28 @@ async function main() {
       description: "Recent utility bill as proof of address",
     },
     {
-      name: "Tax Return",
-      description: "Complete tax return documentation",
+      name: "Pension Statement",
+      description: "Recent or current pension benefit statement",
+    },
+    {
+      name: "VA Benefits Statement",
+      description: "Current statement of VA disability or other VA benefits",
+    },
+    {
+      name: "Social Security Award Letter",
+      description: "Official SSA letter showing current benefit amount or award",
+    },
+    {
+      name: "Voided Check or Direct Deposit Form",
+      description: "Voided check or direct deposit authorization form",
+    },
+    {
+      name: "Bankruptcy Discharge",
+      description: "Court-issued bankruptcy discharge order",
+    },
+    {
+      name: "Satisfaction of Judgment",
+      description: "Court filing showing a judgment has been satisfied",
     },
   ];
 

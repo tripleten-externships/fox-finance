@@ -58,7 +58,7 @@ Authorization: Bearer <firebase-id-token>
 
 - `GET /api/admin/upload-links` - List all upload links
 - `GET /api/admin/upload-links/:id` - Get upload link details
-- `POST /api/admin/upload-links` - Create a new upload link
+- `POST /api/admin/upload-links` - Create a new upload link (rate limited per admin user)
 - `PATCH /api/admin/upload-links/:id/deactivate` - Deactivate a link
 - `PATCH /api/admin/upload-links/:id/activate` - Reactivate a link
 - `DELETE /api/admin/upload-links/:id` - Delete a link
@@ -250,6 +250,16 @@ AWS_REGION=us-east-1
 # Server
 PORT=4000
 NODE_ENV=development
+TRUST_PROXY_HOPS=1
+
+# Rate limiting
+RATE_LIMIT_EXEMPT_IPS=127.0.0.1,::1
+RATE_LIMIT_ADMIN_UPLOAD_LINK_CREATE_MAX=10
+RATE_LIMIT_ADMIN_UPLOAD_LINK_WINDOW_MS=3600000
+RATE_LIMIT_UPLOAD_PRESIGNED_MAX=50
+RATE_LIMIT_UPLOAD_PRESIGNED_WINDOW_MS=3600000
+RATE_LIMIT_UPLOAD_COMPLETE_MAX=100
+RATE_LIMIT_UPLOAD_COMPLETE_WINDOW_MS=3600000
 ```
 
 ## Running Locally
@@ -303,7 +313,7 @@ The following features are scaffolded and ready for implementation:
 - 🎓 Upload link expiration reminders
 - 🎓 File preview/download for admins
 - 🎓 Audit logging
-- 🎓 Rate limiting per upload link
+- FF-68 rate limiting for admin link creation and upload endpoints
 - 🎓 Virus scanning integration
 
 ## Security Notes
