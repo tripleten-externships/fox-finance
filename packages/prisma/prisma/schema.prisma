@@ -60,7 +60,7 @@ model User {
 // ============================================================================
 
 model Client {
-  //I assumed that a deletion of a client from the database should also result in a deletion of any associated 
+  //I assumed that a deletion of a client from the database should also result in a deletion of any associated
   // upload links and document requests pertaining to that client. I did not assume the uploaded file would be deleted if the client is deleted.
 
   id          String       @id @default(uuid()) @db.Uuid
@@ -171,3 +171,5 @@ model UploadBatch {
 
   uploads Upload[]
 }
+
+
