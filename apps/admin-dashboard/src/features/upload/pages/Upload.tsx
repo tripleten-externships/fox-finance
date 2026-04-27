@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FaArrowUpFromBracket } from "react-icons/fa6";
+import FileDropzone from "../../upload-portal/components/FileDropzone";
 
 type RequiredDoc = {
   id: string;
@@ -90,6 +91,7 @@ export function Upload({
                         />
                         Upload File
                       </button>
+                      <FileDropzone maxFiles={requiredDocs.length}/>
                     </div>
                   </div>
                 ))
