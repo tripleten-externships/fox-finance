@@ -4,6 +4,7 @@ import { verifyUploadToken } from "../lib/verifyToken";
 import { setUploadAuth } from "../lib/tokenStorage";
 import { Card } from "@fox-finance/ui";
 import { Upload } from "./Upload.tsx";
+import FileDropzone from "../../upload-portal/components/FileDropzone.tsx";
 
 type VerificationState = "loading" | "success" | "error";
 
@@ -150,6 +151,8 @@ export function DocumentUpload() {
           />
         )}
       </Card>
+      <FileDropzone maxFiles={1}/>
+      <FileDropzone maxFiles={3}/>
     </div>
   );
 }
