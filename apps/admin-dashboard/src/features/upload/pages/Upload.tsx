@@ -91,7 +91,7 @@ export function Upload({
                         />
                         Upload File
                       </button>
-                      <FileDropzone maxFiles={requiredDocs.length}/>
+                      <FileDropzone maxFiles={3}/>
                     </div>
                   </div>
                 ))
