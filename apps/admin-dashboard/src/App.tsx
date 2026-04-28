@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthFeature } from "./features/auth";
-import { UploadPortal } from "./features/upload-portal/pages/Upload";
+import { DocumentUpload } from "./features/upload";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import DashboardLayout from "./features/dashboard/DashboardLayout";
@@ -12,7 +12,7 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* Public upload route - no authentication required */}
-          <Route path="/upload/:token" element={<UploadPortal />} />
+          <Route path="/upload/:token" element={<DocumentUpload />} />
 
           {/* Auth routes */}
           <Route path="/auth/*" element={<AuthFeature />} />
