@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaArrowUpFromBracket } from "react-icons/fa6";
+import { pageView } from "../lib/pageView";
 
 type RequiredDoc = {
   id: string;
@@ -19,6 +20,30 @@ export function Upload({
   requiredDocs,
 }: UploadProps) {
   const [agreed, setAgreed] = useState(false);
+
+  const visitTrackedRef = useRef(false);
+
+{/* Track client's page visit on success  */}
+  useEffect(() => {
+    // From useRef, prevents pageView() from incrementing twice
+    if (visitTrackedRef.current) return;
+
+    // Checks sessionStorage for key "visited"
+    const alreadyVisited = sessionStorage.getItem("visited");
+    if (alreadyVisited) return;
+
+    // Grabs token from localStorage
+    const token = localStorage.getItem("upload_bearer_token");
+
+    // Checks if token, then sets key "visited" in sessionStorage to prevent page refresh from incrementing page view count
+    if (token) {
+      visitTrackedRef.current = true;
+      sessionStorage.setItem("visited", "true");
+      pageView();
+    };
+
+    console.log("upload_bearer_token:", token);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
