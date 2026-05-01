@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@fox-finance/ui";
 import { verifyUploadToken } from "../../upload/lib/verifyToken";
 import { setUploadAuth } from "../../upload/lib/tokenStorage";
-import { pageView } from "../../upload/lib/pageView";
 
 type VerificationState = "loading" | "success" | "error";
 
@@ -23,7 +22,6 @@ export function UploadPortal() {
   const [state, setState] = useState<VerificationState>("loading");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<UploadPortalData | null>(null);
-  const visitTrackedRef = useRef(false);
 
   const brandName = useMemo(() => {
     if (data?.companyName) return data.companyName;
@@ -66,18 +64,6 @@ export function UploadPortal() {
 
     verifyToken();
   }, [token]);
-
-
-  {/* Track client's page visit on success */}
-  useEffect(() => {
-    // Check if the token validation succeeded or ref is true
-    if (state !== "success" || visitTrackedRef.current) {
-      return;
-    }
-    // If state === "success", ref switches to true and guards against page view counter incrementing twice
-    visitTrackedRef.current = true;
-    pageView();
-  }, [ state ]);
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-10">
